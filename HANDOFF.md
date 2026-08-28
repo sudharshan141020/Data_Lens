@@ -113,22 +113,100 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
   absolute paths into it. Delete and recreate `venv` after any move.
 
 ## What's NOT built yet (from the roadmap discussions)
-- More domains beyond the current 7 (Manufacturing, Agriculture,
-  Sports, Marketing, Customer Support)
-- Global search across charts/insights/findings
-- Interactive filtering (date/region/category filters live-updating charts)
+- More domains beyond the current 8 (Agriculture, Sports, Marketing,
+  Customer Support)
 - Auth + persistence + saved workspace — **flagged multiple times as a
   real product-direction decision**, not just a feature: current app is
   pitched as "nothing is stored," adding accounts/persisted uploads
   reverses that and brings real responsibilities (password hashing,
   per-user data isolation). Needs a deliberate yes/no, not a default.
-- PDF export (Excel export via SheetJS is done — client-side, no backend
-  involvement, see `frontend/src/exportReport.js`)
-- Performance/caching for very large datasets (100K+ rows)
-- Trend forecasting on time-series measures
+- Performance/caching for very large datasets (100K+ rows) — the two
+  actual bottlenecks found there are now fixed (see below); the
+  filtering-disables-past-100K ceiling is a deliberate payload-size
+  tradeoff, not a performance limitation, and hasn't been revisited.
 - Sunburst charts, map visualizations (mentioned as "future" in specs)
 
 ## Recently added (worth knowing about if picking this back up)
+- **Manufacturing domain** (`analyzers/manufacturing_analyzer.py`): 8th
+  domain, same additive plugin pattern as Retail -- new semantic roles
+  (DEFECT_RATE, DOWNTIME, UNITS_PRODUCED, MACHINE, SHIFT,
+  PRODUCTION_LINE), one domains.py entry, one analyzer file, one registry
+  line. Verified: a synthetic manufacturing dataset (production line,
+  machine, shift, defect rate, downtime columns) detects as
+  "manufacturing" at full confidence, with Defect Rate correctly averaged
+  (not summed) in findings.
+- **Bug fix found while building it, affecting Retail too**: `STORE`,
+  `SUPPLIER`, and `WAREHOUSE` were referenced in RetailAnalyzer's
+  `headline_dimension_roles` but were never actually added to
+  `DIMENSION_ROLES` in `understanding.py` -- meaning columns with those
+  roles could never become real dimensions, so the "Store Performance"
+  breakdown could never have worked for any retail dataset since Retail
+  was added. Fixed by adding STORE/SUPPLIER/WAREHOUSE (and the new
+  MACHINE/SHIFT/PRODUCTION_LINE) to DIMENSION_ROLES. Also gave
+  INVENTORY_LEVEL/REORDER_POINT/UNIT_COST/DEFECT_RATE/DOWNTIME/
+  UNITS_PRODUCED explicit entries in MEASURE_ROLES with correct
+  aggregations (e.g. UNIT_COST and DEFECT_RATE average rather than sum)
+  instead of relying on the generic "sum" fallback default.
+- **150K-row performance fix** (`column_detector.py`, `semantic_roles.py`):
+  a 150K-row file took 4.59s end-to-end; profiled every pipeline stage
+  individually to find out why rather than guessing. Two real causes,
+  both in column-role detection, both fixed:
+  1. `_is_usable_column()` (the completeness guard added earlier) was
+     called inside nested role x hint x column loops with no memoization
+     -- the same column's non-null count got redundantly recomputed
+     potentially hundreds of times. Fixed by computing it once per column
+     up front.
+  2. The bigger one: `_dtype_fallback()`'s date-detection heuristic ran
+     `pd.to_datetime()` over the *entire* column for every unmatched text
+     column (e.g. Order ID, Customer ID), and dateutil's lenient parser is
+     slow at scale even when it correctly concludes "not a date." Fixed
+     by sampling up to 1000 values instead of scanning the full column --
+     statistically just as reliable for a yes/no classification, ~30x
+     faster in isolation (3.09s -> 0.10s for `detect_columns` alone).
+  Net result: 4.59s -> ~2.5-2.8s end-to-end on the same 150K-row file,
+  with identical output (verified the column mapping was byte-for-byte
+  unchanged before/after). Smaller datasets improved too as a side
+  benefit -- the ~10.5K stress-test dataset went from ~1.2s to ~0.8s.
+- **Global search** (`frontend/src/searchUtils.js`,
+  `frontend/src/components/SearchBar.jsx`): a single search box over
+  findings, weak points, story beats, chart titles+reasoning, and
+  correlation pairs, built as a flat client-side index from the same v2
+  result already in memory -- no backend involvement. Simple substring
+  matching, word-boundary matches ranked above mid-text ones. Clicking a
+  result scrolls to and briefly highlights it; chart results are a special
+  case since the Explorer only renders one analysis at a time (behind a
+  section tab + dropdown) -- search drives that selection via a
+  `jumpTarget` prop on `AnalysisExplorerV2` rather than a plain scroll.
+  Verified against a real analysis result: 34 indexed entries across 5
+  categories on the sales demo, spot-checked several queries by hand to
+  confirm every match was genuine (including a few that looked surprising
+  at a glance, e.g. a "region" search surfacing a Sales-vs-Profit scatter
+  chart because its reasoning text mentions being grouped by Region).
+- **Interactive filtering** (`app/filtering.py`, `frontend/src/filterUtils.js`,
+  `frontend/src/components/FilterBar.jsx`): date range + per-dimension
+  multi-select filters that live-update charts. Deliberately kept the
+  backend fully stateless -- rather than a `/api/filter` endpoint with
+  server-side session state, `/api/analyze` now also returns
+  `filterable_data`, a compact row-level slice (date + measure + dimension
+  columns only, never the whole raw file) that the frontend filters and
+  re-aggregates entirely client-side, no further server round trips.
+  Covers `trend` and `distribution_sum`/`distribution_count` chart types
+  (the three most common); scatter/heatmap/boxplot/correlation-matrix
+  aren't recomputed client-side and the UI says so explicitly rather than
+  silently leaving them stale. Disables itself above 100K rows (see
+  roadmap note above) and above 40 distinct values for a given dimension
+  (not meaningfully filterable at that cardinality). Verified the
+  client-side aggregation produces byte-for-byte identical numbers to the
+  backend's own computation when no filter is applied, and reruns in
+  ~14ms end-to-end on a 10.5K-row dataset with a two-dimension filter
+  applied.
+- **PDF export** (`app/pdf_report.py`, new `/api/export/pdf` endpoint):
+  stateless by the same logic as filtering -- the frontend sends back the
+  analysis JSON it already has, the backend just formats it into a PDF.
+  Mirrors the Excel export's content (Overview, Story, Findings, Weak
+  Points, Data Quality, Correlations, Multicollinearity). The frontend
+  strips `filterable_data` before sending, since the PDF generator never
+  reads it and it can be a substantial payload on large datasets.
 - **Retail domain** (`analyzers/retail_analyzer.py`): 7th domain, added purely
   additively per the plugin architecture -- new semantic roles
   (INVENTORY_LEVEL, REORDER_POINT, SUPPLIER, STORE, WAREHOUSE, UNIT_COST) in

@@ -7,3 +7,5 @@ openpyxl>=3.1
 xlrd>=2.0
 scipy>=1.11
 reportlab>=4.0
+pydantic>=2.0
+starlette>=0.35

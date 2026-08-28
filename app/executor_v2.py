@@ -125,6 +125,8 @@ def execute_spec(df: pd.DataFrame, spec) -> dict:
         "chart_type": spec.chart_type, "section": spec.section,
         "importance": spec.importance, "aggregation": spec.aggregation,
         "metric_column": spec.metric_column,
+        "column": spec.column,
+        "date_column": spec.date_column,
         "reasoning": spec.reasoning,
     }
     try:

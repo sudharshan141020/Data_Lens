@@ -20,8 +20,8 @@ dataset it's looking at, decides what's worth analyzing for that domain
 specifically, and flags when a finding shouldn't be trusted.
 
 - **Domain-aware, not one-size-fits-all.** Every uploaded file is scored
-  against 7 domain profiles (healthcare, sales, retail, education, HR,
-  traffic, finance) based on which semantic column roles are present, and the
+  against 8 domain profiles (healthcare, sales, retail, manufacturing,
+  education, HR, traffic, finance) based on which semantic column roles are present, and the
   entire analysis — which KPIs matter, which charts get generated, what
   "weak points" even means — adapts to the result.
 - **Statistically honest.** Every correlation is reported with its actual
@@ -42,7 +42,7 @@ specifically, and flags when a finding shouldn't be trusted.
 
 - Automatic semantic column detection (works on files it's never seen —
   no fixed schema)
-- Domain detection across 7 verticals with a confidence score
+- Domain detection across 8 verticals with a confidence score
 - Auto-generated dashboard: the 3 most important analyses, picked and
   chart-typed automatically, with reasoning for each choice
 - Narrative "Story" mode — findings chained into a Trend → Breakdown →
@@ -52,8 +52,13 @@ specifically, and flags when a finding shouldn't be trusted.
   outliers, overall quality score
 - Correlation Center with significance testing (p-values, sample-size
   caveats) and multicollinearity (VIF) detection
-- One-click Excel export of the full report, generated entirely
-  client-side
+- Linear trend forecasting on time-series measures, with a confidence
+  check so it stays silent rather than guessing on noisy data
+- Interactive filtering — date range and per-dimension filters that
+  live-update the trend and breakdown charts client-side, no re-upload
+- Global search across findings, charts, weak points, story, and
+  correlations, with click-to-jump navigation
+- One-click Excel or PDF export of the full report
 - Multi-file sessions with pinning and dataset combining
 
 ## Tech stack

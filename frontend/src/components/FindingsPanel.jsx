@@ -24,7 +24,7 @@ export default function FindingsPanel({ findings, tickNum }) {
           const meta = CATEGORY_META[f.category] || { label: f.category, color: 'var(--text-muted)' };
           const barWidth = Math.max(8, (f.score / maxScore) * 100);
           return (
-            <div key={i} className="insight-card">
+            <div key={i} id={`search-finding-${i}`} className="insight-card">
               <div className="insight-top">
                 <span className="insight-type" style={{ color: meta.color }}>{meta.label}</span>
               </div>

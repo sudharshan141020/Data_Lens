@@ -57,6 +57,12 @@ MEASURE_ROLES = {
     "CONGESTION": "avg",
     "ACCIDENT": "sum",
     "SPEED": "avg",
+    "INVENTORY_LEVEL": "sum",
+    "REORDER_POINT": "avg",
+    "UNIT_COST": "avg",
+    "DEFECT_RATE": "avg",
+    "DOWNTIME": "sum",
+    "UNITS_PRODUCED": "sum",
 }
 
 # Roles that represent a "slice by this" dimension.
@@ -64,6 +70,8 @@ DIMENSION_ROLES = {
     "CONDITION", "HOSPITAL", "INSURANCE", "MEDICATION", "TEST_RESULT",
     "ADMISSION_TYPE", "GENDER", "DEMOGRAPHIC", "DEPARTMENT", "JOB_TITLE",
     "VEHICLE", "ROOM", "SUBJECT", "CATEGORY", "LOCATION",
+    "STORE", "SUPPLIER", "WAREHOUSE",
+    "MACHINE", "SHIFT", "PRODUCTION_LINE",
 }
 
 
@@ -178,6 +186,30 @@ def understand_dataset(df: pd.DataFrame) -> DatasetProfile:
                 measures.append(Measure(column=col, role=role, aggregation=MEASURE_ROLES[role], is_primary=is_primary))
                 if is_primary:
                     primary_set = True
+
+    # Fallback: any numeric column with real, usable data that didn't match
+    # one of the named roles above still deserves to be a measure -- e.g.
+    # a role like QUANTITY isn't in MEASURE_ROLES (it's excluded from
+    # DIMENSION_ROLES too, as a count rather than a category), so without
+    # this it's silently unusable as either, no matter how legitimate the
+    # data is. Same story for any role classify_columns() falls back to by
+    # dtype alone (GENERIC_NUMERIC) on datasets with no domain-specific
+    # column names to match. Defaults to "sum", the aggregation most of
+    # the named roles above already use. IDENTIFIER-role columns are
+    # still excluded here -- a sequential ID isn't a real measure either
+    # way (see the existing PassengerId-as-revenue caution in HANDOFF.md).
+    claimed = {m.column for m in measures}
+    for col, info in semantic_roles.items():
+        if col in claimed or col not in numeric_cols:
+            continue
+        if info["role"] == "IDENTIFIER":
+            continue
+        if not _is_usable_column(df, col):
+            continue
+        is_primary = not primary_set
+        measures.append(Measure(column=col, role=info["role"], aggregation="sum", is_primary=is_primary))
+        if is_primary:
+            primary_set = True
 
     # --- Dimensions ---
     dimensions = []

@@ -35,6 +35,10 @@ DOMAIN_SIGNALS = {
         "INVENTORY_LEVEL": 3, "REORDER_POINT": 3, "SUPPLIER": 3,
         "STORE": 2, "WAREHOUSE": 2, "UNIT_COST": 2,
     },
+    "manufacturing": {
+        "DEFECT_RATE": 3, "DOWNTIME": 3, "MACHINE": 2,
+        "PRODUCTION_LINE": 2, "UNITS_PRODUCED": 2, "SHIFT": 1,
+    },
     "education": {
         "SUBJECT": 3, "SCORE": 3, "ATTENDANCE": 2, "STUDENT": 2, "TEACHER": 2,
     },

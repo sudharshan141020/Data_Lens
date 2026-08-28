@@ -20,6 +20,7 @@ from app.analyzers.registry import get_analyzer
 from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
 from app.forecasting import forecast_trend
+from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
 
 import math
@@ -129,6 +130,7 @@ def _run_v2_pipeline(df: pd.DataFrame) -> dict:
     quality_report = analyze_data_quality(df_exec, profile)
     correlation_report = analyze_correlations(df_exec, profile)
     multicollinearity_report = analyze_multicollinearity(df_exec, profile)
+    filterable_data = build_filterable_data(df_exec, profile)
 
     return {
         "profile": {
@@ -140,6 +142,7 @@ def _run_v2_pipeline(df: pd.DataFrame) -> dict:
             "data_completeness_pct": profile.data_completeness_pct,
             "key_kpis": analyzer.key_kpis,
         },
+        "filterable_data": filterable_data,
         "top_analyses": top_executed,
         "all_analyses": all_executed,
         "findings": [

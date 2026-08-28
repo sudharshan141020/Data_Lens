@@ -19,7 +19,7 @@ export default function StoryMode({ story, tickNum }) {
 
       <div className="story-beats">
         {story.map((beat, i) => (
-          <div className="story-beat" key={i}>
+          <div className="story-beat" key={i} id={`search-story-${i}`}>
             <div className="story-beat-marker">
               <span className="story-beat-dot" style={{ background: TONE_COLOR[beat.tone] || 'var(--text-faint)' }} />
               {i < story.length - 1 && <span className="story-beat-line" />}

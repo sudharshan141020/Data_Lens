@@ -24,7 +24,7 @@ export default function WeakPointsPanel({ weakPoints, tickNum }) {
           {weakPoints.map((w, i) => {
             const meta = PRIORITY_META[w.priority] || PRIORITY_META.low;
             return (
-              <div key={i} className="insight-card">
+              <div key={i} id={`search-weakpoint-${i}`} className="insight-card">
                 <div className="insight-top">
                   <span className="insight-type" style={{ color: meta.color }}>{meta.label} priority</span>
                 </div>

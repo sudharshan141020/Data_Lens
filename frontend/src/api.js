@@ -53,10 +53,15 @@ export async function loadDemoFile() {
 }
 
 export async function exportPdf(fileName, v2) {
+  // filterable_data exists purely for client-side chart filtering and can
+  // be a large payload on big datasets; the PDF generator never reads it,
+  // so there's no reason to upload it on every export.
+  const { filterable_data, ...v2ForExport } = v2;
+
   const res = await fetch(`${API_BASE}/api/export/pdf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_name: fileName, v2 }),
+    body: JSON.stringify({ file_name: fileName, v2: v2ForExport }),
   });
 
   if (!res.ok) {

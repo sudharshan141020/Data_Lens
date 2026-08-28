@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import MappingSummary from './components/MappingSummary';
 import UploadZone from './components/UploadZone';
@@ -13,8 +13,12 @@ import CorrelationCenter from './components/CorrelationCenter';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
+import FilterBar from './components/FilterBar';
+import SearchBar from './components/SearchBar';
 import { analyzeFile, analyzeCombined, loadDemoFile, exportPdf } from './api';
 import { exportAnalysisToExcel } from './exportReport';
+import { applyFilters, recomputeAnalysis } from './filterUtils';
+import { buildSearchIndex } from './searchUtils';
 
 function makeId() {
   return (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -37,6 +41,18 @@ export default function App() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
+  const [filters, setFilters] = useState(null);
+  const [jumpTarget, setJumpTarget] = useState(null);
+  const jumpNonceRef = useRef(0);
+
+  const handleJumpToAnalysis = (analysisId) => {
+    jumpNonceRef.current += 1;
+    setJumpTarget({ id: analysisId, nonce: jumpNonceRef.current });
+  };
+
+  useEffect(() => {
+    setFilters(null); // a filter set for one dataset's columns doesn't apply to another
+  }, [activeId]);
 
   const handleFilesSelected = (files, errorMsg) => {
     setUploadError(errorMsg || null);
@@ -159,6 +175,35 @@ export default function App() {
   const displaySessions = sortSessions(sessions);
   const activeSession = sessions.find((s) => s.id === activeId);
 
+  const filterableData = activeSession?.result?.v2?.filterable_data;
+  const hasActiveFilters = !!(filters && (
+    filters.dateFrom || filters.dateTo ||
+    Object.values(filters.dimensionFilters || {}).some((s) => s && s.size > 0)
+  ));
+
+  const filteredRows = useMemo(() => {
+    if (!filterableData?.available) return [];
+    if (!hasActiveFilters) return filterableData.rows;
+    return applyFilters(filterableData.rows, filters);
+  }, [filterableData, filters, hasActiveFilters]);
+
+  const displayedTopAnalyses = useMemo(() => {
+    const raw = activeSession?.result?.v2?.top_analyses || [];
+    if (!hasActiveFilters) return raw;
+    return raw.map((a) => recomputeAnalysis(a, filteredRows));
+  }, [activeSession, hasActiveFilters, filteredRows]);
+
+  const displayedAllAnalyses = useMemo(() => {
+    const raw = activeSession?.result?.v2?.all_analyses || [];
+    if (!hasActiveFilters) return raw;
+    return raw.map((a) => recomputeAnalysis(a, filteredRows));
+  }, [activeSession, hasActiveFilters, filteredRows]);
+
+  const searchIndex = useMemo(() => {
+    if (!activeSession?.result?.v2) return [];
+    return buildSearchIndex(activeSession.result.v2);
+  }, [activeSession]);
+
   return (
     <div className="app-shell">
       <TopBar />
@@ -255,12 +300,22 @@ export default function App() {
 
             <MappingSummary result={activeSession.result} />
 
-            <IntelligentDashboard topAnalyses={activeSession.result.v2.top_analyses} tickNum="02" />
+            <SearchBar index={searchIndex} onJumpToAnalysis={handleJumpToAnalysis} />
+
+            <FilterBar
+              filterableData={filterableData}
+              filters={filters}
+              onChange={setFilters}
+              filteredCount={filteredRows.length}
+              totalCount={filterableData?.rows?.length || 0}
+            />
+
+            <IntelligentDashboard topAnalyses={displayedTopAnalyses} tickNum="02" filtersActive={hasActiveFilters} />
 
             <StoryMode story={activeSession.result.v2.story} tickNum="03" />
 
             <div className="dashboard-grid">
-              <AnalysisExplorerV2 analyses={activeSession.result.v2.all_analyses} tickNum="04" />
+              <AnalysisExplorerV2 analyses={displayedAllAnalyses} tickNum="04" filtersActive={hasActiveFilters} jumpTarget={jumpTarget} />
               <FindingsPanel findings={activeSession.result.v2.findings} tickNum="05" />
               <WeakPointsPanel weakPoints={activeSession.result.v2.weak_points} tickNum="06" />
               <DataQualityCenter dataQuality={activeSession.result.v2.data_quality} tickNum="07" />

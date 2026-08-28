@@ -42,6 +42,14 @@ ROLE_KEYWORDS = {
     "WAREHOUSE": ["warehouse_id", "warehouse_name", "warehouse", "distribution_center", "dc_id"],
     "UNIT_COST": ["unit_cost", "cost_price", "cogs", "cost_of_goods", "cost_per_unit"],
 
+    # --- Manufacturing-specific ---
+    "DEFECT_RATE": ["defect_rate", "defect_pct", "reject_rate", "scrap_rate", "failure_rate"],
+    "DOWNTIME": ["downtime_minutes", "downtime_hours", "downtime", "machine_downtime", "outage_minutes"],
+    "UNITS_PRODUCED": ["units_produced", "output_units", "production_volume", "units_manufactured", "output_qty"],
+    "MACHINE": ["machine_id", "machine_name", "machine", "equipment_id", "equipment"],
+    "SHIFT": ["shift_id", "shift_name", "work_shift", "shift"],
+    "PRODUCTION_LINE": ["production_line", "assembly_line", "line_id", "line_name"],
+
     # --- Time ---
     "DATE": [
         "order_date", "admission_date", "discharge_date", "enrolled_date",
@@ -167,9 +175,21 @@ def _dtype_fallback(series: pd.Series) -> str:
     # date-parseable text
     if pd.api.types.is_string_dtype(series) or series.dtype == object or "datetime" in str(series.dtype):
         try:
-            parsed = pd.to_datetime(non_null, errors="coerce")
-            if parsed.notna().mean() > 0.9:
-                return "DATE"
+            avg_len = non_null.astype(str).str.len().mean()
+            # Short strings (machine/product codes like "M1", "A2"...)
+            # shouldn't be fed to dateutil's very lenient parser -- it will
+            # happily "parse" them into some nonsensical date rather than
+            # correctly failing, misclassifying a categorical code column
+            # as a date column. Real date representations are virtually
+            # always at least this long ("2024-01", "Jan 2024", "1/15/24").
+            if avg_len >= 5:
+                # And parsing every value is expensive at scale (100k+
+                # rows) even when the column correctly turns out not to
+                # be a date -- a sample is statistically just as reliable.
+                sample = non_null if len(non_null) <= 1000 else non_null.sample(1000, random_state=0)
+                parsed = pd.to_datetime(sample, errors="coerce")
+                if parsed.notna().mean() > 0.9:
+                    return "DATE"
         except Exception:
             pass
 

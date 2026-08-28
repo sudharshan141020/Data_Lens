@@ -61,7 +61,7 @@ export default function CorrelationCenter({ correlationCenter, tickNum }) {
         <div className="corr-list">
           <span className="dq-block-title">All notable relationships</span>
           {pairs.map((p, i) => (
-            <div key={i} className="corr-list-row">
+            <div key={i} id={`search-correlation-${i}`} className="corr-list-row">
               <div className="corr-list-main">
                 <span className="corr-list-pair">{p.col1} ↔ {p.col2}</span>
                 {p.caveat && <span className="corr-list-caveat">{p.caveat}</span>}
