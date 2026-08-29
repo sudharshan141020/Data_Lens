@@ -39,6 +39,10 @@ DOMAIN_SIGNALS = {
         "DEFECT_RATE": 3, "DOWNTIME": 3, "MACHINE": 2,
         "PRODUCTION_LINE": 2, "UNITS_PRODUCED": 2, "SHIFT": 1,
     },
+    "marketing": {
+        "CAMPAIGN": 3, "CTR": 3, "CONVERSION_RATE": 3,
+        "CHANNEL": 2, "ROAS": 2, "AD_SPEND": 2, "CPC": 1,
+    },
     "education": {
         "SUBJECT": 3, "SCORE": 3, "ATTENDANCE": 2, "STUDENT": 2, "TEACHER": 2,
     },

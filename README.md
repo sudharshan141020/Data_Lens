@@ -5,10 +5,39 @@ analytical report in seconds: automatic domain detection, the 3 most
 valuable analyses for that specific dataset, a plain-English narrative
 story, statistically-validated correlations, and concrete, prioritized
 recommendations. Not a generic BI dashboard — the analysis itself adapts
-to whether it's looking at healthcare, sales, retail, education, HR,
-traffic, or finance data.
+to whether it's looking at healthcare, sales, retail, manufacturing,
+marketing, education, HR, traffic, or finance data.
 
 **[Live demo →](#)** &nbsp;·&nbsp; *(add your Render URL here before sharing this repo)*
+
+---
+
+## Screenshots
+
+**Upload → instant domain-aware dashboard.** Detected as Sales data at
+100% confidence, with the three most relevant charts chosen automatically
+for this specific dataset.
+
+![Overview: dashboard with region/category breakdowns and a sales trend](docs/screenshots/01-overview.png)
+
+**A narrative that reads like an analyst wrote it, plus linear trend
+forecasting** — the dashed line projects forward, and the caveat
+underneath explains exactly how (and how confidently), including
+automatically excluding an incomplete final month from the projection.
+
+![Story narrative and a trend chart with a forecasted dashed projection](docs/screenshots/02-story-and-forecast.png)
+
+**Statistical rigor, not just charts.** Every correlation carries a
+p-value and sample size, and measures are checked for multicollinearity
+(VIF) so redundant metrics don't get mistaken for independent signals.
+
+![Data Quality score and Correlation Center with VIF multicollinearity check](docs/screenshots/03-data-quality-and-correlations.png)
+
+**Findings ranked by what's actually worth knowing**, plus concrete,
+prioritized recommendations — not just "here's a chart," but "here's what
+to do about it."
+
+![Findings panel and prioritized Weak Points with suggested actions](docs/screenshots/04-findings-and-weak-points.png)
 
 ---
 
@@ -20,10 +49,11 @@ dataset it's looking at, decides what's worth analyzing for that domain
 specifically, and flags when a finding shouldn't be trusted.
 
 - **Domain-aware, not one-size-fits-all.** Every uploaded file is scored
-  against 8 domain profiles (healthcare, sales, retail, manufacturing,
-  education, HR, traffic, finance) based on which semantic column roles are present, and the
-  entire analysis — which KPIs matter, which charts get generated, what
-  "weak points" even means — adapts to the result.
+  against 9 domain profiles (healthcare, sales, retail, manufacturing,
+  marketing, education, HR, traffic, finance) based on which semantic
+  column roles are present, and the entire analysis — which KPIs matter,
+  which charts get generated, what "weak points" even means — adapts to
+  the result.
 - **Statistically honest.** Every correlation is reported with its actual
   p-value and sample size, not just the coefficient. A strong-looking
   relationship on 12 rows gets flagged as unreliable instead of presented
@@ -42,7 +72,7 @@ specifically, and flags when a finding shouldn't be trusted.
 
 - Automatic semantic column detection (works on files it's never seen —
   no fixed schema)
-- Domain detection across 8 verticals with a confidence score
+- Domain detection across 9 verticals with a confidence score
 - Auto-generated dashboard: the 3 most important analyses, picked and
   chart-typed automatically, with reasoning for each choice
 - Narrative "Story" mode — findings chained into a Trend → Breakdown →

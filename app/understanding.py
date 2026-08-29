@@ -63,6 +63,13 @@ MEASURE_ROLES = {
     "DEFECT_RATE": "avg",
     "DOWNTIME": "sum",
     "UNITS_PRODUCED": "sum",
+    "IMPRESSIONS": "sum",
+    "CLICKS": "sum",
+    "CTR": "avg",
+    "CONVERSION_RATE": "avg",
+    "CPC": "avg",
+    "ROAS": "avg",
+    "AD_SPEND": "sum",
 }
 
 # Roles that represent a "slice by this" dimension.
@@ -72,6 +79,7 @@ DIMENSION_ROLES = {
     "VEHICLE", "ROOM", "SUBJECT", "CATEGORY", "LOCATION",
     "STORE", "SUPPLIER", "WAREHOUSE",
     "MACHINE", "SHIFT", "PRODUCTION_LINE",
+    "CAMPAIGN", "CHANNEL",
 }
 
 

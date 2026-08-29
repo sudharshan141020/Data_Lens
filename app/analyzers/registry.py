@@ -8,6 +8,7 @@ from app.analyzers.healthcare_analyzer import HealthcareAnalyzer
 from app.analyzers.sales_analyzer import SalesAnalyzer
 from app.analyzers.retail_analyzer import RetailAnalyzer
 from app.analyzers.manufacturing_analyzer import ManufacturingAnalyzer
+from app.analyzers.marketing_analyzer import MarketingAnalyzer
 from app.analyzers.education_analyzer import EducationAnalyzer
 from app.analyzers.hr_analyzer import HRAnalyzer
 from app.analyzers.traffic_analyzer import TrafficAnalyzer
@@ -19,6 +20,7 @@ REGISTRY = {
     "sales": SalesAnalyzer,
     "retail": RetailAnalyzer,
     "manufacturing": ManufacturingAnalyzer,
+    "marketing": MarketingAnalyzer,
     "education": EducationAnalyzer,
     "hr": HRAnalyzer,
     "traffic": TrafficAnalyzer,

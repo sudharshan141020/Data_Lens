@@ -50,6 +50,17 @@ ROLE_KEYWORDS = {
     "SHIFT": ["shift_id", "shift_name", "work_shift", "shift"],
     "PRODUCTION_LINE": ["production_line", "assembly_line", "line_id", "line_name"],
 
+    # --- Marketing-specific ---
+    "CAMPAIGN": ["campaign_id", "campaign_name", "campaign"],
+    "CHANNEL": ["channel", "ad_channel", "traffic_source", "platform"],
+    "IMPRESSIONS": ["impressions", "impression_count", "ad_impressions"],
+    "CLICKS": ["clicks", "click_count", "ad_clicks"],
+    "CTR": ["ctr", "click_through_rate", "clickthrough_rate"],
+    "CONVERSION_RATE": ["conversion_rate", "conv_rate", "cvr"],
+    "CPC": ["cpc", "cost_per_click"],
+    "ROAS": ["roas", "return_on_ad_spend"],
+    "AD_SPEND": ["ad_spend", "marketing_spend", "campaign_spend", "media_spend"],
+
     # --- Time ---
     "DATE": [
         "order_date", "admission_date", "discharge_date", "enrolled_date",

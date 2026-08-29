@@ -113,8 +113,7 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
   absolute paths into it. Delete and recreate `venv` after any move.
 
 ## What's NOT built yet (from the roadmap discussions)
-- More domains beyond the current 8 (Agriculture, Sports, Marketing,
-  Customer Support)
+- More domains beyond the current 9 (Agriculture, Sports, Customer Support)
 - Auth + persistence + saved workspace — **flagged multiple times as a
   real product-direction decision**, not just a feature: current app is
   pitched as "nothing is stored," adding accounts/persisted uploads
@@ -127,6 +126,12 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
 - Sunburst charts, map visualizations (mentioned as "future" in specs)
 
 ## Recently added (worth knowing about if picking this back up)
+- **Marketing domain** (`analyzers/marketing_analyzer.py`): 9th domain,
+  same additive plugin pattern -- new semantic roles (CAMPAIGN, CHANNEL,
+  IMPRESSIONS, CLICKS, CTR, CONVERSION_RATE, CPC, ROAS, AD_SPEND). Verified
+  with a synthetic campaign dataset: detects at full confidence, correct
+  KPI vocabulary, and CTR/Conversion Rate/ROAS all correctly average
+  rather than sum (a rate summed across rows would be meaningless).
 - **Manufacturing domain** (`analyzers/manufacturing_analyzer.py`): 8th
   domain, same additive plugin pattern as Retail -- new semantic roles
   (DEFECT_RATE, DOWNTIME, UNITS_PRODUCED, MACHINE, SHIFT,
