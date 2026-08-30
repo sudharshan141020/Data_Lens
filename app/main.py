@@ -219,6 +219,37 @@ def _semantic_layer(df: pd.DataFrame) -> dict:
     }
 
 
+MIN_NUMERIC_COERCION_SUCCESS_RATE = 0.90
+
+
+def _coerce_mostly_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Real-world CSVs routinely have a numeric column with a handful of
+    stray non-numeric placeholder values (a literal "F", "N/A", "-",
+    a typo...). Pandas reads the WHOLE column as text the moment it hits
+    even one such value, which silently excludes an otherwise perfectly
+    good numeric column from every measure, correlation, and VIF check --
+    even when 98%+ of the column is real numbers. If coercing a text
+    column to numeric succeeds for the large majority of its values,
+    convert it; the few unparseable values become NaN (missing), which
+    is far more honest than discarding the column's real data entirely.
+    Columns that are mostly non-numeric (dates, categories, IDs) fail the
+    success-rate check and are left untouched.
+    """
+    df = df.copy()
+    for col in df.columns:
+        if df[col].dtype != object and not pd.api.types.is_string_dtype(df[col]):
+            continue
+        non_null = df[col].dropna()
+        if len(non_null) == 0:
+            continue
+        coerced = pd.to_numeric(non_null, errors="coerce")
+        success_rate = coerced.notna().mean()
+        if success_rate >= MIN_NUMERIC_COERCION_SUCCESS_RATE:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
 def _load_dataframe(filename: str, raw: bytes) -> pd.DataFrame:
     ext = Path(filename).suffix.lower()
 
@@ -230,7 +261,7 @@ def _load_dataframe(filename: str, raw: bytes) -> pd.DataFrame:
 
     if ext in (".xlsx", ".xls"):
         try:
-            return pd.read_excel(io.BytesIO(raw))
+            return _coerce_mostly_numeric_columns(pd.read_excel(io.BytesIO(raw)))
         except Exception as e:
             raise HTTPException(400, f"Couldn't read the Excel file: {e}")
 
@@ -238,7 +269,7 @@ def _load_dataframe(filename: str, raw: bytes) -> pd.DataFrame:
     last_error = None
     for encoding in ("utf-8", "utf-8-sig", "latin1", "cp1252"):
         try:
-            return pd.read_csv(io.BytesIO(raw), sep=sep, encoding=encoding)
+            return _coerce_mostly_numeric_columns(pd.read_csv(io.BytesIO(raw), sep=sep, encoding=encoding))
         except Exception as e:
             last_error = e
             continue

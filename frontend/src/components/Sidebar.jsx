@@ -70,7 +70,8 @@ export default function Sidebar({
 
               <div className="session-item-body">
                 <span className="session-name mono">{s.fileName}</span>
-                {s.status === 'ready' && s.result?.kpis?.total_revenue !== undefined && (
+                {s.status === 'ready' && s.result?.kpis?.total_revenue !== undefined
+                  && s.result?.detection_confidence?.revenue !== 'guessed' && (
                   <span className="session-sub mono">
                     ${(s.result.kpis.total_revenue / 1000).toFixed(1)}K revenue
                   </span>

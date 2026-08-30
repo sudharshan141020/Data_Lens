@@ -217,12 +217,18 @@ def detect_columns(df: pd.DataFrame) -> dict:
         else:
             unmapped.append(col)
 
-    # if revenue wasn't found by name, take the largest-magnitude leftover numeric measure
+    # if revenue wasn't found by name, take the largest-magnitude leftover
+    # numeric measure -- but be honest that this carries no real semantic
+    # signal (unlike e.g. a dtype-inferred date column), it's a last-resort
+    # guess for datasets that may not have a revenue concept at all. Tagged
+    # separately from "inferred" so the UI can avoid confidently labeling
+    # some arbitrary column's sum as "$X revenue" when there's no actual
+    # evidence this column represents money.
     if "revenue" not in mapping and numeric_measures:
         sums = {c: df[c].abs().sum() for c in numeric_measures}
         best = max(sums, key=sums.get)
         mapping["revenue"] = best
-        confidence["revenue"] = "inferred"
+        confidence["revenue"] = "guessed"
         numeric_measures.remove(best)
 
     # remaining numeric measures: only claim one as profit if there's a real
