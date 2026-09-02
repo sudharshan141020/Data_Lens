@@ -15,7 +15,8 @@ import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
-import { analyzeFile, analyzeCombined, loadDemoFile, exportPdf } from './api';
+import SampleGallery from './components/SampleGallery';
+import { analyzeFile, analyzeCombined, loadSampleFile, exportPdf } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { applyFilters, recomputeAnalysis } from './filterUtils';
 import { buildSearchIndex } from './searchUtils';
@@ -38,7 +39,7 @@ export default function App() {
   const [uploadError, setUploadError] = useState(null);
   const [combineMode, setCombineMode] = useState(false);
   const [selectedForCombine, setSelectedForCombine] = useState([]);
-  const [demoLoading, setDemoLoading] = useState(false);
+  const [sampleLoadingId, setSampleLoadingId] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
   const [filters, setFilters] = useState(null);
@@ -86,6 +87,27 @@ export default function App() {
           )));
         });
     });
+  };
+
+  const [remappingId, setRemappingId] = useState(null);
+  const [remapError, setRemapError] = useState(null);
+
+  const handleRemapColumn = (sessionId, legacyRole, newColumn) => {
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session?.sourceFile) return; // combined sessions have no single source file to resend
+
+    const nextOverrides = { ...(session.columnOverrides || {}), [legacyRole]: newColumn };
+    setRemapError(null);
+    setRemappingId(sessionId);
+
+    analyzeFile(session.sourceFile, nextOverrides)
+      .then((data) => {
+        setSessions((prev) => prev.map((s) => (
+          s.id === sessionId ? { ...s, result: data, columnOverrides: nextOverrides } : s
+        )));
+      })
+      .catch((e) => setRemapError(e.message || 'Could not apply that column mapping.'))
+      .finally(() => setRemappingId(null));
   };
 
   const handleRemove = (id) => {
@@ -164,12 +186,12 @@ export default function App() {
       });
   };
 
-  const handleTryDemo = () => {
-    setDemoLoading(true);
-    loadDemoFile()
+  const handleTrySample = (sample) => {
+    setSampleLoadingId(sample.id);
+    loadSampleFile(sample.filename)
       .then((file) => handleFilesSelected([file], null))
       .catch((e) => setUploadError(e.message))
-      .finally(() => setDemoLoading(false));
+      .finally(() => setSampleLoadingId(null));
   };
 
   const displaySessions = sortSessions(sessions);
@@ -245,9 +267,7 @@ export default function App() {
 
             <UploadZone onFilesSelected={handleFilesSelected} error={uploadError} />
 
-            <button className="demo-btn" onClick={handleTryDemo} disabled={demoLoading}>
-              {demoLoading ? 'Loading demo…' : 'Try Demo Dataset'}
-            </button>
+            <SampleGallery onTrySample={handleTrySample} loadingId={sampleLoadingId} />
 
             <WorkflowSteps />
 
@@ -298,7 +318,12 @@ export default function App() {
 
             <ExecutiveSummary fileName={activeSession.fileName} v2={activeSession.result.v2} />
 
-            <MappingSummary result={activeSession.result} />
+            <MappingSummary
+              result={activeSession.result}
+              onRemap={(role, col) => handleRemapColumn(activeSession.id, role, col)}
+              remapping={remappingId === activeSession.id}
+              remapError={remapError}
+            />
 
             <SearchBar index={searchIndex} onJumpToAnalysis={handleJumpToAnalysis} />
 

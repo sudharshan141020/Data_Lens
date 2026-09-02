@@ -2,7 +2,8 @@ import io
 from typing import Optional
 import pandas as pd
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import json
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
@@ -81,7 +82,7 @@ def _serialize_correlation_pair(pair) -> Optional[dict]:
     }
 
 
-def _run_v2_pipeline(df: pd.DataFrame) -> dict:
+def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     """
     The full new pipeline: Dataset Understanding -> pick the right domain
     Analyzer plugin -> that plugin's dashboard/findings/weak-points. This
@@ -90,7 +91,7 @@ def _run_v2_pipeline(df: pd.DataFrame) -> dict:
     decision (which dimensions matter most, what KPIs this domain cares
     about) lives inside that plugin, not here.
     """
-    profile = understand_dataset(df)
+    profile = understand_dataset(df, role_overrides=role_overrides)
 
     df_exec = df.copy()
     for col, role in profile.semantic_roles.items():
@@ -276,7 +277,25 @@ def _load_dataframe(filename: str, raw: bytes) -> pd.DataFrame:
     raise HTTPException(400, f"Couldn't parse the file: {last_error}")
 
 
-def _analyze_df(df: pd.DataFrame, mapping: dict, confidence: dict, unmapped: list, extra_categoricals: list) -> dict:
+# Maps the legacy pipeline's fixed role keys (shown in the Column Mapping
+# UI) to the v2 pipeline's semantic role tags, so a single manual
+# correction from the user ("no, use THIS column for Revenue") can be
+# applied consistently to both pipelines rather than only fixing the
+# cosmetic legacy label while the actual v2 dashboard stays wrong.
+LEGACY_ROLE_TO_V2_ROLE = {
+    "date": "DATE",
+    "revenue": "FINANCIAL_METRIC",
+    "profit": "PROFIT",
+    "cost": "UNIT_COST",
+    "quantity": "QUANTITY",
+    "discount": "DISCOUNT",
+    "customer": "CUSTOMER",
+    "category": "CATEGORY",
+    "region": "LOCATION",
+}
+
+
+def _analyze_df(df: pd.DataFrame, mapping: dict, confidence: dict, unmapped: list, extra_categoricals: list, v2_role_overrides: dict = None) -> dict:
     df_prepared = prepare(df, mapping)
     response = {
         "detected_columns": mapping,
@@ -288,11 +307,11 @@ def _analyze_df(df: pd.DataFrame, mapping: dict, confidence: dict, unmapped: lis
         "insights": generate_insights(df_prepared, mapping, extra_categoricals),
     }
     response.update(_semantic_layer(df))
-    response["v2"] = _run_v2_pipeline(df)
+    response["v2"] = _run_v2_pipeline(df, role_overrides=v2_role_overrides)
     return response
 
 
-def _categorical_only_analysis(df: pd.DataFrame, detection: dict) -> dict:
+def _categorical_only_analysis(df: pd.DataFrame, detection: dict, v2_role_overrides: dict = None) -> dict:
     """
     Fallback for files with no usable numeric metric at all (e.g. a roster of
     names/categories, plain text data). Rather than failing outright, still
@@ -335,7 +354,7 @@ def _categorical_only_analysis(df: pd.DataFrame, detection: dict) -> dict:
         "no_numeric_metric": True,
     }
     response.update(_semantic_layer(df))
-    response["v2"] = _run_v2_pipeline(df)
+    response["v2"] = _run_v2_pipeline(df, role_overrides=v2_role_overrides)
     return response
 
 
@@ -358,7 +377,7 @@ def _load_and_detect(filename: str, raw: bytes):
 
 
 @app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(file: UploadFile = File(...), column_overrides: str = Form(None)):
     raw = await file.read()
     df = _load_dataframe(file.filename, raw)
 
@@ -367,13 +386,35 @@ async def analyze(file: UploadFile = File(...)):
 
     detection = detect_columns(df)
     mapping = detection["mapping"]
+    confidence = detection["confidence"]
+
+    v2_role_overrides = None
+    if column_overrides:
+        try:
+            overrides = json.loads(column_overrides)
+        except (json.JSONDecodeError, TypeError):
+            raise HTTPException(400, "column_overrides must be valid JSON.")
+        v2_role_overrides = {}
+        for legacy_role, column in overrides.items():
+            if column not in df.columns:
+                raise HTTPException(400, f"'{column}' is not a column in this file.")
+            mapping[legacy_role] = column
+            confidence[legacy_role] = "manual"
+            if legacy_role in LEGACY_ROLE_TO_V2_ROLE:
+                v2_role_overrides[column] = LEGACY_ROLE_TO_V2_ROLE[legacy_role]
+
+    unmapped = detection["unmapped"]
+    if column_overrides and v2_role_overrides is not None:
+        mapped_columns = set(mapping.values())
+        unmapped = [c for c in unmapped if c not in mapped_columns]
+        detection["unmapped"] = unmapped
 
     if "revenue" not in mapping:
         # No usable numeric metric anywhere in the file — don't fail, fall
         # back to a categorical/overview-only analysis instead.
-        return _categorical_only_analysis(df, detection)
+        return _categorical_only_analysis(df, detection, v2_role_overrides=v2_role_overrides)
 
-    return _analyze_df(df, mapping, detection["confidence"], detection["unmapped"], detection["extra_categoricals"])
+    return _analyze_df(df, mapping, confidence, unmapped, detection["extra_categoricals"], v2_role_overrides=v2_role_overrides)
 
 
 @app.post("/api/analyze-combined")

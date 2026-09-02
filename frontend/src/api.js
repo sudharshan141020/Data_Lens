@@ -3,9 +3,12 @@
 // running `npm run dev` separately from the backend.
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
-export async function analyzeFile(file) {
+export async function analyzeFile(file, columnOverrides) {
   const formData = new FormData();
   formData.append('file', file);
+  if (columnOverrides && Object.keys(columnOverrides).length > 0) {
+    formData.append('column_overrides', JSON.stringify(columnOverrides));
+  }
 
   const res = await fetch(`${API_BASE}/api/analyze`, {
     method: 'POST',
@@ -45,11 +48,32 @@ export async function analyzeCombined(files) {
   return body;
 }
 
-export async function loadDemoFile() {
-  const res = await fetch('/demo-sales-data.csv');
-  if (!res.ok) throw new Error('Could not load the demo dataset.');
+export const SAMPLE_DATASETS = [
+  {
+    id: 'sales',
+    label: 'Sales',
+    filename: 'demo-sales-data.csv',
+    description: '600 orders — regions, categories, profit, and discounts',
+  },
+  {
+    id: 'healthcare',
+    label: 'Healthcare',
+    filename: 'sample-healthcare-data.csv',
+    description: '1,200 patient records — conditions, admissions, and billing',
+  },
+  {
+    id: 'manufacturing',
+    label: 'Manufacturing',
+    filename: 'sample-manufacturing-data.csv',
+    description: '1,500 production records — defect rates, downtime, and output',
+  },
+];
+
+export async function loadSampleFile(filename) {
+  const res = await fetch(`/${filename}`);
+  if (!res.ok) throw new Error('Could not load that sample dataset.');
   const blob = await res.blob();
-  return new File([blob], 'demo-sales-data.csv', { type: 'text/csv' });
+  return new File([blob], filename, { type: 'text/csv' });
 }
 
 export async function exportPdf(fileName, v2) {

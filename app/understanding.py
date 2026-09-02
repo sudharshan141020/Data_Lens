@@ -148,14 +148,25 @@ def _is_usable_column(df: pd.DataFrame, col: str) -> bool:
     return True
 
 
-def understand_dataset(df: pd.DataFrame) -> DatasetProfile:
+def understand_dataset(df: pd.DataFrame, role_overrides: dict = None) -> DatasetProfile:
     """
     The single entry point for the entire downstream pipeline. Everything
     else (analysis planner, insight engine, weak-point detector) should take
     a DatasetProfile as input rather than re-deriving roles from a raw
     dataframe.
+
+    role_overrides: optional {column_name: SEMANTIC_ROLE} dict for when the
+    automatic classifier got a column wrong and the user corrected it via
+    the Column Mapping UI. Applied right after automatic classification, so
+    the correction flows through everything downstream -- domain detection,
+    measure/dimension selection, findings, correlations, all of it -- not
+    just a cosmetic label change.
     """
     semantic_roles = classify_columns(df)
+    if role_overrides:
+        for col, role in role_overrides.items():
+            if col in semantic_roles:
+                semantic_roles[col] = {"role": role, "confidence": "manual", "matched_keyword": None}
     # Domain scoring only considers columns with enough real data to matter --
     # otherwise a column that's 97% empty but happens to be named e.g.
     # "diagnosis" can swing the entire dataset's domain classification to
