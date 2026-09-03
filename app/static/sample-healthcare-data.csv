@@ -1,0 +1,1201 @@
+Patient ID,Age,Gender,Medical Condition,Admission Type,Hospital,Insurance Provider,Admission Date,Discharge Date,Billing Amount,Test Results
+PT-00001,90,Female,Cancer,Urgent,St. Mary General,Blue Cross,2024-08-27,2024-09-02,33302.4,Normal
+PT-00002,93,Male,Asthma,Elective,St. Mary General,Blue Cross,2024-02-12,2024-02-26,9103.01,Abnormal
+PT-00003,47,Female,Hypertension,Emergency,Lakeside Hospital,Cigna,2022-02-18,2022-02-25,8516.7,Normal
+PT-00004,67,Female,Asthma,Elective,Riverside Medical,Blue Cross,2023-01-04,2023-01-13,10674.51,Normal
+PT-00005,32,Female,Cancer,Elective,Lakeside Hospital,Cigna,2023-12-02,2023-12-13,17808.95,Normal
+PT-00006,91,Female,Arthritis,Emergency,Central Health,Aetna,2023-09-03,2023-09-09,13280.78,Normal
+PT-00007,10,Female,Asthma,Elective,Riverside Medical,Medicare,2023-05-27,2023-05-30,5580.63,Normal
+PT-00008,35,Female,Hypertension,Urgent,Central Health,Blue Cross,2024-01-24,2024-01-29,11754.01,Normal
+PT-00009,60,Male,Diabetes,Emergency,St. Mary General,Medicare,2022-07-22,2022-07-31,10233.59,Normal
+PT-00010,1,Female,Diabetes,Elective,Lakeside Hospital,UnitedHealth,2024-04-20,2024-04-27,9352.95,Normal
+PT-00011,22,Female,Obesity,Emergency,Riverside Medical,Cigna,2023-03-24,2023-03-30,8322.92,Normal
+PT-00012,90,Female,Cancer,Emergency,Central Health,Medicare,2024-04-09,2024-04-13,30419.78,Normal
+PT-00013,77,Male,Diabetes,Emergency,Riverside Medical,Blue Cross,2022-08-22,2022-08-26,15358.94,Normal
+PT-00014,12,Female,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2022-05-03,2022-05-14,17227.11,Abnormal
+PT-00015,78,Female,Obesity,Emergency,Lakeside Hospital,Medicare,2022-11-01,2022-11-06,8708.45,Abnormal
+PT-00016,48,Female,Diabetes,Emergency,Riverside Medical,Medicare,2024-05-18,2024-05-19,13667.65,Abnormal
+PT-00017,62,Male,Obesity,Emergency,Riverside Medical,Cigna,2024-09-25,2024-10-05,8593.03,Normal
+PT-00018,39,Male,Asthma,Emergency,Riverside Medical,Blue Cross,2023-08-20,2023-09-01,8538.09,Normal
+PT-00019,60,Male,Diabetes,Urgent,Central Health,Medicare,2023-10-23,2023-10-24,8851.25,Abnormal
+PT-00020,12,Female,Obesity,Elective,St. Mary General,UnitedHealth,2024-06-06,2024-06-09,5775.6,Normal
+PT-00021,78,Male,Hypertension,Emergency,Lakeside Hospital,Medicare,2023-11-13,2023-11-16,8667.64,Normal
+PT-00022,10,Male,Arthritis,Urgent,Riverside Medical,Aetna,2023-05-02,2023-05-08,7542.84,Normal
+PT-00023,14,Male,Asthma,Elective,St. Mary General,UnitedHealth,2022-10-02,2022-10-06,7338.52,Inconclusive
+PT-00024,50,Male,Diabetes,Elective,Lakeside Hospital,Blue Cross,2022-02-20,2022-02-25,12442.63,Inconclusive
+PT-00025,39,Male,Arthritis,Elective,Central Health,Blue Cross,2024-08-10,2024-08-14,11856.15,Abnormal
+PT-00026,43,Male,Diabetes,Emergency,Central Health,Aetna,2023-04-28,2023-05-07,14811.28,Inconclusive
+PT-00027,31,Female,Diabetes,Elective,Riverside Medical,Medicare,2023-07-15,2023-07-17,14020.15,Normal
+PT-00028,60,Female,Diabetes,Emergency,Lakeside Hospital,Aetna,2023-01-04,2023-01-17,17328.51,Normal
+PT-00029,94,Female,Obesity,Emergency,Central Health,Medicare,2022-09-06,2022-09-08,5491.89,Normal
+PT-00030,34,Female,Obesity,Urgent,St. Mary General,Cigna,2023-04-21,2023-05-01,8141.93,Inconclusive
+PT-00031,72,Male,Hypertension,Emergency,Riverside Medical,Medicare,2024-07-18,2024-07-24,9166.48,Abnormal
+PT-00032,92,Male,Arthritis,Emergency,Central Health,UnitedHealth,2024-02-20,2024-02-26,13485.47,Inconclusive
+PT-00033,14,Male,Obesity,Elective,St. Mary General,Aetna,2022-08-29,2022-09-06,12046.96,Abnormal
+PT-00034,15,Male,Cancer,Emergency,St. Mary General,Medicare,2022-09-29,2022-10-05,27084.45,Normal
+PT-00035,74,Female,Hypertension,Elective,St. Mary General,UnitedHealth,2024-05-08,2024-05-10,9426.22,Normal
+PT-00036,12,Female,Hypertension,Elective,Lakeside Hospital,Aetna,2024-11-18,2024-11-22,8184.23,Normal
+PT-00037,37,Female,Diabetes,Elective,St. Mary General,Aetna,2023-04-10,2023-04-19,13573.57,Inconclusive
+PT-00038,26,Female,Hypertension,Elective,Central Health,Medicare,2024-05-27,2024-06-09,13278.3,Normal
+PT-00039,36,Female,Asthma,Urgent,Lakeside Hospital,Cigna,2023-01-20,2023-02-01,9080.31,Abnormal
+PT-00040,6,Male,Arthritis,Elective,Lakeside Hospital,Cigna,2022-08-24,2022-08-31,14912.89,Normal
+PT-00041,32,Female,Asthma,Elective,Central Health,Blue Cross,2024-08-11,2024-08-15,10022.37,Abnormal
+PT-00042,72,Female,Hypertension,Elective,Riverside Medical,Cigna,2023-01-24,2023-02-07,14499.89,Normal
+PT-00043,42,Female,Obesity,Urgent,St. Mary General,Cigna,2024-08-30,2024-08-31,5613.01,Normal
+PT-00044,24,Male,Hypertension,Elective,Lakeside Hospital,Aetna,2024-07-10,2024-07-23,14308.52,Inconclusive
+PT-00045,80,Male,Hypertension,Elective,St. Mary General,Aetna,2024-02-02,2024-02-10,12969.5,Normal
+PT-00046,46,Female,Hypertension,Elective,Riverside Medical,Aetna,2022-05-03,2022-05-06,4670.24,Normal
+PT-00047,36,Female,Arthritis,Elective,Riverside Medical,Medicare,2022-06-10,2022-06-17,6666.5,Normal
+PT-00048,36,Male,Hypertension,Urgent,St. Mary General,UnitedHealth,2024-12-23,2025-01-04,10833.47,Normal
+PT-00049,9,Female,Hypertension,Emergency,Riverside Medical,UnitedHealth,2023-02-14,2023-02-22,7039.81,Normal
+PT-00050,90,Male,Diabetes,Emergency,Riverside Medical,Cigna,2022-07-01,2022-07-06,11951.72,Normal
+PT-00051,52,Female,Hypertension,Emergency,Riverside Medical,Cigna,2023-05-26,2023-05-27,11082.53,Abnormal
+PT-00052,70,Male,Hypertension,Elective,Riverside Medical,Blue Cross,2022-05-02,2022-05-16,15464.28,Abnormal
+PT-00053,2,Female,Obesity,Urgent,Central Health,UnitedHealth,2023-08-07,2023-08-10,6918.26,Normal
+PT-00054,34,Female,Hypertension,Urgent,Lakeside Hospital,UnitedHealth,2022-02-03,2022-02-09,10631.58,Normal
+PT-00055,80,Female,Cancer,Urgent,Riverside Medical,UnitedHealth,2022-01-09,2022-01-17,22295.43,Normal
+PT-00056,79,Female,Asthma,Emergency,Lakeside Hospital,UnitedHealth,2023-09-08,2023-09-18,7193.63,Normal
+PT-00057,65,Male,Asthma,Elective,St. Mary General,Medicare,2024-09-17,2024-09-20,5418.34,Inconclusive
+PT-00058,9,Female,Hypertension,Elective,Lakeside Hospital,Medicare,2024-03-03,2024-03-13,10673.73,Normal
+PT-00059,15,Female,Diabetes,Urgent,Central Health,Blue Cross,2023-10-01,2023-10-10,17335.44,Normal
+PT-00060,8,Male,Diabetes,Elective,Central Health,Blue Cross,2023-09-12,2023-09-26,13334.86,Normal
+PT-00061,19,Female,Hypertension,Emergency,Lakeside Hospital,Aetna,2024-12-24,2024-12-29,6507.14,Normal
+PT-00062,71,Female,Asthma,Urgent,St. Mary General,Blue Cross,2024-07-24,2024-07-27,5780.7,Abnormal
+PT-00063,39,Female,Cancer,Elective,St. Mary General,Cigna,2022-01-06,2022-01-20,21450.8,Normal
+PT-00064,18,Male,Asthma,Emergency,St. Mary General,Medicare,2024-01-28,2024-02-10,13367.82,Abnormal
+PT-00065,88,Male,Obesity,Emergency,Riverside Medical,Cigna,2023-10-07,2023-10-20,13147.32,Normal
+PT-00066,8,Male,Asthma,Elective,Riverside Medical,Aetna,2024-12-10,2024-12-17,5560.87,Inconclusive
+PT-00067,17,Female,Diabetes,Elective,Riverside Medical,Aetna,2024-04-05,2024-04-06,6557.83,Inconclusive
+PT-00068,16,Male,Asthma,Elective,Riverside Medical,Medicare,2024-05-31,2024-06-14,8381.24,Normal
+PT-00069,36,Male,Asthma,Emergency,St. Mary General,UnitedHealth,2022-11-04,2022-11-10,10168.23,Normal
+PT-00070,87,Male,Asthma,Emergency,St. Mary General,Cigna,2022-01-02,2022-01-13,11294.61,Normal
+PT-00071,51,Female,Arthritis,Emergency,St. Mary General,Cigna,2024-01-29,2024-02-05,14060.55,Normal
+PT-00072,70,Male,Arthritis,Emergency,St. Mary General,UnitedHealth,2024-03-10,2024-03-11,5706.57,Abnormal
+PT-00073,64,Male,Arthritis,Elective,Central Health,Medicare,2023-12-08,2023-12-20,14101.3,Normal
+PT-00074,77,Female,Asthma,Elective,Lakeside Hospital,Medicare,2022-12-09,2022-12-20,8282.76,Normal
+PT-00075,7,Female,Cancer,Emergency,Riverside Medical,Blue Cross,2022-12-12,2022-12-25,37824.23,Normal
+PT-00076,19,Male,Asthma,Urgent,Riverside Medical,Aetna,2023-05-26,2023-05-30,7643.73,Normal
+PT-00077,30,Female,Arthritis,Emergency,Riverside Medical,Medicare,2022-03-09,2022-03-19,15524.08,Normal
+PT-00078,14,Male,Cancer,Elective,Riverside Medical,Cigna,2023-05-29,2023-05-31,17394.76,Abnormal
+PT-00079,81,Male,Cancer,Emergency,St. Mary General,Aetna,2023-08-01,2023-08-11,42611.24,Normal
+PT-00080,93,Female,Cancer,Elective,Central Health,Aetna,2022-07-27,2022-07-29,30311.78,Normal
+PT-00081,50,Male,Diabetes,Emergency,St. Mary General,UnitedHealth,2022-06-11,2022-06-14,9133.52,Normal
+PT-00082,73,Female,Obesity,Elective,Central Health,UnitedHealth,2022-02-19,2022-03-05,9954.2,Abnormal
+PT-00083,29,Male,Arthritis,Urgent,Central Health,UnitedHealth,2023-06-30,2023-07-10,11665.94,Normal
+PT-00084,36,Male,Cancer,Emergency,Riverside Medical,Medicare,2022-09-25,2022-10-04,19183.91,Normal
+PT-00085,46,Female,Diabetes,Elective,St. Mary General,UnitedHealth,2022-09-04,2022-09-09,14471.9,Normal
+PT-00086,37,Female,Diabetes,Elective,Central Health,Blue Cross,2024-01-28,2024-01-30,6716.43,Abnormal
+PT-00087,50,Female,Hypertension,Elective,Lakeside Hospital,UnitedHealth,2024-01-12,2024-01-21,9944.47,Normal
+PT-00088,16,Male,Hypertension,Emergency,Central Health,Cigna,2023-02-25,2023-03-05,10642.82,Abnormal
+PT-00089,19,Male,Arthritis,Emergency,Lakeside Hospital,Blue Cross,2023-04-16,2023-04-27,14108.13,Normal
+PT-00090,1,Male,Arthritis,Elective,Riverside Medical,UnitedHealth,2022-05-06,2022-05-12,13855.63,Normal
+PT-00091,20,Female,Diabetes,Urgent,Riverside Medical,UnitedHealth,2022-04-18,2022-04-19,6188.52,Normal
+PT-00092,43,Female,Hypertension,Emergency,Lakeside Hospital,Aetna,2023-05-13,2023-05-26,8612.86,Abnormal
+PT-00093,22,Male,Cancer,Elective,Riverside Medical,Aetna,2024-06-11,2024-06-15,32621.16,Abnormal
+PT-00094,44,Female,Diabetes,Urgent,Lakeside Hospital,Blue Cross,2023-08-30,2023-09-01,13720.42,Abnormal
+PT-00095,17,Male,Asthma,Elective,Lakeside Hospital,Cigna,2024-11-28,2024-12-07,10677.92,Abnormal
+PT-00096,67,Female,Diabetes,Emergency,Central Health,UnitedHealth,2023-02-13,2023-02-27,11138.21,Abnormal
+PT-00097,20,Male,Diabetes,Elective,St. Mary General,Medicare,2023-12-07,2023-12-09,8963.62,Inconclusive
+PT-00098,31,Male,Hypertension,Elective,St. Mary General,UnitedHealth,2022-10-25,2022-10-30,7998.04,Normal
+PT-00099,21,Male,Diabetes,Urgent,Central Health,Aetna,2024-02-09,2024-02-21,18572.12,Normal
+PT-00100,80,Male,Hypertension,Emergency,Riverside Medical,Medicare,2023-02-24,2023-03-04,8392.62,Abnormal
+PT-00101,68,Female,Asthma,Urgent,St. Mary General,UnitedHealth,2024-10-31,2024-11-02,6804.16,Normal
+PT-00102,38,Male,Diabetes,Elective,Riverside Medical,UnitedHealth,2022-11-26,2022-12-04,9097.49,Normal
+PT-00103,7,Female,Cancer,Urgent,Lakeside Hospital,Medicare,2023-08-04,2023-08-18,44302.97,Inconclusive
+PT-00104,77,Female,Hypertension,Emergency,Central Health,Cigna,2022-05-25,2022-05-29,8135.9,Normal
+PT-00105,34,Male,Hypertension,Emergency,Lakeside Hospital,Blue Cross,2023-07-01,2023-07-06,6919.31,Normal
+PT-00106,35,Female,Asthma,Urgent,Riverside Medical,Cigna,2024-12-01,2024-12-09,10343.67,Abnormal
+PT-00107,13,Female,Diabetes,Emergency,St. Mary General,Medicare,2024-10-21,2024-10-25,11454.26,Abnormal
+PT-00108,14,Male,Hypertension,Elective,St. Mary General,Aetna,2023-11-02,2023-11-14,11151.1,Abnormal
+PT-00109,19,Male,Obesity,Emergency,Riverside Medical,UnitedHealth,2024-09-01,2024-09-14,11506.85,Normal
+PT-00110,19,Female,Obesity,Emergency,Central Health,Medicare,2024-10-22,2024-11-03,13001.27,Abnormal
+PT-00111,2,Male,Obesity,Elective,Riverside Medical,Cigna,2022-12-01,2022-12-02,6373.8,Normal
+PT-00112,29,Male,Obesity,Urgent,Central Health,Blue Cross,2023-12-07,2023-12-16,11487.58,Normal
+PT-00113,34,Male,Arthritis,Elective,Riverside Medical,Cigna,2024-11-26,2024-11-30,6058.07,Normal
+PT-00114,35,Female,Cancer,Elective,Central Health,Aetna,2023-09-23,2023-09-29,19610.92,Abnormal
+PT-00115,57,Female,Diabetes,Emergency,Lakeside Hospital,Medicare,2024-06-07,2024-06-17,14776.59,Normal
+PT-00116,61,Female,Hypertension,Elective,Central Health,Medicare,2022-09-17,2022-09-24,10788.58,Normal
+PT-00117,28,Female,Hypertension,Elective,Riverside Medical,UnitedHealth,2023-11-04,2023-11-10,10042.36,Abnormal
+PT-00118,6,Female,Hypertension,Elective,Central Health,Blue Cross,2022-07-01,2022-07-08,12458.19,Normal
+PT-00119,80,Female,Cancer,Emergency,St. Mary General,Medicare,2022-12-22,2022-12-28,27741.25,Abnormal
+PT-00120,81,Female,Hypertension,Urgent,Central Health,Medicare,2023-04-23,2023-05-03,12127.44,Normal
+PT-00121,74,Male,Hypertension,Emergency,Riverside Medical,Medicare,2022-10-27,2022-10-28,9514.96,Normal
+PT-00122,22,Female,Asthma,Emergency,St. Mary General,Aetna,2024-07-24,2024-07-26,9274.17,Normal
+PT-00123,49,Male,Arthritis,Urgent,Central Health,Blue Cross,2024-05-19,2024-05-29,11055.34,Abnormal
+PT-00124,63,Male,Cancer,Emergency,St. Mary General,UnitedHealth,2024-06-27,2024-06-30,18645.46,Abnormal
+PT-00125,59,Female,Hypertension,Elective,Riverside Medical,Blue Cross,2022-08-15,2022-08-23,12123.76,Normal
+PT-00126,49,Male,Asthma,Elective,Central Health,Medicare,2022-07-30,2022-08-09,8932.51,Normal
+PT-00127,12,Male,Diabetes,Elective,Central Health,Blue Cross,2022-11-01,2022-11-08,15070.71,Abnormal
+PT-00128,94,Male,Hypertension,Elective,Riverside Medical,Cigna,2024-09-02,2024-09-08,9323.28,Normal
+PT-00129,75,Male,Asthma,Elective,Central Health,Medicare,2022-04-25,2022-05-01,8554.75,Normal
+PT-00130,54,Female,Hypertension,Urgent,Riverside Medical,UnitedHealth,2024-06-05,2024-06-09,8268.84,Normal
+PT-00131,49,Female,Asthma,Elective,Central Health,Blue Cross,2024-01-13,2024-01-23,8619.81,Normal
+PT-00132,94,Male,Asthma,Elective,Lakeside Hospital,Cigna,2022-06-04,2022-06-08,9328.38,Normal
+PT-00133,6,Female,Cancer,Elective,Riverside Medical,Cigna,2022-09-26,2022-09-29,33319.34,Normal
+PT-00134,58,Male,Diabetes,Emergency,Central Health,Medicare,2024-04-13,2024-04-19,15676.67,Normal
+PT-00135,74,Male,Hypertension,Urgent,Central Health,Blue Cross,2024-04-02,2024-04-11,7174.04,Normal
+PT-00136,51,Female,Hypertension,Urgent,Lakeside Hospital,Cigna,2022-07-22,2022-08-02,11118.59,Abnormal
+PT-00137,46,Male,Diabetes,Elective,Central Health,UnitedHealth,2022-08-27,2022-09-02,14837.96,Normal
+PT-00138,28,Male,Obesity,Elective,Central Health,UnitedHealth,2024-09-29,2024-10-07,13125.89,Normal
+PT-00139,66,Female,Hypertension,Emergency,St. Mary General,Aetna,2022-11-02,2022-11-11,7568.8,Inconclusive
+PT-00140,60,Male,Diabetes,Elective,Central Health,Blue Cross,2024-03-01,2024-03-03,6005.87,Normal
+PT-00141,31,Male,Hypertension,Elective,St. Mary General,UnitedHealth,2024-06-26,2024-07-07,7618.44,Abnormal
+PT-00142,52,Male,Hypertension,Emergency,Riverside Medical,Aetna,2023-04-29,2023-05-13,10067.5,Normal
+PT-00143,31,Female,Obesity,Elective,St. Mary General,Aetna,2022-12-21,2022-12-26,6492.78,Abnormal
+PT-00144,14,Male,Asthma,Emergency,St. Mary General,Blue Cross,2022-06-17,2022-06-21,8627.8,Normal
+PT-00145,87,Female,Obesity,Emergency,Central Health,Cigna,2022-01-01,2022-01-11,11177.86,Abnormal
+PT-00146,41,Male,Hypertension,Elective,St. Mary General,Aetna,2022-09-08,2022-09-15,9600.18,Inconclusive
+PT-00147,61,Male,Hypertension,Elective,Lakeside Hospital,Blue Cross,2023-09-05,2023-09-17,13185.08,Normal
+PT-00148,35,Male,Asthma,Urgent,St. Mary General,Cigna,2022-10-27,2022-11-06,7554.44,Abnormal
+PT-00149,3,Male,Hypertension,Emergency,Lakeside Hospital,Aetna,2023-05-09,2023-05-10,10477.32,Abnormal
+PT-00150,14,Female,Obesity,Urgent,St. Mary General,Blue Cross,2024-02-21,2024-02-28,9765.76,Abnormal
+PT-00151,5,Male,Arthritis,Elective,Lakeside Hospital,Cigna,2023-08-15,2023-08-23,14411.95,Abnormal
+PT-00152,49,Male,Asthma,Urgent,Riverside Medical,Cigna,2023-05-30,2023-06-10,11176.94,Normal
+PT-00153,23,Female,Diabetes,Elective,Lakeside Hospital,Medicare,2022-05-01,2022-05-09,12797.32,Abnormal
+PT-00154,93,Male,Obesity,Elective,St. Mary General,Blue Cross,2024-10-16,2024-10-23,9858.85,Abnormal
+PT-00155,35,Male,Asthma,Elective,Central Health,Aetna,2024-03-07,2024-03-21,12095.45,Abnormal
+PT-00156,62,Female,Asthma,Urgent,St. Mary General,Aetna,2023-01-01,2023-01-02,7736.38,Abnormal
+PT-00157,78,Female,Diabetes,Emergency,St. Mary General,Medicare,2024-05-05,2024-05-10,7514.26,Abnormal
+PT-00158,38,Male,Hypertension,Emergency,Central Health,UnitedHealth,2023-04-20,2023-04-30,13241.71,Normal
+PT-00159,62,Female,Hypertension,Emergency,Lakeside Hospital,Medicare,2023-08-16,2023-08-24,12100.46,Normal
+PT-00160,22,Male,Hypertension,Emergency,Riverside Medical,UnitedHealth,2023-05-17,2023-05-19,6563.81,Abnormal
+PT-00161,86,Female,Obesity,Emergency,Riverside Medical,UnitedHealth,2022-03-20,2022-04-03,10728.46,Normal
+PT-00162,10,Male,Diabetes,Emergency,Lakeside Hospital,Cigna,2022-04-22,2022-05-02,9775.14,Abnormal
+PT-00163,88,Male,Hypertension,Emergency,Riverside Medical,Medicare,2023-06-28,2023-07-03,8240.04,Normal
+PT-00164,85,Female,Diabetes,Elective,St. Mary General,Aetna,2023-01-08,2023-01-09,8506.28,Normal
+PT-00165,66,Male,Obesity,Elective,St. Mary General,Cigna,2022-05-31,2022-06-11,12321.21,Normal
+PT-00166,58,Female,Diabetes,Urgent,Central Health,Medicare,2022-07-12,2022-07-15,7435.19,Normal
+PT-00167,25,Male,Diabetes,Emergency,Lakeside Hospital,Medicare,2022-01-18,2022-01-24,12397.61,Normal
+PT-00168,31,Male,Asthma,Elective,Lakeside Hospital,Cigna,2022-07-17,2022-07-25,9310.57,Abnormal
+PT-00169,50,Female,Obesity,Emergency,Central Health,Cigna,2022-08-03,2022-08-12,7186.19,Inconclusive
+PT-00170,7,Male,Cancer,Elective,Lakeside Hospital,Aetna,2024-11-11,2024-11-18,23119.93,Normal
+PT-00171,2,Female,Diabetes,Emergency,Riverside Medical,UnitedHealth,2023-08-10,2023-08-22,11068.97,Inconclusive
+PT-00172,48,Male,Asthma,Emergency,Lakeside Hospital,Aetna,2022-12-28,2023-01-06,9209.64,Abnormal
+PT-00173,45,Female,Diabetes,Elective,St. Mary General,Medicare,2023-04-07,2023-04-14,14223.74,Normal
+PT-00174,46,Female,Asthma,Elective,Riverside Medical,Aetna,2024-10-01,2024-10-10,11266.8,Normal
+PT-00175,57,Male,Obesity,Elective,St. Mary General,Medicare,2023-05-07,2023-05-10,9863.43,Abnormal
+PT-00176,24,Female,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2022-10-23,2022-10-31,8807.63,Normal
+PT-00177,56,Male,Hypertension,Urgent,Lakeside Hospital,UnitedHealth,2023-01-13,2023-01-19,6767.75,Abnormal
+PT-00178,2,Female,Diabetes,Urgent,Lakeside Hospital,Aetna,2022-10-16,2022-10-25,16182.2,Normal
+PT-00179,61,Female,Obesity,Emergency,Central Health,Aetna,2024-07-03,2024-07-11,8613.21,Normal
+PT-00180,72,Female,Diabetes,Elective,St. Mary General,Blue Cross,2024-12-22,2025-01-02,16496.69,Normal
+PT-00181,78,Male,Cancer,Emergency,Riverside Medical,Cigna,2022-02-26,2022-03-01,30337.68,Normal
+PT-00182,77,Female,Diabetes,Elective,Lakeside Hospital,UnitedHealth,2023-09-06,2023-09-08,11183.7,Normal
+PT-00183,58,Female,Hypertension,Emergency,St. Mary General,Medicare,2024-07-11,2024-07-13,10684.12,Abnormal
+PT-00184,28,Female,Arthritis,Emergency,Central Health,Aetna,2024-06-16,2024-06-18,12898.29,Normal
+PT-00185,74,Male,Asthma,Elective,Lakeside Hospital,Cigna,2024-05-06,2024-05-14,8595.39,Normal
+PT-00186,24,Female,Diabetes,Emergency,St. Mary General,Blue Cross,2022-07-23,2022-07-25,13213.41,Abnormal
+PT-00187,68,Female,Hypertension,Urgent,Central Health,UnitedHealth,2022-04-22,2022-04-25,10604.06,Inconclusive
+PT-00188,27,Male,Cancer,Elective,Riverside Medical,Blue Cross,2024-01-31,2024-02-08,17011.29,Normal
+PT-00189,64,Female,Arthritis,Emergency,Lakeside Hospital,Medicare,2022-08-15,2022-08-25,11728.86,Normal
+PT-00190,74,Male,Obesity,Elective,Lakeside Hospital,Medicare,2023-01-25,2023-02-05,12228.43,Normal
+PT-00191,59,Male,Arthritis,Urgent,Lakeside Hospital,Blue Cross,2023-11-28,2023-12-06,12841.45,Normal
+PT-00192,54,Female,Cancer,Elective,Lakeside Hospital,Blue Cross,2022-11-24,2022-12-03,33040.8,Abnormal
+PT-00193,76,Female,Hypertension,Emergency,Riverside Medical,Aetna,2024-09-26,2024-09-30,8570.72,Normal
+PT-00194,33,Female,Hypertension,Emergency,Riverside Medical,Aetna,2024-08-31,2024-09-02,9864.41,Abnormal
+PT-00195,94,Male,Arthritis,Emergency,St. Mary General,Medicare,2022-08-09,2022-08-22,12514.17,Abnormal
+PT-00196,66,Female,Asthma,Emergency,St. Mary General,UnitedHealth,2024-10-24,2024-11-07,10442.47,Normal
+PT-00197,21,Female,Cancer,Elective,Lakeside Hospital,UnitedHealth,2023-03-17,2023-03-18,28177.8,Normal
+PT-00198,80,Female,Cancer,Elective,Lakeside Hospital,Aetna,2024-07-25,2024-08-03,24238.07,Inconclusive
+PT-00199,54,Female,Hypertension,Emergency,Lakeside Hospital,Blue Cross,2023-12-06,2023-12-14,10435.53,Normal
+PT-00200,62,Male,Obesity,Emergency,Central Health,Medicare,2024-01-24,2024-02-07,9132.72,Abnormal
+PT-00201,58,Male,Hypertension,Elective,Riverside Medical,Medicare,2023-09-29,2023-10-09,8552.11,Abnormal
+PT-00202,65,Female,Asthma,Emergency,Central Health,Cigna,2023-09-29,2023-10-12,10501.57,Abnormal
+PT-00203,65,Male,Arthritis,Emergency,Riverside Medical,Aetna,2024-12-14,2024-12-27,13477.2,Inconclusive
+PT-00204,90,Male,Diabetes,Elective,Riverside Medical,UnitedHealth,2024-06-18,2024-06-26,11245.58,Inconclusive
+PT-00205,22,Female,Arthritis,Elective,Lakeside Hospital,Blue Cross,2022-05-02,2022-05-11,14928.91,Normal
+PT-00206,8,Male,Cancer,Elective,Riverside Medical,Medicare,2024-07-13,2024-07-26,32277.0,Normal
+PT-00207,81,Male,Hypertension,Elective,Riverside Medical,Aetna,2022-09-15,2022-09-19,9982.04,Normal
+PT-00208,94,Male,Diabetes,Emergency,Lakeside Hospital,Aetna,2024-01-14,2024-01-23,12707.24,Normal
+PT-00209,84,Male,Obesity,Urgent,St. Mary General,Cigna,2022-11-02,2022-11-12,12790.73,Normal
+PT-00210,68,Female,Obesity,Elective,St. Mary General,Cigna,2022-01-31,2022-02-07,12016.23,Normal
+PT-00211,54,Female,Arthritis,Urgent,Riverside Medical,Cigna,2022-10-22,2022-11-04,12340.74,Normal
+PT-00212,41,Female,Obesity,Elective,Central Health,Cigna,2022-12-06,2022-12-10,5996.98,Normal
+PT-00213,10,Female,Cancer,Emergency,Central Health,Aetna,2023-09-02,2023-09-03,27362.21,Normal
+PT-00214,20,Female,Hypertension,Elective,Central Health,UnitedHealth,2024-03-28,2024-03-31,10422.69,Normal
+PT-00215,71,Female,Asthma,Elective,Riverside Medical,Medicare,2023-06-15,2023-06-29,11732.91,Normal
+PT-00216,61,Female,Hypertension,Elective,Lakeside Hospital,Aetna,2023-07-27,2023-08-06,8463.09,Normal
+PT-00217,33,Male,Obesity,Elective,St. Mary General,Blue Cross,2022-07-05,2022-07-10,12551.79,Normal
+PT-00218,81,Female,Hypertension,Urgent,Lakeside Hospital,Medicare,2022-04-06,2022-04-12,8487.03,Normal
+PT-00219,76,Female,Hypertension,Elective,Central Health,Cigna,2024-07-11,2024-07-14,11614.83,Normal
+PT-00220,81,Male,Diabetes,Emergency,Riverside Medical,UnitedHealth,2024-11-11,2024-11-16,14357.05,Abnormal
+PT-00221,39,Male,Hypertension,Elective,Central Health,Blue Cross,2022-08-25,2022-09-02,12685.07,Abnormal
+PT-00222,52,Male,Hypertension,Elective,Central Health,Aetna,2022-11-11,2022-11-25,15417.9,Normal
+PT-00223,59,Female,Hypertension,Elective,Central Health,Medicare,2024-01-30,2024-02-02,9027.11,Abnormal
+PT-00224,8,Male,Hypertension,Urgent,Riverside Medical,Medicare,2022-02-04,2022-02-05,10224.04,Normal
+PT-00225,28,Female,Diabetes,Emergency,Central Health,UnitedHealth,2023-06-16,2023-06-23,14672.17,Abnormal
+PT-00226,86,Male,Hypertension,Emergency,Lakeside Hospital,UnitedHealth,2023-08-12,2023-08-18,6387.35,Normal
+PT-00227,43,Female,Arthritis,Urgent,Riverside Medical,Medicare,2022-07-17,2022-07-28,16142.13,Normal
+PT-00228,62,Female,Diabetes,Elective,St. Mary General,Cigna,2022-12-10,2022-12-20,8749.88,Normal
+PT-00229,67,Female,Asthma,Elective,Central Health,Aetna,2022-06-11,2022-06-17,5998.88,Normal
+PT-00230,26,Male,Diabetes,Emergency,Lakeside Hospital,Aetna,2024-11-22,2024-12-02,9125.25,Normal
+PT-00231,73,Male,Hypertension,Emergency,Lakeside Hospital,Blue Cross,2023-04-21,2023-04-27,11271.8,Normal
+PT-00232,85,Female,Cancer,Emergency,St. Mary General,Blue Cross,2024-06-05,2024-06-11,31647.38,Normal
+PT-00233,22,Female,Arthritis,Emergency,St. Mary General,Medicare,2023-02-04,2023-02-06,10962.18,Inconclusive
+PT-00234,86,Female,Cancer,Elective,Riverside Medical,UnitedHealth,2022-12-21,2022-12-29,20657.54,Abnormal
+PT-00235,5,Male,Diabetes,Emergency,St. Mary General,Cigna,2023-11-26,2023-12-10,18934.87,Inconclusive
+PT-00236,29,Female,Obesity,Urgent,Lakeside Hospital,Cigna,2022-12-31,2023-01-03,6939.63,Abnormal
+PT-00237,62,Male,Arthritis,Elective,St. Mary General,UnitedHealth,2023-09-27,2023-10-03,14158.84,Normal
+PT-00238,86,Male,Arthritis,Elective,Lakeside Hospital,UnitedHealth,2022-06-13,2022-06-14,9069.27,Normal
+PT-00239,14,Female,Diabetes,Urgent,St. Mary General,Medicare,2024-01-12,2024-01-14,11919.04,Normal
+PT-00240,58,Female,Hypertension,Elective,Riverside Medical,Blue Cross,2022-01-25,2022-01-30,10468.98,Normal
+PT-00241,93,Female,Asthma,Emergency,Lakeside Hospital,Blue Cross,2024-12-23,2024-12-24,4085.64,Abnormal
+PT-00242,81,Female,Cancer,Urgent,Lakeside Hospital,Cigna,2023-07-23,2023-07-27,23669.39,Normal
+PT-00243,45,Male,Asthma,Emergency,St. Mary General,Medicare,2024-02-14,2024-02-16,7431.18,Inconclusive
+PT-00244,15,Female,Hypertension,Emergency,Lakeside Hospital,Cigna,2024-01-23,2024-01-30,10939.49,Abnormal
+PT-00245,73,Male,Arthritis,Elective,Central Health,Cigna,2022-04-16,2022-04-24,13152.49,Abnormal
+PT-00246,86,Female,Arthritis,Elective,Lakeside Hospital,Medicare,2023-03-14,2023-03-17,10697.67,Abnormal
+PT-00247,25,Female,Hypertension,Elective,St. Mary General,UnitedHealth,2024-05-06,2024-05-10,12147.85,Abnormal
+PT-00248,94,Male,Obesity,Elective,Riverside Medical,Medicare,2023-08-17,2023-08-25,10673.52,Normal
+PT-00249,70,Male,Asthma,Emergency,Riverside Medical,Blue Cross,2024-01-01,2024-01-09,5854.46,Abnormal
+PT-00250,81,Male,Cancer,Emergency,St. Mary General,Aetna,2024-02-05,2024-02-14,38687.57,Normal
+PT-00251,88,Female,Hypertension,Elective,Lakeside Hospital,Medicare,2024-02-03,2024-02-04,11052.5,Abnormal
+PT-00252,57,Male,Diabetes,Emergency,Central Health,Medicare,2022-05-31,2022-06-10,10506.45,Normal
+PT-00253,85,Male,Obesity,Elective,Riverside Medical,UnitedHealth,2022-09-11,2022-09-12,8506.53,Normal
+PT-00254,92,Female,Arthritis,Elective,Central Health,Medicare,2023-10-10,2023-10-15,13431.58,Normal
+PT-00255,28,Female,Asthma,Elective,St. Mary General,Medicare,2023-06-28,2023-07-06,9102.87,Normal
+PT-00256,55,Male,Hypertension,Emergency,Riverside Medical,Cigna,2024-06-02,2024-06-15,9424.37,Normal
+PT-00257,46,Male,Hypertension,Emergency,Lakeside Hospital,Medicare,2024-02-22,2024-03-03,13397.56,Normal
+PT-00258,40,Male,Diabetes,Elective,Lakeside Hospital,Aetna,2024-07-30,2024-08-08,8576.79,Inconclusive
+PT-00259,61,Female,Diabetes,Elective,Lakeside Hospital,Cigna,2024-10-09,2024-10-17,13624.53,Normal
+PT-00260,67,Male,Cancer,Emergency,Central Health,Aetna,2022-08-17,2022-08-19,32672.95,Normal
+PT-00261,59,Female,Obesity,Elective,Lakeside Hospital,Blue Cross,2023-04-18,2023-05-01,10690.58,Normal
+PT-00262,60,Female,Diabetes,Urgent,Riverside Medical,Blue Cross,2023-04-19,2023-04-20,12170.81,Normal
+PT-00263,60,Male,Hypertension,Emergency,Central Health,UnitedHealth,2022-03-22,2022-03-30,10656.45,Abnormal
+PT-00264,74,Male,Asthma,Emergency,Riverside Medical,Blue Cross,2023-12-09,2023-12-10,4341.96,Normal
+PT-00265,30,Male,Arthritis,Elective,Lakeside Hospital,Blue Cross,2022-02-18,2022-02-21,8899.42,Abnormal
+PT-00266,29,Female,Cancer,Emergency,Lakeside Hospital,Medicare,2024-01-18,2024-01-24,21426.97,Normal
+PT-00267,48,Male,Obesity,Emergency,Riverside Medical,Blue Cross,2024-08-13,2024-08-21,8769.73,Abnormal
+PT-00268,40,Female,Hypertension,Elective,Riverside Medical,Medicare,2024-02-04,2024-02-08,9085.71,Normal
+PT-00269,69,Male,Obesity,Emergency,St. Mary General,Blue Cross,2023-05-05,2023-05-07,9431.6,Normal
+PT-00270,92,Female,Hypertension,Urgent,St. Mary General,Aetna,2023-08-28,2023-09-06,10799.49,Abnormal
+PT-00271,4,Female,Hypertension,Elective,Central Health,Aetna,2022-10-16,2022-10-26,8669.91,Normal
+PT-00272,40,Female,Obesity,Emergency,St. Mary General,Cigna,2022-06-27,2022-07-04,7066.95,Abnormal
+PT-00273,87,Male,Diabetes,Emergency,St. Mary General,Medicare,2023-08-08,2023-08-11,10869.91,Normal
+PT-00274,14,Male,Hypertension,Elective,Lakeside Hospital,Aetna,2022-03-16,2022-03-18,10747.45,Abnormal
+PT-00275,82,Male,Obesity,Elective,Central Health,Aetna,2023-06-28,2023-07-04,7890.73,Normal
+PT-00276,19,Female,Obesity,Emergency,St. Mary General,Blue Cross,2023-02-18,2023-02-27,13592.7,Abnormal
+PT-00277,62,Female,Diabetes,Elective,St. Mary General,UnitedHealth,2023-06-23,2023-07-01,16995.71,Inconclusive
+PT-00278,43,Female,Obesity,Urgent,St. Mary General,Aetna,2022-01-12,2022-01-19,8291.33,Normal
+PT-00279,40,Male,Asthma,Emergency,Central Health,Aetna,2024-05-28,2024-06-11,13228.92,Normal
+PT-00280,31,Male,Diabetes,Elective,St. Mary General,Aetna,2024-07-14,2024-07-23,9519.13,Normal
+PT-00281,49,Male,Obesity,Emergency,St. Mary General,Medicare,2022-03-01,2022-03-04,11330.45,Inconclusive
+PT-00282,66,Female,Diabetes,Elective,Central Health,UnitedHealth,2023-12-05,2023-12-13,15345.37,Inconclusive
+PT-00283,41,Male,Diabetes,Urgent,Central Health,Aetna,2022-12-26,2022-12-29,6886.71,Abnormal
+PT-00284,76,Female,Obesity,Elective,Lakeside Hospital,Blue Cross,2023-05-05,2023-05-18,15925.92,Normal
+PT-00285,20,Male,Diabetes,Urgent,Riverside Medical,Medicare,2023-07-14,2023-07-16,12231.46,Normal
+PT-00286,50,Female,Diabetes,Urgent,Central Health,Aetna,2024-03-29,2024-04-01,13603.23,Normal
+PT-00287,92,Female,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2022-05-24,2022-05-27,12643.33,Abnormal
+PT-00288,78,Male,Obesity,Elective,Riverside Medical,Cigna,2024-01-04,2024-01-09,7150.35,Normal
+PT-00289,17,Female,Cancer,Elective,Riverside Medical,Aetna,2023-02-07,2023-02-09,23114.99,Inconclusive
+PT-00290,39,Male,Diabetes,Urgent,St. Mary General,Aetna,2023-06-02,2023-06-08,14865.13,Abnormal
+PT-00291,87,Female,Diabetes,Urgent,Lakeside Hospital,Aetna,2023-12-24,2023-12-26,7885.13,Normal
+PT-00292,81,Male,Obesity,Urgent,Lakeside Hospital,Cigna,2022-12-06,2022-12-19,10765.45,Abnormal
+PT-00293,29,Male,Asthma,Emergency,Riverside Medical,Medicare,2024-06-04,2024-06-13,10156.36,Abnormal
+PT-00294,68,Female,Hypertension,Elective,Riverside Medical,Blue Cross,2022-01-08,2022-01-17,9012.26,Normal
+PT-00295,32,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2024-01-28,2024-02-02,14273.03,Inconclusive
+PT-00296,38,Male,Obesity,Urgent,St. Mary General,Aetna,2022-08-25,2022-08-29,10855.88,Inconclusive
+PT-00297,91,Male,Asthma,Urgent,Central Health,UnitedHealth,2023-04-20,2023-05-01,7966.07,Normal
+PT-00298,31,Male,Asthma,Elective,Central Health,Blue Cross,2023-06-29,2023-07-10,11688.39,Normal
+PT-00299,82,Male,Hypertension,Emergency,St. Mary General,UnitedHealth,2022-07-12,2022-07-14,9190.52,Normal
+PT-00300,33,Female,Obesity,Emergency,Central Health,Medicare,2022-10-17,2022-10-27,10868.5,Inconclusive
+PT-00301,94,Male,Hypertension,Elective,St. Mary General,Blue Cross,2024-09-07,2024-09-15,11024.0,Normal
+PT-00302,67,Male,Cancer,Elective,Riverside Medical,UnitedHealth,2022-08-01,2022-08-03,24739.83,Inconclusive
+PT-00303,5,Female,Diabetes,Emergency,Riverside Medical,Aetna,2023-01-03,2023-01-16,16962.33,Abnormal
+PT-00304,27,Male,Arthritis,Emergency,Lakeside Hospital,UnitedHealth,2023-12-21,2024-01-02,15931.97,Abnormal
+PT-00305,54,Female,Diabetes,Elective,Lakeside Hospital,UnitedHealth,2023-03-26,2023-03-27,9718.37,Normal
+PT-00306,88,Male,Diabetes,Elective,Central Health,Aetna,2024-07-07,2024-07-09,11477.71,Inconclusive
+PT-00307,9,Male,Hypertension,Emergency,Central Health,Blue Cross,2023-07-14,2023-07-20,10352.07,Abnormal
+PT-00308,60,Female,Cancer,Urgent,Central Health,Cigna,2024-11-14,2024-11-24,18025.32,Abnormal
+PT-00309,35,Female,Arthritis,Urgent,Central Health,Aetna,2024-04-16,2024-04-22,13064.35,Normal
+PT-00310,53,Male,Diabetes,Elective,Riverside Medical,Medicare,2023-09-12,2023-09-18,11681.65,Normal
+PT-00311,48,Male,Arthritis,Emergency,Riverside Medical,UnitedHealth,2024-07-15,2024-07-27,15976.55,Inconclusive
+PT-00312,79,Female,Hypertension,Urgent,Lakeside Hospital,Cigna,2022-06-29,2022-07-11,9117.83,Inconclusive
+PT-00313,19,Female,Hypertension,Elective,Central Health,Cigna,2022-03-06,2022-03-11,8639.13,Normal
+PT-00314,56,Male,Diabetes,Emergency,Riverside Medical,UnitedHealth,2023-10-09,2023-10-20,18020.73,Inconclusive
+PT-00315,93,Female,Diabetes,Emergency,Riverside Medical,Cigna,2023-12-04,2023-12-16,18135.36,Normal
+PT-00316,22,Female,Obesity,Elective,Riverside Medical,Cigna,2022-05-22,2022-05-23,6021.52,Normal
+PT-00317,57,Male,Diabetes,Elective,Central Health,UnitedHealth,2023-09-27,2023-10-04,12872.01,Normal
+PT-00318,57,Female,Cancer,Emergency,St. Mary General,Blue Cross,2023-12-20,2024-01-01,37455.69,Normal
+PT-00319,22,Male,Obesity,Urgent,St. Mary General,Blue Cross,2023-06-12,2023-06-21,10809.42,Normal
+PT-00320,86,Female,Hypertension,Elective,Lakeside Hospital,Blue Cross,2023-07-18,2023-07-20,5620.63,Normal
+PT-00321,90,Male,Obesity,Emergency,Lakeside Hospital,Medicare,2023-11-15,2023-11-28,15313.16,Normal
+PT-00322,51,Male,Hypertension,Emergency,Lakeside Hospital,Aetna,2022-12-28,2023-01-10,11651.81,Normal
+PT-00323,84,Female,Hypertension,Elective,Central Health,Aetna,2023-07-08,2023-07-12,12087.92,Abnormal
+PT-00324,49,Male,Obesity,Urgent,St. Mary General,Aetna,2023-07-12,2023-07-13,7933.47,Inconclusive
+PT-00325,63,Male,Diabetes,Elective,Lakeside Hospital,UnitedHealth,2023-08-10,2023-08-12,8154.24,Normal
+PT-00326,71,Male,Obesity,Emergency,St. Mary General,Blue Cross,2022-01-16,2022-01-27,12072.9,Abnormal
+PT-00327,36,Male,Diabetes,Urgent,Central Health,Medicare,2023-10-02,2023-10-16,11888.67,Normal
+PT-00328,30,Male,Diabetes,Emergency,Riverside Medical,Medicare,2024-08-27,2024-09-03,7576.78,Normal
+PT-00329,51,Male,Hypertension,Elective,Lakeside Hospital,Medicare,2022-04-26,2022-05-05,8554.52,Normal
+PT-00330,84,Female,Obesity,Elective,Lakeside Hospital,Aetna,2022-02-10,2022-02-17,7656.0,Normal
+PT-00331,78,Female,Obesity,Emergency,Lakeside Hospital,Aetna,2022-09-09,2022-09-23,11996.06,Abnormal
+PT-00332,89,Female,Diabetes,Emergency,St. Mary General,Aetna,2024-03-03,2024-03-06,9320.7,Normal
+PT-00333,49,Female,Hypertension,Urgent,Central Health,Cigna,2024-01-02,2024-01-10,9737.01,Abnormal
+PT-00334,76,Female,Cancer,Emergency,Central Health,Aetna,2023-07-15,2023-07-19,16079.65,Normal
+PT-00335,50,Female,Cancer,Emergency,Central Health,UnitedHealth,2024-11-11,2024-11-16,22897.7,Abnormal
+PT-00336,6,Male,Diabetes,Elective,St. Mary General,Aetna,2023-09-13,2023-09-24,18194.64,Normal
+PT-00337,10,Female,Cancer,Emergency,Lakeside Hospital,Blue Cross,2022-02-28,2022-03-06,20268.84,Normal
+PT-00338,60,Female,Hypertension,Elective,Riverside Medical,Aetna,2024-02-13,2024-02-21,7555.66,Normal
+PT-00339,14,Female,Obesity,Elective,Central Health,Medicare,2023-05-05,2023-05-08,9664.54,Abnormal
+PT-00340,79,Female,Cancer,Emergency,St. Mary General,Blue Cross,2022-08-10,2022-08-16,33271.94,Normal
+PT-00341,45,Male,Hypertension,Elective,Lakeside Hospital,UnitedHealth,2024-02-18,2024-02-23,9012.8,Normal
+PT-00342,33,Male,Hypertension,Emergency,Riverside Medical,Aetna,2024-06-19,2024-06-22,5504.9,Abnormal
+PT-00343,59,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2022-04-09,2022-04-23,12044.64,Normal
+PT-00344,39,Male,Arthritis,Urgent,Riverside Medical,Aetna,2024-03-04,2024-03-05,12281.89,Normal
+PT-00345,68,Female,Obesity,Elective,St. Mary General,Medicare,2022-09-20,2022-09-24,10069.61,Abnormal
+PT-00346,12,Male,Diabetes,Emergency,Riverside Medical,UnitedHealth,2024-10-14,2024-10-16,11683.4,Normal
+PT-00347,63,Male,Hypertension,Emergency,Lakeside Hospital,Blue Cross,2022-06-08,2022-06-10,7852.85,Normal
+PT-00348,86,Female,Hypertension,Elective,Lakeside Hospital,Medicare,2022-05-22,2022-05-26,7600.14,Normal
+PT-00349,7,Female,Diabetes,Emergency,Riverside Medical,Cigna,2024-01-12,2024-01-19,15718.64,Normal
+PT-00350,65,Female,Obesity,Emergency,Lakeside Hospital,Aetna,2022-11-28,2022-12-10,14064.95,Normal
+PT-00351,79,Male,Hypertension,Emergency,Riverside Medical,Blue Cross,2022-10-31,2022-11-06,11323.21,Normal
+PT-00352,14,Male,Obesity,Elective,Central Health,Blue Cross,2022-10-30,2022-11-12,8795.02,Normal
+PT-00353,58,Female,Asthma,Elective,Riverside Medical,Cigna,2024-08-25,2024-09-03,6196.49,Inconclusive
+PT-00354,27,Female,Cancer,Emergency,St. Mary General,Blue Cross,2022-08-10,2022-08-18,40608.05,Normal
+PT-00355,1,Female,Obesity,Emergency,Central Health,Medicare,2022-11-23,2022-12-04,10588.29,Normal
+PT-00356,15,Male,Hypertension,Elective,St. Mary General,Blue Cross,2022-10-09,2022-10-12,10494.51,Normal
+PT-00357,58,Male,Diabetes,Elective,Riverside Medical,Cigna,2023-05-12,2023-05-19,10020.66,Abnormal
+PT-00358,35,Female,Hypertension,Urgent,Central Health,Medicare,2022-08-18,2022-08-30,8487.42,Inconclusive
+PT-00359,89,Male,Obesity,Emergency,Central Health,Aetna,2023-08-24,2023-09-04,7854.44,Normal
+PT-00360,92,Male,Hypertension,Elective,St. Mary General,Aetna,2024-04-30,2024-05-14,12207.9,Normal
+PT-00361,70,Female,Diabetes,Emergency,St. Mary General,Cigna,2023-06-28,2023-07-02,9290.67,Abnormal
+PT-00362,92,Male,Arthritis,Emergency,Central Health,UnitedHealth,2024-11-19,2024-11-23,7172.39,Abnormal
+PT-00363,82,Male,Hypertension,Elective,Lakeside Hospital,Blue Cross,2022-03-11,2022-03-24,12106.68,Inconclusive
+PT-00364,45,Female,Obesity,Emergency,Riverside Medical,Cigna,2024-03-25,2024-04-06,10710.85,Normal
+PT-00365,66,Male,Asthma,Emergency,St. Mary General,Blue Cross,2024-07-18,2024-07-26,7729.01,Normal
+PT-00366,81,Male,Hypertension,Elective,Central Health,Medicare,2022-06-27,2022-07-01,9644.06,Normal
+PT-00367,66,Male,Arthritis,Elective,Lakeside Hospital,UnitedHealth,2024-11-24,2024-11-29,11681.42,Normal
+PT-00368,88,Male,Hypertension,Emergency,St. Mary General,Aetna,2024-07-29,2024-08-05,11496.45,Abnormal
+PT-00369,67,Male,Obesity,Emergency,St. Mary General,Medicare,2023-09-05,2023-09-10,7480.65,Abnormal
+PT-00370,68,Male,Arthritis,Elective,Riverside Medical,UnitedHealth,2024-10-07,2024-10-10,5673.78,Normal
+PT-00371,24,Female,Cancer,Emergency,Central Health,Cigna,2023-09-22,2023-10-05,35811.97,Normal
+PT-00372,33,Female,Hypertension,Elective,Riverside Medical,Aetna,2023-11-19,2023-12-03,11081.16,Abnormal
+PT-00373,67,Male,Cancer,Urgent,Central Health,Aetna,2022-02-23,2022-03-03,19084.05,Normal
+PT-00374,13,Male,Diabetes,Elective,Riverside Medical,UnitedHealth,2023-01-08,2023-01-22,10148.83,Normal
+PT-00375,83,Female,Hypertension,Elective,Central Health,Medicare,2022-04-02,2022-04-07,9241.62,Abnormal
+PT-00376,90,Male,Cancer,Elective,St. Mary General,Aetna,2024-10-29,2024-11-05,30410.82,Normal
+PT-00377,54,Male,Arthritis,Emergency,Riverside Medical,Medicare,2024-03-31,2024-04-14,15161.26,Normal
+PT-00378,85,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2023-05-05,2023-05-13,14330.61,Abnormal
+PT-00379,17,Female,Hypertension,Elective,Lakeside Hospital,Cigna,2024-02-17,2024-02-28,10379.83,Abnormal
+PT-00380,43,Male,Hypertension,Elective,St. Mary General,Aetna,2024-11-21,2024-12-02,9700.82,Normal
+PT-00381,59,Male,Arthritis,Elective,Lakeside Hospital,Aetna,2023-05-26,2023-06-04,9620.4,Inconclusive
+PT-00382,90,Male,Asthma,Urgent,Riverside Medical,Aetna,2024-11-10,2024-11-14,9768.17,Normal
+PT-00383,28,Female,Asthma,Emergency,Lakeside Hospital,UnitedHealth,2024-12-16,2024-12-23,11241.2,Normal
+PT-00384,90,Female,Arthritis,Urgent,St. Mary General,Medicare,2023-09-07,2023-09-18,9259.17,Normal
+PT-00385,22,Male,Diabetes,Urgent,Lakeside Hospital,Medicare,2024-07-22,2024-07-28,16025.55,Abnormal
+PT-00386,28,Female,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2023-11-05,2023-11-17,13750.6,Normal
+PT-00387,21,Female,Asthma,Elective,Lakeside Hospital,Aetna,2022-12-20,2022-12-26,6890.49,Normal
+PT-00388,5,Female,Hypertension,Elective,St. Mary General,Cigna,2024-10-14,2024-10-15,6237.25,Normal
+PT-00389,11,Female,Asthma,Urgent,Central Health,UnitedHealth,2024-06-24,2024-06-25,7452.42,Abnormal
+PT-00390,4,Female,Hypertension,Elective,Riverside Medical,Medicare,2023-02-19,2023-02-26,13173.97,Normal
+PT-00391,15,Male,Arthritis,Elective,Riverside Medical,Cigna,2024-10-15,2024-10-22,14741.06,Inconclusive
+PT-00392,30,Male,Obesity,Emergency,Riverside Medical,Medicare,2023-10-02,2023-10-13,15006.33,Normal
+PT-00393,17,Female,Hypertension,Elective,Central Health,Aetna,2024-05-03,2024-05-06,6287.6,Inconclusive
+PT-00394,69,Female,Hypertension,Elective,Riverside Medical,Medicare,2022-10-27,2022-11-05,7974.57,Normal
+PT-00395,88,Male,Hypertension,Urgent,St. Mary General,Blue Cross,2024-03-16,2024-03-28,8362.81,Abnormal
+PT-00396,39,Male,Cancer,Elective,Central Health,UnitedHealth,2024-09-30,2024-10-05,17715.35,Abnormal
+PT-00397,83,Male,Asthma,Emergency,St. Mary General,Blue Cross,2022-04-28,2022-05-01,5994.76,Normal
+PT-00398,19,Male,Asthma,Elective,St. Mary General,Medicare,2022-03-28,2022-04-01,5011.34,Normal
+PT-00399,15,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2024-08-07,2024-08-17,8598.91,Normal
+PT-00400,91,Female,Diabetes,Urgent,St. Mary General,UnitedHealth,2024-01-04,2024-01-13,8662.28,Normal
+PT-00401,83,Male,Diabetes,Emergency,Central Health,Blue Cross,2023-06-30,2023-07-08,15348.2,Normal
+PT-00402,76,Female,Diabetes,Elective,St. Mary General,UnitedHealth,2024-07-29,2024-08-07,8323.48,Normal
+PT-00403,35,Male,Cancer,Emergency,Riverside Medical,Cigna,2023-03-12,2023-03-15,27397.29,Normal
+PT-00404,93,Male,Hypertension,Elective,Central Health,Cigna,2024-02-25,2024-03-02,8049.79,Normal
+PT-00405,26,Male,Cancer,Urgent,Riverside Medical,UnitedHealth,2023-05-11,2023-05-21,22934.86,Abnormal
+PT-00406,27,Female,Hypertension,Emergency,St. Mary General,Aetna,2023-06-11,2023-06-17,10864.74,Normal
+PT-00407,66,Male,Arthritis,Emergency,St. Mary General,Cigna,2024-04-07,2024-04-15,9350.66,Normal
+PT-00408,76,Male,Diabetes,Emergency,Lakeside Hospital,Medicare,2023-12-02,2023-12-12,10072.1,Normal
+PT-00409,57,Female,Hypertension,Emergency,Riverside Medical,Aetna,2024-04-24,2024-04-29,10387.52,Normal
+PT-00410,72,Female,Asthma,Emergency,Central Health,Medicare,2022-11-27,2022-12-09,12220.06,Normal
+PT-00411,40,Female,Hypertension,Emergency,St. Mary General,UnitedHealth,2024-05-26,2024-06-08,8603.07,Abnormal
+PT-00412,33,Male,Hypertension,Emergency,Lakeside Hospital,Aetna,2023-07-08,2023-07-13,5923.71,Normal
+PT-00413,8,Female,Obesity,Elective,Lakeside Hospital,UnitedHealth,2023-10-08,2023-10-20,14617.56,Normal
+PT-00414,74,Female,Hypertension,Emergency,St. Mary General,Medicare,2022-02-05,2022-02-16,14275.23,Normal
+PT-00415,18,Female,Diabetes,Elective,St. Mary General,UnitedHealth,2024-03-07,2024-03-21,19074.35,Normal
+PT-00416,23,Male,Asthma,Elective,St. Mary General,Blue Cross,2024-01-06,2024-01-14,7267.79,Normal
+PT-00417,20,Female,Diabetes,Elective,St. Mary General,UnitedHealth,2024-02-01,2024-02-14,15845.48,Normal
+PT-00418,45,Male,Cancer,Elective,Riverside Medical,Medicare,2022-02-02,2022-02-14,20654.36,Normal
+PT-00419,88,Male,Arthritis,Elective,St. Mary General,UnitedHealth,2024-01-18,2024-01-27,15353.1,Normal
+PT-00420,82,Female,Cancer,Elective,Lakeside Hospital,UnitedHealth,2022-10-17,2022-10-24,19257.18,Normal
+PT-00421,46,Male,Obesity,Elective,Central Health,Blue Cross,2022-01-28,2022-01-29,11489.02,Abnormal
+PT-00422,5,Male,Obesity,Emergency,Lakeside Hospital,Cigna,2024-12-27,2024-12-31,6646.9,Normal
+PT-00423,47,Female,Hypertension,Elective,St. Mary General,Cigna,2023-09-14,2023-09-16,6699.69,Normal
+PT-00424,22,Male,Cancer,Elective,Lakeside Hospital,Blue Cross,2022-02-27,2022-03-04,16938.34,Normal
+PT-00425,20,Female,Cancer,Elective,Riverside Medical,UnitedHealth,2023-04-25,2023-04-27,16047.98,Abnormal
+PT-00426,42,Female,Hypertension,Urgent,Lakeside Hospital,Blue Cross,2022-12-15,2022-12-27,13720.29,Inconclusive
+PT-00427,50,Female,Asthma,Elective,St. Mary General,Cigna,2023-01-29,2023-02-07,11315.88,Abnormal
+PT-00428,11,Female,Diabetes,Elective,St. Mary General,Blue Cross,2022-04-17,2022-04-26,12759.21,Inconclusive
+PT-00429,64,Female,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2022-08-08,2022-08-15,7996.36,Inconclusive
+PT-00430,69,Female,Obesity,Urgent,St. Mary General,UnitedHealth,2023-09-21,2023-09-27,13744.29,Normal
+PT-00431,91,Male,Hypertension,Elective,St. Mary General,Medicare,2024-08-13,2024-08-17,10442.77,Abnormal
+PT-00432,1,Male,Hypertension,Elective,Central Health,Medicare,2023-06-04,2023-06-10,11501.83,Normal
+PT-00433,93,Male,Hypertension,Emergency,Lakeside Hospital,Blue Cross,2024-07-07,2024-07-10,8334.17,Normal
+PT-00434,4,Female,Asthma,Emergency,Central Health,Medicare,2023-08-02,2023-08-16,11315.55,Normal
+PT-00435,63,Male,Hypertension,Urgent,Central Health,Blue Cross,2024-01-23,2024-02-04,8704.29,Abnormal
+PT-00436,74,Male,Hypertension,Elective,St. Mary General,Aetna,2023-10-14,2023-10-21,10096.95,Abnormal
+PT-00437,41,Male,Diabetes,Urgent,Lakeside Hospital,Medicare,2024-02-05,2024-02-13,13044.56,Abnormal
+PT-00438,91,Female,Hypertension,Elective,Central Health,Aetna,2024-03-04,2024-03-05,10483.76,Normal
+PT-00439,77,Female,Asthma,Elective,Central Health,Medicare,2022-07-06,2022-07-10,10120.74,Normal
+PT-00440,3,Male,Hypertension,Elective,Riverside Medical,Blue Cross,2024-12-23,2025-01-06,10794.83,Abnormal
+PT-00441,78,Female,Obesity,Urgent,Lakeside Hospital,Medicare,2023-03-01,2023-03-07,8414.27,Inconclusive
+PT-00442,43,Male,Obesity,Elective,Central Health,UnitedHealth,2024-07-20,2024-07-28,8597.5,Abnormal
+PT-00443,94,Male,Asthma,Elective,St. Mary General,Medicare,2024-02-04,2024-02-08,8035.69,Normal
+PT-00444,44,Female,Obesity,Elective,Riverside Medical,Aetna,2023-01-21,2023-01-30,9749.11,Abnormal
+PT-00445,29,Male,Diabetes,Elective,Lakeside Hospital,Blue Cross,2022-07-25,2022-08-06,10756.35,Abnormal
+PT-00446,83,Male,Cancer,Elective,Central Health,Aetna,2022-07-11,2022-07-13,20394.31,Normal
+PT-00447,1,Female,Asthma,Emergency,St. Mary General,Blue Cross,2024-08-18,2024-08-21,7711.34,Abnormal
+PT-00448,86,Female,Obesity,Urgent,Riverside Medical,Blue Cross,2022-06-04,2022-06-06,4811.71,Normal
+PT-00449,88,Female,Arthritis,Emergency,Riverside Medical,Medicare,2022-06-18,2022-06-20,9943.86,Normal
+PT-00450,55,Male,Hypertension,Emergency,St. Mary General,Cigna,2022-12-08,2022-12-13,12141.6,Inconclusive
+PT-00451,60,Male,Asthma,Elective,Lakeside Hospital,Aetna,2023-11-25,2023-12-07,13107.66,Abnormal
+PT-00452,67,Female,Hypertension,Emergency,St. Mary General,Blue Cross,2024-07-03,2024-07-08,9158.6,Inconclusive
+PT-00453,20,Male,Arthritis,Elective,Lakeside Hospital,UnitedHealth,2024-04-03,2024-04-14,13211.06,Normal
+PT-00454,64,Female,Hypertension,Emergency,Central Health,UnitedHealth,2022-08-15,2022-08-25,7221.53,Normal
+PT-00455,25,Male,Diabetes,Elective,Lakeside Hospital,Medicare,2022-07-28,2022-08-02,7398.36,Abnormal
+PT-00456,44,Female,Cancer,Elective,Riverside Medical,Blue Cross,2022-05-13,2022-05-26,37337.78,Normal
+PT-00457,69,Male,Asthma,Emergency,St. Mary General,UnitedHealth,2022-03-25,2022-04-04,8822.43,Normal
+PT-00458,62,Male,Obesity,Elective,Central Health,UnitedHealth,2022-09-03,2022-09-10,9039.9,Abnormal
+PT-00459,14,Male,Hypertension,Elective,St. Mary General,Aetna,2022-09-27,2022-10-05,7853.47,Normal
+PT-00460,43,Female,Asthma,Elective,St. Mary General,UnitedHealth,2023-11-02,2023-11-07,8662.53,Normal
+PT-00461,53,Male,Hypertension,Elective,Central Health,Blue Cross,2024-01-20,2024-01-29,12432.94,Normal
+PT-00462,18,Male,Cancer,Emergency,St. Mary General,Medicare,2023-07-04,2023-07-15,22562.19,Normal
+PT-00463,77,Female,Asthma,Elective,Lakeside Hospital,Blue Cross,2022-09-20,2022-10-02,11510.62,Inconclusive
+PT-00464,34,Male,Asthma,Urgent,Riverside Medical,Aetna,2023-03-11,2023-03-25,13353.43,Normal
+PT-00465,64,Male,Asthma,Elective,Riverside Medical,Medicare,2022-10-15,2022-10-16,9139.98,Normal
+PT-00466,2,Male,Arthritis,Emergency,Lakeside Hospital,UnitedHealth,2023-04-22,2023-04-26,5859.65,Normal
+PT-00467,15,Female,Hypertension,Emergency,Central Health,UnitedHealth,2023-09-23,2023-09-26,11153.37,Abnormal
+PT-00468,24,Female,Diabetes,Elective,Central Health,Cigna,2023-02-02,2023-02-06,6283.68,Normal
+PT-00469,13,Female,Hypertension,Elective,St. Mary General,Cigna,2024-09-03,2024-09-15,10346.98,Normal
+PT-00470,65,Female,Diabetes,Elective,Central Health,UnitedHealth,2022-12-22,2022-12-25,11338.19,Normal
+PT-00471,55,Male,Hypertension,Urgent,Lakeside Hospital,Cigna,2022-05-24,2022-06-06,10131.86,Abnormal
+PT-00472,10,Male,Hypertension,Urgent,Riverside Medical,Cigna,2022-06-25,2022-07-01,6854.49,Normal
+PT-00473,72,Male,Hypertension,Elective,Lakeside Hospital,Aetna,2024-02-23,2024-03-08,8778.01,Normal
+PT-00474,12,Male,Obesity,Emergency,Lakeside Hospital,Medicare,2023-10-19,2023-10-24,12254.57,Inconclusive
+PT-00475,14,Female,Arthritis,Elective,Central Health,Aetna,2022-08-30,2022-09-01,7406.1,Normal
+PT-00476,64,Male,Arthritis,Elective,Lakeside Hospital,Aetna,2023-08-27,2023-08-30,12608.81,Inconclusive
+PT-00477,91,Male,Obesity,Urgent,Riverside Medical,Cigna,2023-06-09,2023-06-18,8741.66,Normal
+PT-00478,83,Female,Hypertension,Elective,St. Mary General,Cigna,2024-07-25,2024-08-06,8395.08,Normal
+PT-00479,43,Female,Obesity,Emergency,Riverside Medical,Blue Cross,2023-02-28,2023-03-13,10584.31,Normal
+PT-00480,12,Male,Diabetes,Urgent,Lakeside Hospital,Aetna,2023-01-17,2023-01-26,11541.06,Abnormal
+PT-00481,78,Male,Arthritis,Emergency,St. Mary General,Medicare,2022-01-03,2022-01-13,14310.72,Normal
+PT-00482,44,Male,Asthma,Elective,St. Mary General,UnitedHealth,2024-07-08,2024-07-12,7885.11,Normal
+PT-00483,92,Female,Arthritis,Urgent,Riverside Medical,Cigna,2023-12-28,2024-01-06,12813.4,Normal
+PT-00484,3,Female,Arthritis,Elective,Central Health,UnitedHealth,2022-08-14,2022-08-20,12776.71,Abnormal
+PT-00485,38,Female,Asthma,Elective,St. Mary General,UnitedHealth,2023-11-22,2023-12-06,8201.32,Abnormal
+PT-00486,86,Female,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2024-08-27,2024-09-03,10836.89,Normal
+PT-00487,42,Female,Arthritis,Elective,St. Mary General,Medicare,2022-12-06,2022-12-13,9735.37,Normal
+PT-00488,43,Female,Obesity,Urgent,Central Health,Cigna,2022-08-24,2022-09-07,11206.69,Normal
+PT-00489,10,Female,Cancer,Urgent,Central Health,Aetna,2024-06-15,2024-06-19,20820.61,Abnormal
+PT-00490,22,Female,Diabetes,Elective,Central Health,Aetna,2023-03-22,2023-03-30,13015.69,Abnormal
+PT-00491,38,Female,Asthma,Elective,Lakeside Hospital,Medicare,2022-06-20,2022-07-02,9869.67,Abnormal
+PT-00492,8,Male,Cancer,Elective,Riverside Medical,UnitedHealth,2023-08-04,2023-08-06,30009.95,Abnormal
+PT-00493,51,Female,Obesity,Emergency,St. Mary General,Cigna,2024-11-02,2024-11-06,8604.64,Inconclusive
+PT-00494,8,Female,Asthma,Emergency,Lakeside Hospital,Cigna,2023-10-17,2023-10-18,6641.08,Abnormal
+PT-00495,26,Male,Hypertension,Urgent,Lakeside Hospital,Blue Cross,2022-12-28,2022-12-31,9113.98,Normal
+PT-00496,33,Female,Diabetes,Elective,Lakeside Hospital,Medicare,2022-04-23,2022-05-04,9099.25,Abnormal
+PT-00497,29,Male,Hypertension,Elective,Riverside Medical,UnitedHealth,2023-03-18,2023-03-20,8929.41,Normal
+PT-00498,43,Male,Hypertension,Urgent,St. Mary General,Medicare,2024-05-02,2024-05-14,12599.17,Abnormal
+PT-00499,20,Female,Asthma,Urgent,Lakeside Hospital,Cigna,2022-12-06,2022-12-19,11329.36,Abnormal
+PT-00500,40,Male,Arthritis,Elective,Central Health,Medicare,2022-06-10,2022-06-14,10591.54,Abnormal
+PT-00501,81,Female,Hypertension,Urgent,Riverside Medical,Medicare,2023-08-18,2023-08-28,11345.61,Abnormal
+PT-00502,80,Female,Hypertension,Elective,Lakeside Hospital,Blue Cross,2024-06-14,2024-06-19,11359.78,Normal
+PT-00503,12,Female,Asthma,Elective,Riverside Medical,Blue Cross,2024-03-17,2024-03-19,8046.41,Normal
+PT-00504,61,Male,Cancer,Urgent,St. Mary General,Blue Cross,2023-02-16,2023-02-26,22197.79,Normal
+PT-00505,62,Male,Diabetes,Emergency,St. Mary General,Blue Cross,2022-02-02,2022-02-11,10200.33,Normal
+PT-00506,48,Male,Diabetes,Urgent,Central Health,Cigna,2022-06-20,2022-06-24,15193.9,Normal
+PT-00507,77,Male,Hypertension,Urgent,Lakeside Hospital,Cigna,2024-10-31,2024-11-13,9751.67,Normal
+PT-00508,89,Female,Hypertension,Elective,Central Health,Blue Cross,2023-01-22,2023-01-31,10654.21,Normal
+PT-00509,79,Male,Cancer,Elective,Riverside Medical,Blue Cross,2023-08-24,2023-09-06,24779.16,Inconclusive
+PT-00510,47,Male,Asthma,Elective,Riverside Medical,UnitedHealth,2022-10-17,2022-10-23,8069.99,Normal
+PT-00511,63,Male,Arthritis,Emergency,Riverside Medical,Aetna,2022-07-05,2022-07-13,10213.84,Abnormal
+PT-00512,18,Female,Diabetes,Elective,Lakeside Hospital,Blue Cross,2022-12-12,2022-12-24,14579.55,Normal
+PT-00513,28,Female,Obesity,Emergency,Riverside Medical,Aetna,2022-06-01,2022-06-10,14604.81,Abnormal
+PT-00514,12,Female,Hypertension,Urgent,Central Health,Medicare,2022-04-12,2022-04-14,5401.69,Normal
+PT-00515,90,Female,Hypertension,Urgent,Central Health,Cigna,2023-05-08,2023-05-22,13762.41,Inconclusive
+PT-00516,36,Female,Hypertension,Elective,Riverside Medical,Cigna,2022-04-11,2022-04-17,10803.06,Normal
+PT-00517,94,Female,Hypertension,Emergency,Lakeside Hospital,Medicare,2023-03-01,2023-03-08,6417.52,Normal
+PT-00518,19,Female,Cancer,Emergency,Riverside Medical,Cigna,2023-03-26,2023-04-07,33603.29,Normal
+PT-00519,22,Male,Hypertension,Elective,Central Health,UnitedHealth,2023-04-27,2023-05-09,11067.56,Normal
+PT-00520,45,Female,Arthritis,Elective,St. Mary General,Cigna,2023-11-22,2023-12-05,16980.2,Normal
+PT-00521,50,Female,Obesity,Elective,St. Mary General,Cigna,2022-06-04,2022-06-11,6920.07,Abnormal
+PT-00522,46,Female,Arthritis,Elective,Central Health,Aetna,2022-05-19,2022-05-26,10285.65,Normal
+PT-00523,51,Female,Hypertension,Elective,St. Mary General,Blue Cross,2022-01-29,2022-02-01,6185.6,Normal
+PT-00524,78,Male,Hypertension,Emergency,Riverside Medical,Cigna,2024-08-02,2024-08-16,14766.88,Normal
+PT-00525,22,Male,Hypertension,Emergency,Riverside Medical,Aetna,2024-01-15,2024-01-18,6774.09,Normal
+PT-00526,70,Male,Hypertension,Elective,Central Health,Medicare,2023-09-21,2023-09-25,6209.54,Normal
+PT-00527,42,Female,Cancer,Emergency,Riverside Medical,UnitedHealth,2024-12-29,2025-01-07,22054.24,Normal
+PT-00528,60,Female,Diabetes,Urgent,Riverside Medical,UnitedHealth,2022-09-01,2022-09-05,8765.59,Abnormal
+PT-00529,57,Female,Obesity,Emergency,Riverside Medical,Medicare,2023-04-14,2023-04-18,9622.85,Normal
+PT-00530,23,Female,Diabetes,Emergency,Lakeside Hospital,Medicare,2024-11-01,2024-11-12,13709.89,Inconclusive
+PT-00531,56,Male,Asthma,Urgent,Central Health,Cigna,2023-05-30,2023-06-13,11789.78,Abnormal
+PT-00532,45,Male,Asthma,Urgent,Riverside Medical,UnitedHealth,2023-03-09,2023-03-12,9566.62,Normal
+PT-00533,22,Female,Cancer,Emergency,Lakeside Hospital,Blue Cross,2024-04-11,2024-04-12,38135.91,Abnormal
+PT-00534,22,Female,Diabetes,Emergency,St. Mary General,Cigna,2023-04-03,2023-04-10,11603.37,Abnormal
+PT-00535,87,Male,Diabetes,Urgent,Lakeside Hospital,Medicare,2024-05-02,2024-05-09,9168.85,Normal
+PT-00536,43,Male,Obesity,Elective,St. Mary General,Aetna,2022-09-05,2022-09-14,10512.25,Abnormal
+PT-00537,44,Male,Obesity,Emergency,Lakeside Hospital,Medicare,2022-10-08,2022-10-11,5290.19,Abnormal
+PT-00538,35,Female,Arthritis,Urgent,Central Health,Aetna,2024-09-08,2024-09-16,13967.73,Normal
+PT-00539,39,Female,Asthma,Emergency,Central Health,Medicare,2022-04-11,2022-04-22,11335.34,Normal
+PT-00540,17,Male,Obesity,Elective,Lakeside Hospital,Aetna,2023-10-13,2023-10-24,11918.11,Inconclusive
+PT-00541,74,Female,Hypertension,Emergency,Lakeside Hospital,Cigna,2023-04-04,2023-04-15,10062.29,Abnormal
+PT-00542,36,Female,Arthritis,Elective,Central Health,Blue Cross,2024-07-25,2024-08-05,10007.5,Normal
+PT-00543,49,Female,Hypertension,Emergency,Riverside Medical,UnitedHealth,2023-12-18,2023-12-31,11301.83,Abnormal
+PT-00544,68,Male,Hypertension,Urgent,Lakeside Hospital,Aetna,2024-09-02,2024-09-15,12103.87,Abnormal
+PT-00545,15,Female,Hypertension,Elective,Lakeside Hospital,Medicare,2022-06-07,2022-06-19,14472.6,Abnormal
+PT-00546,2,Male,Diabetes,Emergency,St. Mary General,Blue Cross,2023-06-06,2023-06-07,12894.16,Normal
+PT-00547,86,Female,Obesity,Urgent,St. Mary General,Cigna,2022-04-08,2022-04-10,4728.67,Normal
+PT-00548,40,Female,Cancer,Emergency,St. Mary General,Aetna,2024-08-30,2024-09-09,34061.66,Normal
+PT-00549,26,Male,Arthritis,Elective,Riverside Medical,UnitedHealth,2022-08-28,2022-09-07,8974.98,Normal
+PT-00550,21,Female,Cancer,Emergency,St. Mary General,UnitedHealth,2023-11-10,2023-11-17,25264.99,Normal
+PT-00551,45,Female,Cancer,Emergency,St. Mary General,UnitedHealth,2022-03-03,2022-03-10,29497.44,Inconclusive
+PT-00552,44,Female,Obesity,Urgent,Lakeside Hospital,Aetna,2024-07-08,2024-07-21,9900.81,Normal
+PT-00553,14,Female,Hypertension,Elective,Riverside Medical,Medicare,2022-06-28,2022-07-02,9959.12,Abnormal
+PT-00554,41,Female,Hypertension,Elective,St. Mary General,UnitedHealth,2022-01-05,2022-01-18,11971.35,Abnormal
+PT-00555,20,Female,Hypertension,Emergency,Lakeside Hospital,Cigna,2023-11-19,2023-11-30,14482.06,Normal
+PT-00556,27,Male,Arthritis,Emergency,Lakeside Hospital,Medicare,2023-09-18,2023-09-20,11199.93,Normal
+PT-00557,16,Male,Hypertension,Elective,Central Health,Medicare,2023-10-30,2023-11-13,12478.4,Normal
+PT-00558,16,Male,Hypertension,Urgent,Lakeside Hospital,UnitedHealth,2022-12-06,2022-12-12,6051.25,Normal
+PT-00559,35,Male,Cancer,Elective,Riverside Medical,UnitedHealth,2024-10-25,2024-11-06,26044.16,Abnormal
+PT-00560,84,Male,Diabetes,Urgent,St. Mary General,Medicare,2022-05-19,2022-05-20,11454.83,Inconclusive
+PT-00561,40,Female,Diabetes,Elective,Lakeside Hospital,Blue Cross,2022-04-18,2022-04-24,8955.02,Normal
+PT-00562,73,Female,Hypertension,Elective,Riverside Medical,UnitedHealth,2022-10-17,2022-10-20,8292.28,Normal
+PT-00563,34,Female,Diabetes,Elective,Lakeside Hospital,Medicare,2024-02-22,2024-02-28,15862.22,Normal
+PT-00564,69,Female,Asthma,Elective,Central Health,Aetna,2023-03-21,2023-04-01,10222.99,Abnormal
+PT-00565,80,Female,Hypertension,Elective,Lakeside Hospital,Medicare,2024-08-11,2024-08-17,8301.9,Normal
+PT-00566,52,Male,Diabetes,Elective,Central Health,Medicare,2022-10-02,2022-10-10,8306.77,Normal
+PT-00567,32,Male,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2024-03-11,2024-03-18,11741.39,Normal
+PT-00568,20,Male,Asthma,Elective,St. Mary General,Cigna,2024-06-14,2024-06-23,9105.47,Normal
+PT-00569,63,Male,Asthma,Elective,Riverside Medical,Aetna,2023-05-22,2023-05-31,6359.65,Normal
+PT-00570,16,Female,Arthritis,Emergency,Central Health,Aetna,2024-12-19,2024-12-26,14623.51,Normal
+PT-00571,18,Male,Obesity,Elective,Central Health,Medicare,2022-10-09,2022-10-10,8309.77,Normal
+PT-00572,8,Female,Asthma,Elective,Central Health,Aetna,2024-02-27,2024-02-28,5211.35,Abnormal
+PT-00573,7,Male,Diabetes,Elective,Central Health,UnitedHealth,2022-07-04,2022-07-12,16260.31,Abnormal
+PT-00574,34,Male,Obesity,Elective,Riverside Medical,Medicare,2022-03-30,2022-03-31,10042.08,Inconclusive
+PT-00575,31,Female,Hypertension,Elective,Riverside Medical,Cigna,2022-11-23,2022-12-03,11050.5,Normal
+PT-00576,3,Female,Asthma,Elective,Lakeside Hospital,UnitedHealth,2022-06-21,2022-06-24,5259.7,Normal
+PT-00577,90,Male,Asthma,Elective,Lakeside Hospital,UnitedHealth,2023-08-27,2023-09-09,10354.05,Normal
+PT-00578,91,Male,Diabetes,Elective,Central Health,Medicare,2023-05-18,2023-05-22,14357.1,Inconclusive
+PT-00579,54,Male,Hypertension,Elective,Central Health,Blue Cross,2024-02-25,2024-02-26,4429.66,Inconclusive
+PT-00580,19,Male,Arthritis,Elective,Lakeside Hospital,Blue Cross,2024-10-23,2024-10-25,8531.35,Normal
+PT-00581,28,Female,Obesity,Urgent,Central Health,Aetna,2022-04-16,2022-04-28,12808.76,Abnormal
+PT-00582,89,Female,Obesity,Emergency,Riverside Medical,Cigna,2024-01-10,2024-01-20,10336.52,Normal
+PT-00583,63,Male,Arthritis,Emergency,Riverside Medical,Blue Cross,2022-12-30,2023-01-11,11659.87,Abnormal
+PT-00584,80,Female,Diabetes,Elective,Central Health,Aetna,2023-05-26,2023-06-01,13757.19,Abnormal
+PT-00585,10,Female,Asthma,Elective,Riverside Medical,Medicare,2022-12-19,2022-12-22,7122.72,Normal
+PT-00586,22,Male,Hypertension,Elective,St. Mary General,Blue Cross,2022-08-06,2022-08-17,12446.23,Inconclusive
+PT-00587,67,Female,Hypertension,Emergency,Central Health,Medicare,2024-09-14,2024-09-15,10357.11,Normal
+PT-00588,19,Female,Diabetes,Emergency,Lakeside Hospital,Medicare,2022-12-14,2022-12-27,15570.81,Normal
+PT-00589,16,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2022-08-14,2022-08-23,8175.0,Abnormal
+PT-00590,54,Male,Hypertension,Urgent,Lakeside Hospital,UnitedHealth,2023-02-15,2023-02-28,12499.89,Normal
+PT-00591,54,Male,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2022-06-02,2022-06-07,11181.22,Abnormal
+PT-00592,17,Male,Cancer,Emergency,St. Mary General,UnitedHealth,2023-07-22,2023-08-01,30231.37,Normal
+PT-00593,14,Female,Asthma,Elective,Lakeside Hospital,Blue Cross,2024-09-07,2024-09-13,10386.64,Normal
+PT-00594,3,Male,Obesity,Elective,Riverside Medical,Cigna,2023-02-26,2023-03-12,9099.85,Normal
+PT-00595,56,Male,Hypertension,Elective,Riverside Medical,Cigna,2024-12-22,2025-01-01,12069.75,Normal
+PT-00596,54,Male,Obesity,Urgent,Lakeside Hospital,Cigna,2022-07-10,2022-07-12,5667.21,Abnormal
+PT-00597,65,Male,Obesity,Elective,Central Health,Medicare,2022-04-19,2022-04-22,6772.65,Normal
+PT-00598,48,Female,Asthma,Elective,St. Mary General,Cigna,2024-03-24,2024-04-01,11405.31,Normal
+PT-00599,92,Male,Obesity,Elective,Lakeside Hospital,Medicare,2023-12-09,2023-12-19,8827.37,Normal
+PT-00600,17,Female,Asthma,Emergency,Riverside Medical,Aetna,2022-09-13,2022-09-21,7612.62,Inconclusive
+PT-00601,30,Female,Hypertension,Elective,St. Mary General,Blue Cross,2023-06-04,2023-06-10,11689.68,Abnormal
+PT-00602,50,Female,Hypertension,Emergency,St. Mary General,Cigna,2023-05-18,2023-05-29,14093.33,Normal
+PT-00603,20,Female,Hypertension,Elective,Central Health,Blue Cross,2023-03-24,2023-04-01,9023.98,Abnormal
+PT-00604,17,Male,Hypertension,Elective,Lakeside Hospital,UnitedHealth,2022-01-21,2022-01-28,9415.78,Abnormal
+PT-00605,64,Female,Obesity,Elective,St. Mary General,Aetna,2022-09-18,2022-09-23,10355.8,Normal
+PT-00606,7,Female,Obesity,Urgent,St. Mary General,Cigna,2023-03-27,2023-03-31,9569.49,Normal
+PT-00607,24,Female,Diabetes,Elective,Lakeside Hospital,Medicare,2023-10-02,2023-10-10,9317.98,Normal
+PT-00608,42,Male,Diabetes,Elective,St. Mary General,Aetna,2024-04-07,2024-04-21,17106.2,Normal
+PT-00609,27,Male,Hypertension,Urgent,St. Mary General,Aetna,2022-07-28,2022-08-03,7562.26,Normal
+PT-00610,57,Male,Diabetes,Urgent,Central Health,Medicare,2023-02-20,2023-03-03,8782.2,Abnormal
+PT-00611,13,Female,Hypertension,Urgent,St. Mary General,Aetna,2022-11-05,2022-11-18,13860.73,Normal
+PT-00612,41,Male,Asthma,Urgent,Riverside Medical,UnitedHealth,2024-06-22,2024-07-05,12524.88,Normal
+PT-00613,94,Female,Diabetes,Emergency,St. Mary General,Aetna,2022-07-09,2022-07-20,14302.73,Normal
+PT-00614,5,Male,Asthma,Emergency,St. Mary General,Medicare,2023-06-16,2023-06-23,6536.06,Inconclusive
+PT-00615,68,Male,Obesity,Elective,Riverside Medical,Medicare,2023-01-30,2023-01-31,6698.47,Normal
+PT-00616,3,Male,Hypertension,Urgent,Riverside Medical,UnitedHealth,2024-03-01,2024-03-15,9376.67,Normal
+PT-00617,77,Male,Hypertension,Elective,Central Health,UnitedHealth,2023-02-19,2023-02-25,6179.46,Normal
+PT-00618,66,Female,Obesity,Elective,Riverside Medical,Aetna,2024-05-15,2024-05-24,7141.21,Normal
+PT-00619,86,Male,Diabetes,Elective,Riverside Medical,Cigna,2024-03-28,2024-04-09,18585.93,Normal
+PT-00620,10,Female,Asthma,Emergency,Central Health,UnitedHealth,2023-03-22,2023-03-28,10460.43,Abnormal
+PT-00621,11,Female,Arthritis,Elective,Lakeside Hospital,Aetna,2024-10-27,2024-10-30,11882.92,Abnormal
+PT-00622,61,Female,Diabetes,Emergency,Central Health,UnitedHealth,2024-01-08,2024-01-17,8125.54,Abnormal
+PT-00623,20,Male,Diabetes,Elective,Central Health,Cigna,2022-03-01,2022-03-15,16548.25,Abnormal
+PT-00624,25,Male,Arthritis,Emergency,Lakeside Hospital,Blue Cross,2024-09-13,2024-09-14,11598.14,Normal
+PT-00625,61,Male,Hypertension,Urgent,St. Mary General,Medicare,2023-09-21,2023-10-01,13065.08,Abnormal
+PT-00626,80,Male,Diabetes,Elective,Central Health,Blue Cross,2022-08-09,2022-08-16,11909.98,Abnormal
+PT-00627,46,Female,Hypertension,Emergency,St. Mary General,UnitedHealth,2024-03-30,2024-04-03,9424.39,Normal
+PT-00628,88,Male,Hypertension,Emergency,St. Mary General,Blue Cross,2023-01-13,2023-01-21,9430.18,Abnormal
+PT-00629,19,Female,Asthma,Emergency,St. Mary General,Medicare,2024-01-06,2024-01-11,10487.19,Abnormal
+PT-00630,26,Male,Diabetes,Urgent,Riverside Medical,Blue Cross,2022-12-06,2022-12-13,15722.1,Normal
+PT-00631,78,Female,Hypertension,Elective,Central Health,UnitedHealth,2022-07-25,2022-08-06,13382.33,Abnormal
+PT-00632,11,Female,Cancer,Urgent,Lakeside Hospital,Cigna,2022-05-16,2022-05-22,19607.2,Normal
+PT-00633,30,Female,Hypertension,Elective,Lakeside Hospital,Cigna,2022-12-05,2022-12-12,7515.59,Normal
+PT-00634,54,Male,Diabetes,Elective,Lakeside Hospital,Blue Cross,2022-01-06,2022-01-10,10847.71,Abnormal
+PT-00635,23,Male,Arthritis,Urgent,Lakeside Hospital,Medicare,2022-07-27,2022-08-02,13234.03,Normal
+PT-00636,44,Female,Hypertension,Emergency,Central Health,UnitedHealth,2022-02-01,2022-02-03,6869.35,Normal
+PT-00637,74,Male,Hypertension,Emergency,St. Mary General,Cigna,2022-02-18,2022-02-24,8845.64,Normal
+PT-00638,1,Male,Arthritis,Emergency,Riverside Medical,Blue Cross,2022-09-19,2022-09-24,9029.05,Normal
+PT-00639,38,Male,Asthma,Elective,St. Mary General,Blue Cross,2024-06-21,2024-07-02,9488.37,Normal
+PT-00640,50,Female,Asthma,Urgent,Lakeside Hospital,Medicare,2023-08-30,2023-09-09,9253.58,Normal
+PT-00641,30,Female,Diabetes,Elective,Riverside Medical,Aetna,2023-11-29,2023-12-04,15553.92,Abnormal
+PT-00642,91,Female,Cancer,Elective,Riverside Medical,UnitedHealth,2024-08-17,2024-08-21,40176.53,Normal
+PT-00643,3,Male,Obesity,Emergency,St. Mary General,Cigna,2023-03-24,2023-03-26,10585.76,Abnormal
+PT-00644,61,Male,Hypertension,Elective,Riverside Medical,Medicare,2024-11-16,2024-11-25,10047.96,Abnormal
+PT-00645,70,Male,Asthma,Urgent,Riverside Medical,Blue Cross,2023-04-14,2023-04-20,10290.43,Abnormal
+PT-00646,36,Male,Obesity,Emergency,St. Mary General,UnitedHealth,2024-02-16,2024-03-01,13354.35,Normal
+PT-00647,15,Male,Hypertension,Elective,Riverside Medical,Aetna,2022-02-17,2022-02-21,11634.96,Normal
+PT-00648,7,Male,Obesity,Elective,Central Health,Blue Cross,2024-12-21,2025-01-03,9542.48,Normal
+PT-00649,81,Female,Diabetes,Emergency,St. Mary General,Medicare,2022-07-26,2022-08-04,11796.66,Normal
+PT-00650,86,Female,Asthma,Elective,Central Health,Aetna,2023-12-15,2023-12-22,7578.61,Normal
+PT-00651,18,Male,Arthritis,Emergency,Lakeside Hospital,Medicare,2022-06-13,2022-06-20,7180.11,Inconclusive
+PT-00652,62,Male,Obesity,Emergency,Central Health,Aetna,2024-12-12,2024-12-13,4435.19,Normal
+PT-00653,92,Male,Hypertension,Urgent,Central Health,Aetna,2024-03-11,2024-03-24,12478.66,Normal
+PT-00654,36,Female,Obesity,Elective,St. Mary General,Aetna,2023-08-27,2023-09-09,12411.78,Abnormal
+PT-00655,78,Female,Asthma,Urgent,Central Health,Cigna,2024-03-30,2024-04-13,12899.9,Abnormal
+PT-00656,6,Male,Hypertension,Urgent,St. Mary General,Aetna,2022-03-25,2022-03-31,12662.7,Normal
+PT-00657,64,Female,Hypertension,Emergency,Lakeside Hospital,Blue Cross,2022-09-11,2022-09-24,10125.79,Normal
+PT-00658,8,Male,Asthma,Emergency,Central Health,Blue Cross,2022-07-06,2022-07-19,8322.04,Normal
+PT-00659,94,Female,Arthritis,Elective,Riverside Medical,Aetna,2023-12-31,2024-01-07,8719.91,Normal
+PT-00660,90,Male,Hypertension,Emergency,Central Health,Blue Cross,2022-11-26,2022-12-05,11648.24,Normal
+PT-00661,68,Male,Arthritis,Urgent,St. Mary General,Cigna,2022-09-15,2022-09-24,13496.33,Abnormal
+PT-00662,89,Female,Arthritis,Urgent,Lakeside Hospital,Aetna,2023-07-18,2023-07-20,5354.27,Normal
+PT-00663,33,Male,Cancer,Elective,Lakeside Hospital,Aetna,2023-02-22,2023-02-26,18420.86,Abnormal
+PT-00664,18,Female,Arthritis,Elective,St. Mary General,Medicare,2023-07-14,2023-07-17,6126.43,Normal
+PT-00665,90,Female,Hypertension,Elective,Lakeside Hospital,Cigna,2024-06-27,2024-07-06,10628.58,Normal
+PT-00666,8,Male,Diabetes,Elective,Riverside Medical,Medicare,2024-04-03,2024-04-07,11821.78,Abnormal
+PT-00667,22,Female,Diabetes,Urgent,Lakeside Hospital,Cigna,2024-11-01,2024-11-14,10207.09,Normal
+PT-00668,90,Male,Hypertension,Urgent,Riverside Medical,Aetna,2022-05-19,2022-05-26,12988.68,Normal
+PT-00669,41,Female,Diabetes,Urgent,Lakeside Hospital,Medicare,2024-08-12,2024-08-20,15661.51,Normal
+PT-00670,10,Male,Asthma,Urgent,Central Health,Aetna,2023-11-12,2023-11-15,5060.51,Normal
+PT-00671,13,Female,Asthma,Emergency,Central Health,Medicare,2022-06-13,2022-06-27,12920.7,Normal
+PT-00672,47,Female,Hypertension,Elective,Riverside Medical,Cigna,2022-09-07,2022-09-21,13953.42,Normal
+PT-00673,3,Female,Diabetes,Urgent,St. Mary General,Cigna,2023-01-23,2023-01-24,13389.67,Normal
+PT-00674,90,Male,Hypertension,Urgent,Central Health,Blue Cross,2023-04-22,2023-04-28,6561.83,Abnormal
+PT-00675,25,Male,Hypertension,Elective,Riverside Medical,Medicare,2022-07-07,2022-07-09,6663.91,Normal
+PT-00676,83,Female,Diabetes,Emergency,St. Mary General,Cigna,2023-02-19,2023-02-27,14900.29,Normal
+PT-00677,35,Male,Hypertension,Emergency,Lakeside Hospital,Blue Cross,2023-09-19,2023-10-01,7871.74,Inconclusive
+PT-00678,83,Male,Diabetes,Elective,St. Mary General,Aetna,2022-12-01,2022-12-09,15498.55,Normal
+PT-00679,38,Female,Diabetes,Emergency,Riverside Medical,Medicare,2024-06-14,2024-06-24,11314.15,Abnormal
+PT-00680,51,Male,Arthritis,Emergency,Central Health,UnitedHealth,2024-09-03,2024-09-12,11066.64,Normal
+PT-00681,13,Female,Cancer,Elective,Lakeside Hospital,UnitedHealth,2022-05-20,2022-05-26,32422.33,Normal
+PT-00682,39,Female,Arthritis,Emergency,Riverside Medical,Cigna,2024-04-02,2024-04-13,10531.43,Abnormal
+PT-00683,88,Female,Diabetes,Elective,Central Health,UnitedHealth,2023-11-12,2023-11-18,9323.29,Normal
+PT-00684,73,Female,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2023-06-21,2023-07-03,9135.96,Normal
+PT-00685,14,Female,Asthma,Urgent,St. Mary General,Cigna,2024-05-22,2024-06-03,12031.62,Abnormal
+PT-00686,55,Male,Asthma,Emergency,Lakeside Hospital,UnitedHealth,2024-12-09,2024-12-15,8786.93,Normal
+PT-00687,91,Male,Cancer,Emergency,Central Health,UnitedHealth,2023-07-18,2023-07-22,34758.62,Normal
+PT-00688,54,Male,Arthritis,Elective,Riverside Medical,Blue Cross,2022-06-29,2022-07-12,12621.22,Normal
+PT-00689,28,Female,Hypertension,Elective,Lakeside Hospital,Aetna,2023-08-15,2023-08-25,10978.29,Normal
+PT-00690,56,Male,Diabetes,Emergency,Riverside Medical,Medicare,2023-01-02,2023-01-14,15748.16,Normal
+PT-00691,48,Male,Arthritis,Emergency,Riverside Medical,UnitedHealth,2022-06-28,2022-07-06,9556.13,Normal
+PT-00692,88,Female,Diabetes,Elective,St. Mary General,Blue Cross,2023-05-27,2023-06-04,15201.34,Normal
+PT-00693,7,Female,Obesity,Emergency,St. Mary General,UnitedHealth,2023-01-16,2023-01-30,16429.77,Normal
+PT-00694,40,Male,Hypertension,Emergency,Central Health,Blue Cross,2022-11-17,2022-11-29,12022.5,Normal
+PT-00695,2,Female,Diabetes,Elective,Riverside Medical,Cigna,2024-07-08,2024-07-21,11726.38,Normal
+PT-00696,71,Male,Diabetes,Elective,St. Mary General,Aetna,2023-03-05,2023-03-15,9510.17,Normal
+PT-00697,59,Female,Arthritis,Emergency,St. Mary General,UnitedHealth,2023-10-15,2023-10-29,15027.46,Normal
+PT-00698,69,Female,Obesity,Elective,Riverside Medical,Aetna,2024-07-12,2024-07-14,5711.96,Normal
+PT-00699,14,Female,Diabetes,Elective,St. Mary General,Medicare,2022-01-18,2022-02-01,17215.53,Normal
+PT-00700,73,Male,Obesity,Elective,Lakeside Hospital,Cigna,2022-12-16,2022-12-27,13616.31,Normal
+PT-00701,82,Male,Diabetes,Elective,Lakeside Hospital,UnitedHealth,2023-12-30,2024-01-11,9680.86,Inconclusive
+PT-00702,20,Male,Diabetes,Elective,St. Mary General,Blue Cross,2023-03-01,2023-03-11,17324.76,Normal
+PT-00703,5,Male,Diabetes,Emergency,Riverside Medical,Blue Cross,2023-12-25,2024-01-06,10393.7,Normal
+PT-00704,56,Male,Arthritis,Urgent,Riverside Medical,Aetna,2024-03-28,2024-04-05,13017.03,Normal
+PT-00705,29,Male,Arthritis,Emergency,Riverside Medical,Cigna,2023-08-02,2023-08-12,11708.37,Inconclusive
+PT-00706,84,Male,Hypertension,Elective,Central Health,Cigna,2024-08-19,2024-08-24,10832.98,Normal
+PT-00707,71,Female,Hypertension,Elective,St. Mary General,Aetna,2024-11-12,2024-11-20,6899.01,Normal
+PT-00708,58,Male,Diabetes,Emergency,Central Health,Medicare,2023-03-06,2023-03-11,13590.03,Abnormal
+PT-00709,88,Female,Hypertension,Elective,Lakeside Hospital,Cigna,2023-05-27,2023-05-28,10937.6,Normal
+PT-00710,32,Female,Diabetes,Elective,Central Health,Medicare,2024-08-09,2024-08-12,7435.57,Normal
+PT-00711,46,Male,Obesity,Emergency,Riverside Medical,Aetna,2024-02-16,2024-02-26,8305.8,Abnormal
+PT-00712,52,Female,Asthma,Elective,St. Mary General,Blue Cross,2024-02-07,2024-02-08,8220.45,Normal
+PT-00713,27,Male,Cancer,Elective,St. Mary General,Medicare,2022-06-16,2022-06-27,34412.04,Normal
+PT-00714,21,Male,Cancer,Elective,Riverside Medical,Medicare,2022-09-06,2022-09-15,22241.79,Normal
+PT-00715,87,Female,Diabetes,Urgent,Lakeside Hospital,Medicare,2024-04-03,2024-04-09,7221.61,Inconclusive
+PT-00716,1,Male,Hypertension,Elective,Central Health,Cigna,2022-06-11,2022-06-21,13469.79,Normal
+PT-00717,70,Female,Obesity,Elective,Riverside Medical,Aetna,2022-05-16,2022-05-24,9034.46,Abnormal
+PT-00718,41,Female,Asthma,Elective,Riverside Medical,Cigna,2024-06-29,2024-07-06,10263.18,Abnormal
+PT-00719,43,Male,Obesity,Urgent,Riverside Medical,UnitedHealth,2024-08-08,2024-08-16,14083.01,Abnormal
+PT-00720,86,Male,Obesity,Emergency,Lakeside Hospital,Cigna,2023-07-28,2023-07-31,12513.55,Abnormal
+PT-00721,6,Female,Hypertension,Elective,Lakeside Hospital,Aetna,2022-08-24,2022-09-06,9953.44,Abnormal
+PT-00722,85,Male,Cancer,Emergency,St. Mary General,Blue Cross,2023-08-13,2023-08-23,18503.16,Normal
+PT-00723,36,Male,Hypertension,Urgent,Central Health,Medicare,2023-03-25,2023-03-27,6531.67,Abnormal
+PT-00724,60,Male,Asthma,Emergency,Riverside Medical,Medicare,2022-04-19,2022-04-30,12835.47,Normal
+PT-00725,24,Male,Diabetes,Emergency,Lakeside Hospital,Medicare,2023-12-15,2023-12-23,15442.96,Abnormal
+PT-00726,69,Female,Hypertension,Urgent,Lakeside Hospital,Medicare,2022-05-25,2022-05-30,11241.51,Inconclusive
+PT-00727,46,Female,Hypertension,Urgent,Central Health,Aetna,2024-04-25,2024-05-04,8855.89,Inconclusive
+PT-00728,81,Female,Diabetes,Emergency,Central Health,Aetna,2024-09-08,2024-09-10,15061.02,Abnormal
+PT-00729,20,Male,Diabetes,Elective,Central Health,Cigna,2023-03-23,2023-04-01,14137.71,Normal
+PT-00730,26,Male,Diabetes,Urgent,Central Health,Cigna,2022-01-31,2022-02-03,7954.21,Abnormal
+PT-00731,45,Female,Hypertension,Emergency,Riverside Medical,UnitedHealth,2022-01-12,2022-01-22,11728.97,Abnormal
+PT-00732,63,Female,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2022-08-22,2022-08-24,7489.24,Normal
+PT-00733,3,Female,Diabetes,Emergency,St. Mary General,Medicare,2022-10-26,2022-11-05,10026.37,Abnormal
+PT-00734,62,Male,Asthma,Elective,Riverside Medical,Aetna,2022-09-13,2022-09-25,11721.02,Abnormal
+PT-00735,10,Female,Asthma,Elective,St. Mary General,Blue Cross,2024-06-01,2024-06-10,8970.37,Normal
+PT-00736,55,Male,Hypertension,Elective,Lakeside Hospital,Aetna,2023-10-20,2023-10-23,7409.92,Abnormal
+PT-00737,20,Male,Arthritis,Emergency,Riverside Medical,Aetna,2023-05-26,2023-06-06,15580.1,Inconclusive
+PT-00738,6,Male,Diabetes,Elective,Riverside Medical,Blue Cross,2023-08-06,2023-08-10,7932.53,Abnormal
+PT-00739,44,Male,Cancer,Urgent,Lakeside Hospital,Aetna,2024-05-31,2024-06-05,21713.23,Normal
+PT-00740,10,Female,Diabetes,Urgent,Riverside Medical,Cigna,2022-05-22,2022-05-30,10507.04,Normal
+PT-00741,25,Female,Asthma,Elective,Riverside Medical,Cigna,2023-10-03,2023-10-12,9969.24,Abnormal
+PT-00742,84,Female,Arthritis,Emergency,Lakeside Hospital,Cigna,2022-03-20,2022-04-02,13510.58,Abnormal
+PT-00743,19,Male,Arthritis,Urgent,Central Health,Aetna,2023-08-22,2023-09-04,12085.08,Normal
+PT-00744,3,Male,Cancer,Elective,Central Health,UnitedHealth,2023-03-22,2023-03-26,29531.67,Normal
+PT-00745,60,Male,Arthritis,Elective,Riverside Medical,UnitedHealth,2022-06-08,2022-06-13,12168.3,Normal
+PT-00746,26,Female,Asthma,Elective,Riverside Medical,UnitedHealth,2023-05-22,2023-05-26,6167.36,Abnormal
+PT-00747,90,Female,Diabetes,Emergency,Lakeside Hospital,Medicare,2022-12-05,2022-12-08,11601.82,Normal
+PT-00748,68,Male,Obesity,Emergency,Riverside Medical,Cigna,2023-11-14,2023-11-23,10896.97,Abnormal
+PT-00749,24,Female,Cancer,Urgent,Central Health,Blue Cross,2022-05-06,2022-05-20,29896.96,Normal
+PT-00750,8,Female,Obesity,Elective,Central Health,UnitedHealth,2023-01-30,2023-02-12,9005.15,Abnormal
+PT-00751,85,Male,Obesity,Emergency,Central Health,Aetna,2022-05-29,2022-06-09,14985.34,Normal
+PT-00752,38,Male,Asthma,Urgent,Central Health,Blue Cross,2023-12-04,2023-12-16,12094.26,Abnormal
+PT-00753,91,Female,Asthma,Elective,Riverside Medical,Blue Cross,2024-10-13,2024-10-14,8206.77,Normal
+PT-00754,69,Male,Cancer,Elective,Lakeside Hospital,Blue Cross,2024-02-23,2024-02-28,23249.54,Normal
+PT-00755,11,Male,Hypertension,Urgent,St. Mary General,Blue Cross,2022-06-26,2022-07-03,12411.0,Normal
+PT-00756,13,Male,Cancer,Emergency,St. Mary General,Blue Cross,2022-03-29,2022-04-04,39148.8,Abnormal
+PT-00757,35,Female,Obesity,Urgent,Lakeside Hospital,Blue Cross,2023-12-18,2023-12-27,10794.9,Normal
+PT-00758,42,Male,Arthritis,Elective,Central Health,Cigna,2024-08-15,2024-08-27,13068.03,Normal
+PT-00759,40,Female,Hypertension,Urgent,Riverside Medical,Blue Cross,2022-11-14,2022-11-16,8984.62,Normal
+PT-00760,22,Female,Asthma,Urgent,Lakeside Hospital,Blue Cross,2023-05-26,2023-06-06,11320.92,Inconclusive
+PT-00761,31,Female,Cancer,Urgent,Riverside Medical,UnitedHealth,2023-03-08,2023-03-18,36857.83,Abnormal
+PT-00762,13,Female,Arthritis,Elective,Lakeside Hospital,UnitedHealth,2024-03-16,2024-03-28,12769.35,Inconclusive
+PT-00763,36,Male,Diabetes,Urgent,Central Health,Cigna,2022-04-11,2022-04-25,11470.3,Normal
+PT-00764,52,Male,Diabetes,Elective,Riverside Medical,UnitedHealth,2022-07-14,2022-07-25,9259.31,Normal
+PT-00765,26,Female,Obesity,Elective,Lakeside Hospital,Blue Cross,2022-02-09,2022-02-20,13726.66,Normal
+PT-00766,48,Male,Asthma,Elective,Central Health,Medicare,2023-04-25,2023-05-06,6933.08,Normal
+PT-00767,58,Female,Obesity,Elective,Central Health,Medicare,2023-05-25,2023-06-08,9425.82,Normal
+PT-00768,53,Male,Diabetes,Elective,Central Health,Aetna,2024-07-31,2024-08-03,9288.28,Inconclusive
+PT-00769,5,Male,Hypertension,Emergency,St. Mary General,Cigna,2022-07-27,2022-07-30,7279.61,Normal
+PT-00770,73,Male,Diabetes,Urgent,St. Mary General,Blue Cross,2023-03-05,2023-03-06,10922.92,Normal
+PT-00771,13,Female,Asthma,Elective,Lakeside Hospital,UnitedHealth,2022-08-15,2022-08-24,7984.15,Normal
+PT-00772,89,Female,Cancer,Emergency,St. Mary General,Blue Cross,2022-03-20,2022-04-02,39516.74,Abnormal
+PT-00773,13,Female,Hypertension,Emergency,Central Health,UnitedHealth,2024-01-23,2024-02-05,11034.4,Normal
+PT-00774,90,Female,Diabetes,Urgent,Riverside Medical,Aetna,2024-01-20,2024-01-27,8717.34,Normal
+PT-00775,37,Female,Arthritis,Emergency,Riverside Medical,Blue Cross,2022-10-18,2022-10-29,13804.58,Abnormal
+PT-00776,57,Female,Asthma,Elective,Lakeside Hospital,Blue Cross,2022-05-14,2022-05-19,8191.85,Normal
+PT-00777,60,Female,Arthritis,Emergency,St. Mary General,Aetna,2022-02-25,2022-03-06,9336.04,Normal
+PT-00778,5,Female,Hypertension,Elective,Riverside Medical,Medicare,2022-11-10,2022-11-24,11615.03,Abnormal
+PT-00779,69,Male,Diabetes,Emergency,St. Mary General,Cigna,2024-01-05,2024-01-06,11501.65,Inconclusive
+PT-00780,35,Male,Diabetes,Emergency,St. Mary General,Medicare,2024-05-28,2024-06-03,12323.18,Normal
+PT-00781,66,Female,Obesity,Elective,Lakeside Hospital,Blue Cross,2023-04-09,2023-04-13,8764.74,Abnormal
+PT-00782,14,Female,Hypertension,Emergency,Riverside Medical,UnitedHealth,2024-09-12,2024-09-15,9825.66,Normal
+PT-00783,61,Female,Obesity,Elective,St. Mary General,Blue Cross,2023-08-19,2023-08-22,9728.73,Normal
+PT-00784,12,Male,Diabetes,Elective,Riverside Medical,UnitedHealth,2024-11-03,2024-11-13,12384.87,Normal
+PT-00785,39,Female,Hypertension,Emergency,Riverside Medical,Medicare,2024-02-15,2024-02-27,11589.44,Inconclusive
+PT-00786,6,Female,Obesity,Elective,Riverside Medical,Blue Cross,2024-11-07,2024-11-08,5888.11,Abnormal
+PT-00787,14,Female,Cancer,Emergency,St. Mary General,Aetna,2024-05-28,2024-06-09,30995.18,Abnormal
+PT-00788,19,Male,Cancer,Urgent,Central Health,Blue Cross,2023-05-19,2023-06-02,28133.48,Abnormal
+PT-00789,23,Male,Asthma,Emergency,Central Health,Medicare,2024-04-08,2024-04-12,7268.35,Normal
+PT-00790,12,Female,Obesity,Elective,Lakeside Hospital,Aetna,2024-04-14,2024-04-18,9602.83,Normal
+PT-00791,34,Female,Diabetes,Elective,Riverside Medical,Aetna,2023-08-03,2023-08-06,6817.13,Abnormal
+PT-00792,83,Female,Arthritis,Elective,Central Health,Aetna,2024-02-16,2024-02-27,13039.26,Inconclusive
+PT-00793,84,Female,Hypertension,Elective,Riverside Medical,UnitedHealth,2024-01-24,2024-01-28,7082.86,Abnormal
+PT-00794,83,Male,Diabetes,Emergency,Lakeside Hospital,Cigna,2023-10-06,2023-10-19,10312.65,Normal
+PT-00795,3,Male,Hypertension,Elective,Lakeside Hospital,Cigna,2022-12-29,2023-01-08,10499.16,Inconclusive
+PT-00796,7,Male,Hypertension,Emergency,Lakeside Hospital,Medicare,2022-03-08,2022-03-13,6074.71,Abnormal
+PT-00797,64,Female,Cancer,Elective,Lakeside Hospital,Blue Cross,2022-07-03,2022-07-11,25564.21,Normal
+PT-00798,34,Male,Asthma,Emergency,St. Mary General,Cigna,2022-11-28,2022-12-04,7427.17,Normal
+PT-00799,67,Female,Hypertension,Urgent,Central Health,Blue Cross,2024-11-09,2024-11-20,8720.95,Normal
+PT-00800,37,Male,Hypertension,Emergency,Riverside Medical,Medicare,2024-02-19,2024-03-04,10105.01,Normal
+PT-00801,37,Female,Obesity,Emergency,Riverside Medical,UnitedHealth,2022-06-30,2022-07-06,13477.14,Normal
+PT-00802,14,Male,Arthritis,Emergency,Lakeside Hospital,Cigna,2022-01-23,2022-01-27,8680.38,Normal
+PT-00803,30,Male,Asthma,Emergency,Riverside Medical,Cigna,2022-04-13,2022-04-19,5326.57,Abnormal
+PT-00804,67,Male,Hypertension,Elective,Riverside Medical,Cigna,2023-05-17,2023-05-28,12105.77,Abnormal
+PT-00805,4,Female,Cancer,Emergency,Riverside Medical,Blue Cross,2023-01-13,2023-01-27,41374.81,Normal
+PT-00806,66,Female,Asthma,Elective,Riverside Medical,UnitedHealth,2022-06-09,2022-06-23,12558.11,Normal
+PT-00807,20,Male,Hypertension,Urgent,Central Health,Medicare,2022-12-24,2022-12-29,11097.13,Abnormal
+PT-00808,51,Female,Hypertension,Urgent,Lakeside Hospital,Cigna,2023-05-15,2023-05-19,12184.45,Inconclusive
+PT-00809,73,Female,Asthma,Elective,Lakeside Hospital,Blue Cross,2023-02-17,2023-03-01,9119.33,Abnormal
+PT-00810,93,Female,Asthma,Elective,Central Health,Medicare,2024-02-22,2024-02-25,9584.39,Normal
+PT-00811,36,Female,Hypertension,Emergency,St. Mary General,Blue Cross,2024-09-12,2024-09-19,11518.74,Abnormal
+PT-00812,47,Male,Obesity,Elective,Riverside Medical,Medicare,2024-10-26,2024-11-02,10233.37,Normal
+PT-00813,87,Female,Arthritis,Elective,Central Health,UnitedHealth,2024-08-03,2024-08-13,13114.5,Inconclusive
+PT-00814,94,Female,Arthritis,Elective,Lakeside Hospital,Cigna,2024-05-15,2024-05-25,13865.54,Normal
+PT-00815,57,Female,Diabetes,Urgent,Lakeside Hospital,Cigna,2022-04-26,2022-05-05,15726.79,Abnormal
+PT-00816,39,Male,Cancer,Urgent,St. Mary General,UnitedHealth,2022-07-16,2022-07-20,14993.51,Abnormal
+PT-00817,75,Male,Obesity,Urgent,Riverside Medical,Blue Cross,2023-10-01,2023-10-12,14710.99,Abnormal
+PT-00818,21,Female,Cancer,Elective,St. Mary General,Medicare,2022-01-03,2022-01-10,33634.57,Normal
+PT-00819,45,Male,Diabetes,Elective,Central Health,Aetna,2024-02-05,2024-02-13,7835.44,Normal
+PT-00820,50,Female,Cancer,Elective,Lakeside Hospital,Cigna,2023-12-13,2023-12-19,33236.26,Normal
+PT-00821,49,Female,Obesity,Elective,Central Health,Blue Cross,2023-08-04,2023-08-16,10506.3,Normal
+PT-00822,79,Female,Arthritis,Elective,Lakeside Hospital,Aetna,2024-02-28,2024-03-11,10976.11,Inconclusive
+PT-00823,88,Male,Asthma,Elective,St. Mary General,UnitedHealth,2022-03-22,2022-03-29,6038.66,Normal
+PT-00824,82,Male,Diabetes,Elective,St. Mary General,Cigna,2023-07-24,2023-08-01,9105.79,Abnormal
+PT-00825,56,Female,Asthma,Elective,Riverside Medical,UnitedHealth,2023-09-01,2023-09-04,5812.55,Abnormal
+PT-00826,73,Male,Asthma,Emergency,Riverside Medical,Blue Cross,2022-05-04,2022-05-08,5009.36,Normal
+PT-00827,29,Female,Obesity,Elective,Riverside Medical,Blue Cross,2024-05-08,2024-05-10,12305.82,Normal
+PT-00828,6,Female,Hypertension,Elective,Central Health,Cigna,2023-07-17,2023-07-25,13237.97,Abnormal
+PT-00829,50,Male,Hypertension,Elective,Lakeside Hospital,Blue Cross,2024-07-16,2024-07-22,10607.51,Normal
+PT-00830,17,Female,Arthritis,Emergency,Central Health,Cigna,2024-08-25,2024-09-05,16273.23,Abnormal
+PT-00831,49,Male,Arthritis,Emergency,Central Health,Medicare,2024-08-11,2024-08-25,10658.76,Abnormal
+PT-00832,13,Female,Obesity,Elective,Central Health,Cigna,2022-08-23,2022-09-04,9955.69,Normal
+PT-00833,79,Male,Hypertension,Emergency,Central Health,UnitedHealth,2022-11-03,2022-11-15,9227.44,Normal
+PT-00834,33,Female,Hypertension,Urgent,St. Mary General,Blue Cross,2022-01-15,2022-01-21,12072.33,Normal
+PT-00835,25,Male,Hypertension,Emergency,Lakeside Hospital,Medicare,2023-06-14,2023-06-23,13880.92,Normal
+PT-00836,87,Female,Cancer,Elective,Central Health,Aetna,2023-10-23,2023-10-26,19544.75,Abnormal
+PT-00837,46,Male,Cancer,Elective,Central Health,Medicare,2024-09-17,2024-09-25,28118.29,Normal
+PT-00838,41,Male,Hypertension,Emergency,Riverside Medical,Cigna,2024-10-08,2024-10-19,7577.23,Normal
+PT-00839,83,Female,Hypertension,Emergency,Central Health,Blue Cross,2022-12-01,2022-12-13,11245.76,Inconclusive
+PT-00840,23,Male,Obesity,Urgent,Riverside Medical,Medicare,2024-11-04,2024-11-06,10277.51,Abnormal
+PT-00841,55,Female,Obesity,Emergency,St. Mary General,Aetna,2023-03-05,2023-03-13,9727.58,Normal
+PT-00842,89,Female,Obesity,Urgent,Riverside Medical,UnitedHealth,2023-10-28,2023-11-09,8346.9,Normal
+PT-00843,17,Female,Diabetes,Elective,Lakeside Hospital,UnitedHealth,2023-07-25,2023-08-06,10788.15,Inconclusive
+PT-00844,90,Male,Cancer,Urgent,Central Health,Medicare,2022-08-04,2022-08-16,34441.92,Abnormal
+PT-00845,51,Male,Asthma,Emergency,St. Mary General,Cigna,2024-03-26,2024-04-03,9564.67,Abnormal
+PT-00846,72,Male,Asthma,Urgent,Riverside Medical,Cigna,2022-05-02,2022-05-11,11189.6,Normal
+PT-00847,88,Male,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2022-12-08,2022-12-17,12162.47,Normal
+PT-00848,23,Female,Arthritis,Urgent,Central Health,Blue Cross,2022-12-10,2022-12-15,13414.34,Normal
+PT-00849,15,Female,Hypertension,Elective,St. Mary General,UnitedHealth,2023-01-30,2023-02-03,8025.61,Normal
+PT-00850,90,Male,Cancer,Emergency,Riverside Medical,Blue Cross,2023-05-07,2023-05-10,15382.28,Normal
+PT-00851,11,Male,Diabetes,Elective,St. Mary General,Aetna,2022-08-18,2022-08-28,11060.84,Inconclusive
+PT-00852,31,Female,Obesity,Elective,Riverside Medical,UnitedHealth,2022-01-08,2022-01-22,11202.33,Normal
+PT-00853,55,Male,Asthma,Elective,Riverside Medical,Blue Cross,2023-12-16,2023-12-30,13376.74,Abnormal
+PT-00854,52,Male,Obesity,Emergency,Central Health,Aetna,2023-06-11,2023-06-22,10058.59,Normal
+PT-00855,5,Male,Diabetes,Urgent,Lakeside Hospital,Blue Cross,2022-11-18,2022-12-01,17608.56,Normal
+PT-00856,73,Female,Hypertension,Elective,Riverside Medical,Aetna,2022-08-28,2022-08-30,11081.43,Normal
+PT-00857,71,Male,Arthritis,Emergency,Riverside Medical,Aetna,2022-07-05,2022-07-19,15595.27,Normal
+PT-00858,4,Female,Asthma,Elective,Lakeside Hospital,UnitedHealth,2023-03-12,2023-03-25,10422.69,Abnormal
+PT-00859,82,Male,Hypertension,Urgent,Riverside Medical,UnitedHealth,2024-07-13,2024-07-20,6172.88,Abnormal
+PT-00860,73,Male,Arthritis,Urgent,Lakeside Hospital,Cigna,2023-08-13,2023-08-15,6778.31,Normal
+PT-00861,77,Male,Hypertension,Emergency,Riverside Medical,Blue Cross,2022-07-15,2022-07-25,7269.21,Abnormal
+PT-00862,76,Male,Hypertension,Emergency,Central Health,Aetna,2023-11-01,2023-11-15,9286.26,Normal
+PT-00863,14,Male,Asthma,Urgent,Central Health,Blue Cross,2022-01-07,2022-01-08,5710.84,Abnormal
+PT-00864,66,Female,Asthma,Emergency,Central Health,Medicare,2023-08-12,2023-08-24,13156.05,Abnormal
+PT-00865,74,Female,Asthma,Elective,Central Health,Aetna,2023-09-01,2023-09-02,8240.37,Normal
+PT-00866,90,Female,Cancer,Elective,Lakeside Hospital,Blue Cross,2024-05-15,2024-05-27,22989.83,Normal
+PT-00867,33,Male,Hypertension,Emergency,Central Health,UnitedHealth,2022-02-21,2022-03-04,14221.95,Normal
+PT-00868,47,Male,Hypertension,Urgent,Riverside Medical,Aetna,2022-03-12,2022-03-15,7223.18,Normal
+PT-00869,44,Female,Arthritis,Urgent,St. Mary General,UnitedHealth,2024-02-18,2024-02-22,12015.88,Abnormal
+PT-00870,62,Male,Arthritis,Urgent,Riverside Medical,Cigna,2023-07-24,2023-07-29,12489.8,Normal
+PT-00871,7,Male,Cancer,Emergency,St. Mary General,UnitedHealth,2022-05-02,2022-05-09,21273.42,Normal
+PT-00872,7,Female,Diabetes,Elective,Central Health,UnitedHealth,2022-06-27,2022-07-01,6746.76,Normal
+PT-00873,69,Male,Asthma,Elective,St. Mary General,Blue Cross,2024-02-07,2024-02-10,9153.77,Abnormal
+PT-00874,40,Male,Hypertension,Urgent,Lakeside Hospital,Medicare,2024-10-30,2024-11-03,6406.9,Normal
+PT-00875,54,Female,Diabetes,Elective,St. Mary General,Medicare,2023-10-17,2023-10-26,11947.55,Abnormal
+PT-00876,62,Male,Asthma,Emergency,Lakeside Hospital,Aetna,2023-01-20,2023-01-26,5260.19,Normal
+PT-00877,70,Male,Cancer,Emergency,St. Mary General,UnitedHealth,2022-09-02,2022-09-09,29001.27,Normal
+PT-00878,39,Male,Obesity,Emergency,Riverside Medical,Cigna,2024-08-08,2024-08-15,9448.21,Normal
+PT-00879,9,Female,Cancer,Emergency,Riverside Medical,Medicare,2023-11-23,2023-11-27,36842.12,Normal
+PT-00880,53,Male,Diabetes,Elective,Riverside Medical,Blue Cross,2024-12-16,2024-12-21,14387.26,Normal
+PT-00881,92,Male,Asthma,Urgent,Riverside Medical,UnitedHealth,2024-01-22,2024-01-29,9971.61,Normal
+PT-00882,72,Male,Asthma,Urgent,Central Health,Blue Cross,2023-01-14,2023-01-21,9522.04,Normal
+PT-00883,27,Male,Diabetes,Emergency,Central Health,Blue Cross,2023-05-31,2023-06-14,19223.39,Normal
+PT-00884,16,Female,Hypertension,Emergency,Lakeside Hospital,UnitedHealth,2023-08-15,2023-08-20,11561.31,Inconclusive
+PT-00885,65,Female,Hypertension,Elective,Lakeside Hospital,Medicare,2022-01-01,2022-01-04,4763.44,Abnormal
+PT-00886,16,Female,Hypertension,Urgent,St. Mary General,Aetna,2023-06-13,2023-06-19,9417.08,Normal
+PT-00887,92,Female,Obesity,Elective,St. Mary General,Aetna,2023-11-22,2023-11-24,9816.91,Abnormal
+PT-00888,1,Male,Asthma,Emergency,St. Mary General,Blue Cross,2023-04-13,2023-04-27,12117.45,Abnormal
+PT-00889,69,Female,Hypertension,Emergency,Central Health,Blue Cross,2023-06-04,2023-06-12,9731.8,Inconclusive
+PT-00890,43,Female,Hypertension,Elective,Central Health,Aetna,2022-05-19,2022-05-25,9845.94,Abnormal
+PT-00891,1,Female,Asthma,Elective,St. Mary General,UnitedHealth,2022-09-21,2022-09-27,7137.56,Normal
+PT-00892,59,Male,Hypertension,Emergency,Lakeside Hospital,Aetna,2024-06-26,2024-07-09,13560.32,Normal
+PT-00893,12,Male,Diabetes,Emergency,Central Health,UnitedHealth,2024-10-20,2024-10-22,13343.71,Abnormal
+PT-00894,75,Female,Asthma,Elective,Central Health,Cigna,2024-02-11,2024-02-23,12654.27,Normal
+PT-00895,2,Female,Arthritis,Elective,Riverside Medical,Cigna,2023-05-10,2023-05-24,10482.83,Normal
+PT-00896,78,Male,Diabetes,Emergency,St. Mary General,Blue Cross,2022-01-06,2022-01-17,13942.66,Normal
+PT-00897,51,Male,Hypertension,Elective,Lakeside Hospital,Cigna,2023-12-24,2023-12-28,12119.21,Normal
+PT-00898,11,Male,Diabetes,Urgent,Riverside Medical,Cigna,2023-09-05,2023-09-13,15778.77,Normal
+PT-00899,70,Male,Hypertension,Elective,Central Health,Medicare,2024-07-11,2024-07-22,13828.69,Abnormal
+PT-00900,44,Female,Asthma,Emergency,Riverside Medical,UnitedHealth,2022-03-26,2022-04-04,10669.66,Normal
+PT-00901,92,Female,Hypertension,Emergency,Lakeside Hospital,Medicare,2024-06-30,2024-07-04,7732.05,Normal
+PT-00902,34,Female,Obesity,Elective,Lakeside Hospital,Medicare,2023-12-02,2023-12-10,10751.8,Abnormal
+PT-00903,33,Male,Diabetes,Elective,Lakeside Hospital,Medicare,2023-03-31,2023-04-13,12305.12,Abnormal
+PT-00904,63,Male,Diabetes,Emergency,Lakeside Hospital,Cigna,2024-05-23,2024-06-03,11991.53,Normal
+PT-00905,45,Female,Diabetes,Emergency,Riverside Medical,UnitedHealth,2024-04-02,2024-04-04,10413.13,Abnormal
+PT-00906,55,Female,Obesity,Elective,Central Health,Cigna,2022-12-04,2022-12-15,13918.43,Normal
+PT-00907,28,Female,Diabetes,Emergency,St. Mary General,UnitedHealth,2024-09-14,2024-09-23,16670.97,Inconclusive
+PT-00908,87,Male,Arthritis,Elective,Riverside Medical,UnitedHealth,2022-10-02,2022-10-06,12930.09,Inconclusive
+PT-00909,21,Male,Arthritis,Elective,St. Mary General,Medicare,2024-08-12,2024-08-21,9144.09,Abnormal
+PT-00910,5,Female,Obesity,Urgent,St. Mary General,Blue Cross,2023-11-21,2023-11-23,6485.08,Abnormal
+PT-00911,12,Male,Asthma,Elective,Lakeside Hospital,Aetna,2024-04-21,2024-05-04,8041.94,Normal
+PT-00912,49,Female,Cancer,Urgent,St. Mary General,Medicare,2023-11-28,2023-12-01,27416.84,Inconclusive
+PT-00913,14,Male,Hypertension,Elective,Central Health,Aetna,2024-04-30,2024-05-13,9692.66,Normal
+PT-00914,49,Male,Obesity,Elective,Riverside Medical,Medicare,2022-02-02,2022-02-10,14327.49,Normal
+PT-00915,31,Male,Obesity,Emergency,St. Mary General,Cigna,2024-02-28,2024-03-04,6155.77,Normal
+PT-00916,48,Male,Diabetes,Urgent,St. Mary General,UnitedHealth,2024-03-25,2024-04-06,10881.91,Abnormal
+PT-00917,89,Male,Asthma,Urgent,Lakeside Hospital,Cigna,2024-01-31,2024-02-11,11602.25,Normal
+PT-00918,27,Female,Asthma,Urgent,Riverside Medical,Cigna,2024-07-17,2024-07-23,10730.57,Normal
+PT-00919,1,Male,Arthritis,Elective,Riverside Medical,Cigna,2024-06-06,2024-06-09,6410.31,Inconclusive
+PT-00920,58,Male,Hypertension,Elective,Riverside Medical,UnitedHealth,2022-02-26,2022-03-08,8242.48,Normal
+PT-00921,76,Male,Asthma,Urgent,Lakeside Hospital,Cigna,2022-09-07,2022-09-16,7153.56,Abnormal
+PT-00922,61,Male,Arthritis,Emergency,St. Mary General,Cigna,2022-02-22,2022-02-25,12058.61,Normal
+PT-00923,77,Male,Arthritis,Urgent,Riverside Medical,Medicare,2023-03-04,2023-03-15,12987.36,Abnormal
+PT-00924,41,Male,Hypertension,Emergency,Lakeside Hospital,UnitedHealth,2024-11-26,2024-12-07,12440.96,Normal
+PT-00925,27,Female,Hypertension,Elective,St. Mary General,Blue Cross,2022-11-05,2022-11-06,9258.35,Normal
+PT-00926,39,Female,Hypertension,Elective,Lakeside Hospital,Aetna,2024-01-04,2024-01-11,11279.3,Inconclusive
+PT-00927,51,Male,Diabetes,Emergency,Riverside Medical,UnitedHealth,2023-10-01,2023-10-02,11930.65,Normal
+PT-00928,54,Male,Cancer,Emergency,Central Health,Blue Cross,2023-11-13,2023-11-15,25142.81,Normal
+PT-00929,93,Male,Hypertension,Elective,Riverside Medical,Medicare,2024-04-04,2024-04-14,13994.42,Normal
+PT-00930,82,Female,Arthritis,Elective,Riverside Medical,Aetna,2022-04-25,2022-05-07,13828.6,Normal
+PT-00931,36,Male,Obesity,Urgent,Riverside Medical,Cigna,2024-08-20,2024-08-27,13854.77,Normal
+PT-00932,23,Male,Asthma,Emergency,Riverside Medical,Blue Cross,2024-05-23,2024-05-31,9189.09,Normal
+PT-00933,58,Male,Arthritis,Elective,Lakeside Hospital,Aetna,2023-05-26,2023-05-31,12547.55,Normal
+PT-00934,46,Female,Arthritis,Elective,Lakeside Hospital,Cigna,2023-05-07,2023-05-14,7146.28,Inconclusive
+PT-00935,84,Male,Cancer,Emergency,St. Mary General,Cigna,2024-11-06,2024-11-16,30091.24,Normal
+PT-00936,23,Female,Hypertension,Urgent,Lakeside Hospital,Medicare,2022-05-01,2022-05-04,8768.88,Inconclusive
+PT-00937,57,Female,Diabetes,Elective,Riverside Medical,Blue Cross,2024-04-25,2024-05-07,9199.2,Normal
+PT-00938,53,Female,Diabetes,Elective,Central Health,Medicare,2024-12-21,2024-12-23,8866.98,Normal
+PT-00939,83,Female,Obesity,Elective,Central Health,UnitedHealth,2023-03-24,2023-04-06,14464.38,Normal
+PT-00940,47,Female,Asthma,Emergency,Lakeside Hospital,Medicare,2023-05-19,2023-06-01,10739.22,Normal
+PT-00941,90,Female,Obesity,Urgent,Lakeside Hospital,UnitedHealth,2022-07-30,2022-08-03,9510.37,Normal
+PT-00942,83,Male,Diabetes,Elective,Riverside Medical,Blue Cross,2022-06-14,2022-06-26,14427.22,Normal
+PT-00943,56,Female,Hypertension,Emergency,St. Mary General,UnitedHealth,2023-03-15,2023-03-28,13286.41,Abnormal
+PT-00944,89,Female,Arthritis,Elective,Lakeside Hospital,Blue Cross,2024-10-28,2024-11-08,8652.91,Normal
+PT-00945,65,Male,Arthritis,Urgent,St. Mary General,Blue Cross,2024-10-08,2024-10-12,13207.84,Normal
+PT-00946,18,Male,Obesity,Elective,Riverside Medical,UnitedHealth,2023-01-13,2023-01-23,10315.98,Abnormal
+PT-00947,77,Male,Asthma,Elective,St. Mary General,Medicare,2024-08-01,2024-08-05,6160.96,Normal
+PT-00948,23,Male,Hypertension,Elective,Lakeside Hospital,Blue Cross,2022-05-03,2022-05-11,11007.56,Normal
+PT-00949,67,Female,Hypertension,Elective,Lakeside Hospital,Cigna,2023-09-06,2023-09-18,12520.77,Abnormal
+PT-00950,91,Male,Asthma,Urgent,Riverside Medical,UnitedHealth,2023-02-09,2023-02-12,7724.62,Abnormal
+PT-00951,89,Female,Diabetes,Urgent,Lakeside Hospital,Medicare,2023-09-10,2023-09-17,7535.14,Abnormal
+PT-00952,37,Male,Cancer,Elective,Riverside Medical,Medicare,2022-08-16,2022-08-22,40424.62,Abnormal
+PT-00953,40,Female,Asthma,Emergency,St. Mary General,Cigna,2023-03-24,2023-04-01,9550.92,Abnormal
+PT-00954,71,Male,Diabetes,Emergency,Riverside Medical,Medicare,2024-04-20,2024-04-25,8492.79,Abnormal
+PT-00955,27,Male,Hypertension,Elective,Lakeside Hospital,UnitedHealth,2023-05-22,2023-06-05,9070.69,Abnormal
+PT-00956,9,Male,Hypertension,Elective,Lakeside Hospital,Aetna,2023-11-06,2023-11-15,9044.43,Normal
+PT-00957,65,Male,Cancer,Emergency,Riverside Medical,Aetna,2024-03-10,2024-03-23,35137.69,Normal
+PT-00958,54,Female,Asthma,Emergency,St. Mary General,Blue Cross,2022-09-26,2022-09-27,8509.39,Inconclusive
+PT-00959,47,Female,Hypertension,Emergency,Central Health,Cigna,2024-05-30,2024-06-11,12726.44,Normal
+PT-00960,33,Female,Asthma,Emergency,Central Health,Cigna,2024-09-02,2024-09-07,8977.83,Normal
+PT-00961,94,Male,Arthritis,Urgent,St. Mary General,Blue Cross,2022-05-30,2022-06-06,13548.59,Abnormal
+PT-00962,15,Female,Obesity,Elective,Lakeside Hospital,Medicare,2022-06-30,2022-07-14,15824.23,Abnormal
+PT-00963,71,Female,Diabetes,Elective,Lakeside Hospital,Aetna,2023-10-03,2023-10-08,16048.3,Inconclusive
+PT-00964,78,Female,Asthma,Urgent,Central Health,Blue Cross,2024-08-23,2024-08-24,6189.44,Abnormal
+PT-00965,67,Female,Cancer,Elective,Central Health,Cigna,2022-08-12,2022-08-14,15839.29,Abnormal
+PT-00966,36,Female,Diabetes,Elective,St. Mary General,Aetna,2024-05-09,2024-05-16,7770.19,Normal
+PT-00967,3,Female,Arthritis,Elective,Central Health,UnitedHealth,2022-05-05,2022-05-08,13364.21,Abnormal
+PT-00968,10,Male,Asthma,Elective,Lakeside Hospital,Blue Cross,2024-07-20,2024-07-23,9328.28,Abnormal
+PT-00969,21,Male,Arthritis,Urgent,Central Health,UnitedHealth,2022-03-12,2022-03-19,7576.4,Normal
+PT-00970,56,Female,Obesity,Elective,Riverside Medical,Aetna,2024-10-19,2024-11-02,9554.83,Normal
+PT-00971,76,Male,Hypertension,Emergency,Riverside Medical,UnitedHealth,2024-01-22,2024-01-30,7692.28,Abnormal
+PT-00972,90,Female,Asthma,Elective,Central Health,Cigna,2023-06-07,2023-06-18,10195.29,Normal
+PT-00973,65,Female,Arthritis,Emergency,St. Mary General,Blue Cross,2024-05-10,2024-05-12,9072.34,Abnormal
+PT-00974,39,Male,Cancer,Emergency,Central Health,UnitedHealth,2022-03-21,2022-04-03,33308.91,Normal
+PT-00975,60,Male,Diabetes,Emergency,St. Mary General,Blue Cross,2023-06-24,2023-06-25,9601.08,Abnormal
+PT-00976,23,Female,Obesity,Elective,Riverside Medical,Medicare,2023-06-17,2023-06-20,8769.06,Normal
+PT-00977,63,Male,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2022-04-24,2022-05-01,10251.56,Normal
+PT-00978,29,Male,Diabetes,Elective,St. Mary General,UnitedHealth,2023-07-09,2023-07-10,10984.03,Abnormal
+PT-00979,33,Female,Asthma,Emergency,Lakeside Hospital,Blue Cross,2022-06-04,2022-06-16,10044.95,Normal
+PT-00980,83,Male,Diabetes,Emergency,Lakeside Hospital,Aetna,2022-07-29,2022-08-09,15390.66,Inconclusive
+PT-00981,14,Female,Hypertension,Emergency,St. Mary General,Medicare,2022-03-24,2022-04-02,7252.73,Abnormal
+PT-00982,8,Female,Asthma,Emergency,St. Mary General,Blue Cross,2024-11-24,2024-12-08,10601.72,Normal
+PT-00983,65,Female,Hypertension,Emergency,Central Health,Blue Cross,2022-12-12,2022-12-22,13907.49,Normal
+PT-00984,69,Male,Diabetes,Elective,St. Mary General,Medicare,2022-07-17,2022-07-30,18253.06,Inconclusive
+PT-00985,58,Female,Asthma,Urgent,Central Health,Cigna,2024-03-07,2024-03-11,8799.12,Normal
+PT-00986,64,Female,Cancer,Elective,Riverside Medical,Medicare,2024-04-18,2024-04-27,17179.5,Inconclusive
+PT-00987,19,Female,Hypertension,Elective,Riverside Medical,Blue Cross,2024-08-08,2024-08-17,9156.81,Normal
+PT-00988,69,Female,Diabetes,Emergency,Central Health,Medicare,2024-11-29,2024-12-04,11908.58,Abnormal
+PT-00989,41,Female,Asthma,Elective,Central Health,Cigna,2023-03-17,2023-03-21,4717.16,Abnormal
+PT-00990,58,Female,Asthma,Elective,Central Health,Medicare,2022-03-04,2022-03-15,11801.07,Inconclusive
+PT-00991,11,Male,Arthritis,Emergency,Lakeside Hospital,Medicare,2022-08-09,2022-08-16,7862.48,Abnormal
+PT-00992,47,Male,Hypertension,Elective,St. Mary General,Aetna,2024-03-09,2024-03-15,9630.62,Normal
+PT-00993,13,Female,Cancer,Elective,Riverside Medical,Medicare,2024-06-24,2024-07-07,37546.08,Normal
+PT-00994,22,Female,Obesity,Elective,Riverside Medical,Cigna,2022-07-15,2022-07-28,16133.48,Normal
+PT-00995,82,Male,Arthritis,Elective,St. Mary General,Aetna,2022-05-11,2022-05-21,10932.55,Abnormal
+PT-00996,43,Male,Hypertension,Elective,Lakeside Hospital,Blue Cross,2022-07-12,2022-07-20,9974.2,Normal
+PT-00997,59,Female,Obesity,Elective,St. Mary General,Medicare,2024-06-13,2024-06-21,10525.84,Abnormal
+PT-00998,37,Male,Obesity,Elective,St. Mary General,Blue Cross,2024-05-30,2024-06-06,6452.33,Abnormal
+PT-00999,46,Female,Obesity,Emergency,Central Health,Cigna,2024-11-21,2024-11-24,7693.39,Normal
+PT-01000,35,Female,Diabetes,Elective,St. Mary General,Cigna,2023-05-14,2023-05-26,13372.37,Normal
+PT-01001,39,Male,Asthma,Elective,Riverside Medical,Medicare,2024-07-20,2024-08-02,11027.02,Abnormal
+PT-01002,50,Male,Arthritis,Elective,Riverside Medical,Aetna,2024-10-29,2024-11-12,11518.92,Normal
+PT-01003,89,Male,Hypertension,Urgent,Central Health,Blue Cross,2022-08-14,2022-08-23,7088.71,Abnormal
+PT-01004,39,Male,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2022-08-20,2022-08-23,12599.93,Normal
+PT-01005,38,Female,Arthritis,Emergency,Lakeside Hospital,Medicare,2023-03-19,2023-03-31,13650.8,Normal
+PT-01006,70,Female,Arthritis,Emergency,Central Health,Blue Cross,2024-05-05,2024-05-08,12906.91,Normal
+PT-01007,82,Male,Diabetes,Emergency,Central Health,UnitedHealth,2024-06-03,2024-06-17,15521.16,Abnormal
+PT-01008,85,Male,Hypertension,Urgent,Riverside Medical,Aetna,2022-07-24,2022-07-27,11732.61,Normal
+PT-01009,65,Male,Hypertension,Emergency,Central Health,UnitedHealth,2022-12-26,2023-01-07,14223.61,Normal
+PT-01010,50,Male,Diabetes,Urgent,Riverside Medical,Medicare,2022-02-08,2022-02-17,10407.17,Normal
+PT-01011,41,Female,Arthritis,Urgent,Riverside Medical,UnitedHealth,2022-05-16,2022-05-21,8937.4,Normal
+PT-01012,26,Male,Diabetes,Elective,Riverside Medical,Aetna,2024-07-22,2024-08-04,13259.33,Abnormal
+PT-01013,54,Male,Arthritis,Emergency,Central Health,Cigna,2022-11-07,2022-11-11,6610.7,Inconclusive
+PT-01014,72,Male,Diabetes,Emergency,Riverside Medical,Cigna,2022-05-16,2022-05-20,11854.93,Normal
+PT-01015,23,Female,Hypertension,Elective,Central Health,UnitedHealth,2023-08-31,2023-09-08,10699.72,Inconclusive
+PT-01016,24,Male,Diabetes,Elective,Central Health,Aetna,2023-04-05,2023-04-16,15500.31,Normal
+PT-01017,69,Female,Asthma,Urgent,Riverside Medical,Medicare,2023-03-06,2023-03-16,6903.84,Abnormal
+PT-01018,8,Female,Obesity,Urgent,Riverside Medical,UnitedHealth,2024-01-28,2024-02-05,10713.58,Normal
+PT-01019,17,Male,Arthritis,Elective,Lakeside Hospital,Aetna,2022-12-18,2022-12-28,13613.78,Normal
+PT-01020,34,Female,Asthma,Elective,St. Mary General,Medicare,2023-09-20,2023-09-28,9646.54,Normal
+PT-01021,94,Male,Asthma,Elective,Riverside Medical,Blue Cross,2022-12-28,2022-12-30,7896.78,Normal
+PT-01022,73,Female,Asthma,Emergency,Central Health,Blue Cross,2023-10-28,2023-10-30,8259.2,Normal
+PT-01023,75,Female,Arthritis,Emergency,St. Mary General,Medicare,2024-05-13,2024-05-23,14293.1,Normal
+PT-01024,5,Female,Hypertension,Emergency,Lakeside Hospital,Cigna,2023-04-06,2023-04-14,9946.38,Normal
+PT-01025,41,Male,Obesity,Emergency,Riverside Medical,Blue Cross,2024-07-22,2024-08-03,9216.78,Normal
+PT-01026,59,Male,Obesity,Urgent,Riverside Medical,Aetna,2024-08-20,2024-08-27,9802.65,Normal
+PT-01027,22,Female,Asthma,Emergency,Central Health,Cigna,2024-12-24,2024-12-29,7199.06,Normal
+PT-01028,27,Female,Obesity,Emergency,Riverside Medical,UnitedHealth,2022-05-26,2022-06-09,11814.71,Normal
+PT-01029,32,Male,Diabetes,Elective,Riverside Medical,Cigna,2022-12-13,2022-12-20,15120.5,Normal
+PT-01030,15,Female,Obesity,Emergency,Central Health,Cigna,2023-04-27,2023-05-03,7791.47,Inconclusive
+PT-01031,85,Male,Diabetes,Elective,Central Health,Cigna,2024-06-19,2024-06-27,16984.81,Normal
+PT-01032,61,Female,Asthma,Elective,Lakeside Hospital,Cigna,2023-04-30,2023-05-01,5325.75,Abnormal
+PT-01033,5,Male,Hypertension,Elective,St. Mary General,Cigna,2023-05-09,2023-05-11,7253.54,Normal
+PT-01034,63,Female,Obesity,Elective,Lakeside Hospital,Medicare,2023-11-20,2023-11-30,13913.8,Abnormal
+PT-01035,57,Female,Hypertension,Elective,St. Mary General,Cigna,2022-05-10,2022-05-22,14904.43,Normal
+PT-01036,78,Female,Obesity,Elective,St. Mary General,Blue Cross,2023-10-19,2023-10-27,8903.94,Normal
+PT-01037,65,Male,Obesity,Emergency,Riverside Medical,Blue Cross,2024-02-13,2024-02-16,6124.18,Normal
+PT-01038,89,Female,Asthma,Emergency,Central Health,UnitedHealth,2022-09-14,2022-09-22,11775.38,Abnormal
+PT-01039,65,Female,Diabetes,Emergency,Lakeside Hospital,Medicare,2022-09-13,2022-09-23,11523.98,Inconclusive
+PT-01040,89,Female,Cancer,Urgent,Riverside Medical,Aetna,2024-07-19,2024-07-20,35966.86,Normal
+PT-01041,12,Male,Asthma,Elective,Lakeside Hospital,Cigna,2022-01-28,2022-01-29,4015.88,Normal
+PT-01042,35,Male,Obesity,Elective,Riverside Medical,UnitedHealth,2023-08-09,2023-08-17,8204.5,Normal
+PT-01043,72,Female,Arthritis,Elective,St. Mary General,Cigna,2022-01-04,2022-01-12,11133.35,Normal
+PT-01044,47,Male,Arthritis,Emergency,Lakeside Hospital,Aetna,2022-07-22,2022-08-04,13603.66,Normal
+PT-01045,8,Female,Hypertension,Urgent,Central Health,Blue Cross,2022-07-18,2022-07-20,10284.77,Normal
+PT-01046,41,Male,Diabetes,Emergency,St. Mary General,Aetna,2022-02-15,2022-02-20,10994.32,Abnormal
+PT-01047,23,Male,Hypertension,Elective,St. Mary General,Cigna,2023-11-03,2023-11-11,9700.36,Normal
+PT-01048,34,Male,Obesity,Emergency,Lakeside Hospital,Medicare,2023-08-18,2023-08-31,10882.5,Abnormal
+PT-01049,61,Male,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2024-12-18,2025-01-01,13091.37,Inconclusive
+PT-01050,69,Male,Hypertension,Elective,Central Health,Cigna,2023-09-05,2023-09-15,11138.32,Normal
+PT-01051,55,Male,Diabetes,Urgent,Riverside Medical,Blue Cross,2022-08-19,2022-08-24,8368.16,Normal
+PT-01052,65,Male,Obesity,Emergency,Lakeside Hospital,Aetna,2022-03-12,2022-03-18,6034.99,Normal
+PT-01053,73,Male,Arthritis,Emergency,Lakeside Hospital,Cigna,2022-01-23,2022-01-30,10297.2,Abnormal
+PT-01054,60,Female,Cancer,Urgent,St. Mary General,UnitedHealth,2022-06-01,2022-06-03,19704.81,Normal
+PT-01055,71,Female,Arthritis,Elective,Central Health,Blue Cross,2022-07-18,2022-07-26,12300.33,Abnormal
+PT-01056,89,Male,Diabetes,Emergency,St. Mary General,Blue Cross,2022-04-01,2022-04-06,13243.75,Normal
+PT-01057,55,Female,Diabetes,Emergency,St. Mary General,Blue Cross,2022-11-05,2022-11-15,12333.97,Normal
+PT-01058,50,Female,Diabetes,Emergency,St. Mary General,Blue Cross,2024-08-08,2024-08-22,17580.49,Abnormal
+PT-01059,9,Male,Asthma,Emergency,Lakeside Hospital,Blue Cross,2024-10-23,2024-11-03,9565.56,Normal
+PT-01060,18,Female,Obesity,Emergency,Riverside Medical,Aetna,2023-08-23,2023-08-29,7850.14,Abnormal
+PT-01061,45,Female,Arthritis,Urgent,St. Mary General,Cigna,2024-09-14,2024-09-17,10421.99,Normal
+PT-01062,73,Female,Asthma,Urgent,Riverside Medical,Cigna,2023-08-11,2023-08-16,6294.81,Normal
+PT-01063,70,Female,Arthritis,Emergency,Central Health,Medicare,2023-03-23,2023-03-30,9239.83,Inconclusive
+PT-01064,83,Female,Hypertension,Urgent,St. Mary General,Blue Cross,2023-12-22,2023-12-27,5693.91,Normal
+PT-01065,80,Female,Obesity,Elective,St. Mary General,Cigna,2022-06-27,2022-07-01,8069.19,Abnormal
+PT-01066,25,Female,Diabetes,Elective,St. Mary General,Cigna,2024-11-16,2024-11-17,9592.47,Abnormal
+PT-01067,30,Male,Hypertension,Elective,Central Health,Medicare,2022-03-05,2022-03-07,6764.81,Normal
+PT-01068,11,Male,Cancer,Elective,Riverside Medical,Cigna,2022-03-16,2022-03-28,21649.03,Abnormal
+PT-01069,9,Male,Hypertension,Urgent,St. Mary General,Blue Cross,2022-08-08,2022-08-10,6796.49,Abnormal
+PT-01070,21,Female,Diabetes,Emergency,St. Mary General,Aetna,2023-07-31,2023-08-03,6608.73,Inconclusive
+PT-01071,27,Female,Hypertension,Elective,Central Health,Aetna,2022-03-06,2022-03-15,11334.7,Abnormal
+PT-01072,49,Male,Diabetes,Urgent,Lakeside Hospital,Medicare,2023-10-28,2023-11-07,9493.26,Normal
+PT-01073,76,Male,Diabetes,Elective,St. Mary General,Aetna,2022-03-20,2022-03-25,6875.55,Normal
+PT-01074,90,Female,Arthritis,Emergency,Lakeside Hospital,Aetna,2023-02-04,2023-02-12,11544.06,Normal
+PT-01075,92,Male,Obesity,Emergency,Riverside Medical,UnitedHealth,2022-08-07,2022-08-18,9071.65,Normal
+PT-01076,76,Female,Diabetes,Emergency,Lakeside Hospital,Aetna,2022-01-19,2022-01-24,10759.76,Normal
+PT-01077,52,Female,Hypertension,Elective,Central Health,UnitedHealth,2024-04-07,2024-04-17,13615.11,Normal
+PT-01078,55,Female,Asthma,Elective,St. Mary General,Cigna,2023-02-24,2023-02-26,5610.67,Normal
+PT-01079,45,Female,Obesity,Elective,Central Health,Medicare,2023-02-06,2023-02-09,11177.45,Normal
+PT-01080,27,Female,Arthritis,Urgent,Central Health,Cigna,2024-09-22,2024-10-01,8487.82,Inconclusive
+PT-01081,54,Male,Arthritis,Emergency,St. Mary General,UnitedHealth,2024-06-28,2024-07-11,11310.27,Abnormal
+PT-01082,24,Female,Hypertension,Emergency,Riverside Medical,Medicare,2022-05-15,2022-05-20,8647.65,Normal
+PT-01083,41,Male,Arthritis,Elective,Central Health,Medicare,2024-09-16,2024-09-17,6166.77,Normal
+PT-01084,36,Male,Hypertension,Emergency,St. Mary General,Aetna,2024-08-28,2024-09-01,7061.21,Abnormal
+PT-01085,8,Female,Cancer,Elective,Central Health,UnitedHealth,2024-05-08,2024-05-10,35170.62,Normal
+PT-01086,8,Male,Arthritis,Urgent,Lakeside Hospital,UnitedHealth,2022-11-10,2022-11-20,9249.93,Normal
+PT-01087,65,Male,Arthritis,Emergency,Riverside Medical,Blue Cross,2024-09-14,2024-09-27,15209.0,Normal
+PT-01088,29,Male,Asthma,Elective,St. Mary General,Aetna,2022-05-15,2022-05-20,5855.76,Inconclusive
+PT-01089,54,Male,Cancer,Elective,Riverside Medical,Blue Cross,2023-05-17,2023-05-20,32842.7,Abnormal
+PT-01090,69,Male,Diabetes,Elective,Riverside Medical,Aetna,2024-05-14,2024-05-15,10078.85,Normal
+PT-01091,35,Male,Obesity,Urgent,Central Health,UnitedHealth,2022-03-03,2022-03-09,12468.08,Normal
+PT-01092,45,Male,Obesity,Emergency,Lakeside Hospital,Aetna,2022-07-13,2022-07-21,7068.06,Normal
+PT-01093,53,Male,Hypertension,Urgent,St. Mary General,Medicare,2022-02-26,2022-03-11,12282.67,Normal
+PT-01094,41,Male,Diabetes,Emergency,Lakeside Hospital,Cigna,2022-06-10,2022-06-13,11387.85,Normal
+PT-01095,12,Male,Hypertension,Elective,St. Mary General,Medicare,2022-05-31,2022-06-05,10199.62,Inconclusive
+PT-01096,27,Male,Diabetes,Emergency,Lakeside Hospital,Blue Cross,2024-12-03,2024-12-06,14397.5,Inconclusive
+PT-01097,86,Male,Hypertension,Elective,St. Mary General,UnitedHealth,2024-08-25,2024-08-31,11297.95,Inconclusive
+PT-01098,58,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2022-10-17,2022-10-30,11891.75,Normal
+PT-01099,51,Male,Asthma,Elective,Riverside Medical,Blue Cross,2024-08-23,2024-09-05,9102.09,Normal
+PT-01100,70,Female,Hypertension,Emergency,St. Mary General,UnitedHealth,2023-04-15,2023-04-22,6989.05,Normal
+PT-01101,66,Male,Asthma,Elective,Riverside Medical,UnitedHealth,2024-01-31,2024-02-02,4257.54,Abnormal
+PT-01102,8,Female,Asthma,Elective,Riverside Medical,Blue Cross,2023-12-30,2024-01-05,8708.27,Abnormal
+PT-01103,69,Female,Cancer,Elective,St. Mary General,Cigna,2022-06-11,2022-06-14,21449.52,Normal
+PT-01104,93,Female,Asthma,Elective,Riverside Medical,Medicare,2023-02-03,2023-02-08,8415.41,Normal
+PT-01105,65,Male,Diabetes,Elective,Lakeside Hospital,UnitedHealth,2022-05-31,2022-06-14,9808.65,Normal
+PT-01106,66,Male,Arthritis,Elective,St. Mary General,Aetna,2023-10-24,2023-11-05,8613.26,Inconclusive
+PT-01107,84,Male,Obesity,Elective,Lakeside Hospital,Medicare,2022-11-05,2022-11-12,11250.67,Abnormal
+PT-01108,39,Female,Hypertension,Urgent,St. Mary General,UnitedHealth,2023-04-21,2023-05-05,11776.68,Normal
+PT-01109,70,Female,Hypertension,Emergency,Riverside Medical,Aetna,2024-04-03,2024-04-11,6824.51,Normal
+PT-01110,67,Female,Asthma,Emergency,Central Health,Aetna,2022-09-26,2022-09-30,6702.92,Normal
+PT-01111,75,Male,Diabetes,Urgent,Central Health,Medicare,2024-09-03,2024-09-10,12717.96,Inconclusive
+PT-01112,86,Male,Asthma,Elective,Lakeside Hospital,UnitedHealth,2023-07-15,2023-07-28,12530.05,Normal
+PT-01113,47,Male,Obesity,Emergency,Lakeside Hospital,Medicare,2023-04-17,2023-04-22,9369.58,Normal
+PT-01114,8,Male,Asthma,Urgent,St. Mary General,Cigna,2023-09-24,2023-09-26,5635.07,Normal
+PT-01115,64,Female,Arthritis,Emergency,Riverside Medical,Blue Cross,2024-08-10,2024-08-24,9633.02,Normal
+PT-01116,62,Female,Hypertension,Elective,Central Health,UnitedHealth,2024-08-20,2024-08-29,9587.14,Abnormal
+PT-01117,50,Male,Obesity,Urgent,Riverside Medical,Aetna,2022-08-21,2022-08-31,11457.3,Normal
+PT-01118,46,Female,Asthma,Emergency,Lakeside Hospital,Aetna,2023-07-17,2023-07-19,9292.33,Normal
+PT-01119,4,Female,Obesity,Elective,St. Mary General,Medicare,2023-10-08,2023-10-20,8493.15,Abnormal
+PT-01120,92,Female,Hypertension,Emergency,Lakeside Hospital,Medicare,2022-07-04,2022-07-16,14623.66,Abnormal
+PT-01121,39,Female,Cancer,Elective,Riverside Medical,Blue Cross,2024-01-10,2024-01-22,25393.28,Normal
+PT-01122,42,Male,Arthritis,Emergency,Lakeside Hospital,UnitedHealth,2022-07-19,2022-07-28,14385.58,Normal
+PT-01123,71,Male,Diabetes,Urgent,Riverside Medical,Aetna,2023-04-05,2023-04-19,15229.24,Normal
+PT-01124,45,Female,Diabetes,Elective,Riverside Medical,Blue Cross,2023-07-04,2023-07-18,12654.17,Normal
+PT-01125,44,Male,Hypertension,Emergency,Riverside Medical,Aetna,2024-02-19,2024-02-21,6975.29,Normal
+PT-01126,30,Male,Asthma,Emergency,St. Mary General,Blue Cross,2024-09-24,2024-10-02,7257.17,Normal
+PT-01127,43,Female,Arthritis,Emergency,St. Mary General,Cigna,2023-05-20,2023-05-24,7947.53,Inconclusive
+PT-01128,65,Male,Obesity,Elective,Central Health,Cigna,2023-03-12,2023-03-20,8099.63,Normal
+PT-01129,54,Female,Diabetes,Elective,Central Health,UnitedHealth,2023-09-13,2023-09-19,9480.01,Normal
+PT-01130,66,Male,Hypertension,Emergency,Central Health,Blue Cross,2023-09-06,2023-09-10,10368.24,Abnormal
+PT-01131,7,Female,Diabetes,Urgent,St. Mary General,Cigna,2024-02-16,2024-02-17,13526.01,Abnormal
+PT-01132,61,Male,Diabetes,Emergency,Riverside Medical,Cigna,2023-05-11,2023-05-20,16795.15,Normal
+PT-01133,69,Female,Obesity,Urgent,Riverside Medical,Medicare,2024-07-17,2024-07-29,12327.83,Inconclusive
+PT-01134,75,Male,Cancer,Elective,St. Mary General,Medicare,2023-04-30,2023-05-05,35215.77,Abnormal
+PT-01135,83,Male,Arthritis,Urgent,Riverside Medical,UnitedHealth,2024-03-21,2024-03-27,8192.34,Abnormal
+PT-01136,34,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2023-06-04,2023-06-17,15324.15,Normal
+PT-01137,43,Female,Diabetes,Elective,Riverside Medical,Blue Cross,2023-03-14,2023-03-20,10762.01,Normal
+PT-01138,12,Male,Obesity,Emergency,Central Health,Cigna,2023-03-05,2023-03-10,13254.74,Abnormal
+PT-01139,16,Female,Diabetes,Urgent,Central Health,UnitedHealth,2022-04-28,2022-05-05,7326.7,Normal
+PT-01140,55,Female,Hypertension,Emergency,Riverside Medical,Blue Cross,2024-07-20,2024-07-31,11810.68,Inconclusive
+PT-01141,7,Male,Hypertension,Emergency,Lakeside Hospital,Cigna,2023-03-10,2023-03-15,10108.44,Normal
+PT-01142,87,Male,Arthritis,Urgent,Riverside Medical,Aetna,2023-06-15,2023-06-22,6713.2,Abnormal
+PT-01143,18,Female,Obesity,Urgent,St. Mary General,UnitedHealth,2023-01-19,2023-02-01,16067.56,Normal
+PT-01144,78,Male,Obesity,Emergency,Central Health,Blue Cross,2024-04-13,2024-04-17,11201.97,Inconclusive
+PT-01145,88,Female,Arthritis,Emergency,St. Mary General,Cigna,2022-11-29,2022-12-11,11316.04,Inconclusive
+PT-01146,23,Female,Obesity,Urgent,Riverside Medical,Medicare,2024-02-22,2024-03-03,8264.26,Normal
+PT-01147,37,Female,Diabetes,Elective,Lakeside Hospital,Aetna,2024-05-09,2024-05-19,12127.03,Normal
+PT-01148,54,Female,Cancer,Emergency,Riverside Medical,UnitedHealth,2023-07-22,2023-07-24,27667.84,Normal
+PT-01149,61,Female,Diabetes,Elective,St. Mary General,Medicare,2023-07-29,2023-08-11,16257.43,Normal
+PT-01150,61,Female,Diabetes,Emergency,Lakeside Hospital,UnitedHealth,2022-04-17,2022-04-25,8913.15,Normal
+PT-01151,36,Male,Hypertension,Elective,Central Health,Cigna,2024-09-29,2024-10-05,8320.37,Normal
+PT-01152,17,Female,Cancer,Elective,St. Mary General,Cigna,2024-12-03,2024-12-07,35540.92,Normal
+PT-01153,61,Male,Diabetes,Emergency,St. Mary General,Blue Cross,2022-05-24,2022-06-02,10787.41,Normal
+PT-01154,54,Female,Hypertension,Elective,St. Mary General,Medicare,2023-08-28,2023-09-09,12275.28,Normal
+PT-01155,73,Female,Hypertension,Emergency,Riverside Medical,Medicare,2022-04-09,2022-04-19,13209.94,Normal
+PT-01156,70,Male,Asthma,Elective,St. Mary General,Aetna,2023-08-25,2023-08-26,7477.6,Abnormal
+PT-01157,22,Female,Cancer,Emergency,Lakeside Hospital,Blue Cross,2023-12-31,2024-01-06,40158.55,Abnormal
+PT-01158,80,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2024-02-27,2024-03-01,6135.84,Abnormal
+PT-01159,70,Female,Arthritis,Urgent,St. Mary General,Blue Cross,2023-11-04,2023-11-18,16106.26,Normal
+PT-01160,36,Male,Asthma,Emergency,Central Health,Blue Cross,2023-12-30,2024-01-13,12137.24,Inconclusive
+PT-01161,86,Female,Diabetes,Urgent,Riverside Medical,Blue Cross,2022-10-24,2022-10-28,7388.73,Normal
+PT-01162,33,Female,Hypertension,Elective,Central Health,Medicare,2022-01-19,2022-02-01,13931.84,Normal
+PT-01163,86,Male,Cancer,Emergency,St. Mary General,Blue Cross,2024-05-20,2024-06-01,38404.77,Normal
+PT-01164,37,Male,Diabetes,Emergency,St. Mary General,Cigna,2024-06-19,2024-06-23,11501.42,Normal
+PT-01165,24,Female,Cancer,Emergency,St. Mary General,Blue Cross,2024-11-11,2024-11-16,17577.78,Normal
+PT-01166,85,Male,Arthritis,Urgent,Central Health,Medicare,2024-07-29,2024-08-03,7800.17,Abnormal
+PT-01167,58,Female,Asthma,Urgent,Riverside Medical,Medicare,2022-05-04,2022-05-18,12383.97,Abnormal
+PT-01168,8,Female,Hypertension,Emergency,Lakeside Hospital,Aetna,2022-07-26,2022-07-30,12029.74,Normal
+PT-01169,50,Female,Diabetes,Emergency,Central Health,Medicare,2024-02-28,2024-02-29,7894.39,Normal
+PT-01170,43,Female,Asthma,Elective,Riverside Medical,Cigna,2023-01-26,2023-02-02,9773.41,Abnormal
+PT-01171,48,Female,Hypertension,Emergency,Central Health,Blue Cross,2024-09-19,2024-09-24,8166.55,Normal
+PT-01172,37,Male,Hypertension,Urgent,Central Health,Cigna,2023-02-02,2023-02-09,12474.0,Abnormal
+PT-01173,50,Female,Asthma,Elective,Central Health,UnitedHealth,2024-06-20,2024-07-02,9387.38,Normal
+PT-01174,39,Male,Asthma,Elective,Riverside Medical,Cigna,2023-01-22,2023-01-25,6171.65,Normal
+PT-01175,76,Female,Diabetes,Elective,Riverside Medical,UnitedHealth,2022-11-22,2022-11-28,13260.05,Normal
+PT-01176,57,Female,Hypertension,Urgent,Central Health,Aetna,2024-10-27,2024-11-05,13219.47,Normal
+PT-01177,25,Male,Obesity,Urgent,St. Mary General,Cigna,2023-09-01,2023-09-12,12572.06,Normal
+PT-01178,27,Female,Hypertension,Emergency,Riverside Medical,Cigna,2023-03-13,2023-03-23,7477.94,Normal
+PT-01179,47,Female,Hypertension,Elective,Riverside Medical,Cigna,2022-09-01,2022-09-08,8198.05,Normal
+PT-01180,41,Male,Obesity,Emergency,Lakeside Hospital,Blue Cross,2024-05-23,2024-05-26,8193.69,Normal
+PT-01181,15,Male,Cancer,Emergency,Riverside Medical,UnitedHealth,2023-10-09,2023-10-21,22727.58,Normal
+PT-01182,11,Female,Asthma,Emergency,Riverside Medical,UnitedHealth,2022-04-17,2022-04-29,9265.27,Normal
+PT-01183,48,Female,Hypertension,Elective,Central Health,Blue Cross,2024-09-26,2024-10-04,8962.39,Normal
+PT-01184,1,Female,Hypertension,Elective,Central Health,Cigna,2022-02-04,2022-02-11,9176.61,Normal
+PT-01185,9,Female,Asthma,Elective,Riverside Medical,Blue Cross,2024-04-17,2024-04-26,10914.76,Abnormal
+PT-01186,28,Female,Hypertension,Urgent,Riverside Medical,Cigna,2024-01-10,2024-01-11,7715.32,Abnormal
+PT-01187,82,Female,Obesity,Emergency,Central Health,UnitedHealth,2022-01-09,2022-01-10,10484.31,Normal
+PT-01188,67,Male,Cancer,Emergency,Lakeside Hospital,Medicare,2024-10-10,2024-10-14,19768.54,Normal
+PT-01189,49,Female,Hypertension,Urgent,Riverside Medical,UnitedHealth,2023-02-17,2023-02-25,9628.98,Normal
+PT-01190,75,Female,Asthma,Urgent,Central Health,Blue Cross,2024-10-06,2024-10-13,7646.69,Normal
+PT-01191,34,Male,Obesity,Urgent,Riverside Medical,Aetna,2024-06-05,2024-06-14,9050.4,Normal
+PT-01192,78,Female,Diabetes,Elective,Riverside Medical,Cigna,2023-02-13,2023-02-21,7642.82,Abnormal
+PT-01193,35,Male,Asthma,Elective,Lakeside Hospital,Cigna,2023-12-27,2024-01-10,11240.2,Normal
+PT-01194,69,Male,Obesity,Urgent,St. Mary General,UnitedHealth,2022-11-15,2022-11-22,13315.93,Normal
+PT-01195,7,Female,Asthma,Urgent,Central Health,Medicare,2022-11-20,2022-11-23,8209.53,Normal
+PT-01196,61,Female,Hypertension,Emergency,Central Health,Aetna,2024-06-08,2024-06-11,8535.6,Abnormal
+PT-01197,41,Female,Hypertension,Emergency,Lakeside Hospital,Aetna,2024-06-18,2024-07-02,9942.68,Normal
+PT-01198,29,Female,Hypertension,Emergency,Lakeside Hospital,UnitedHealth,2022-11-20,2022-11-26,7223.57,Abnormal
+PT-01199,90,Male,Cancer,Elective,Central Health,UnitedHealth,2024-04-29,2024-05-07,41633.0,Abnormal
+PT-01200,42,Male,Obesity,Emergency,St. Mary General,Cigna,2022-09-06,2022-09-18,9522.96,Abnormal
