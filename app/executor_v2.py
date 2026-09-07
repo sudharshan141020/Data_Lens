@@ -86,6 +86,33 @@ def _compute_correlation_matrix(df, cols):
     return cells
 
 
+def _compute_pivot(df, dim1, dim2, metric, aggregation, top_n=8):
+    """Cross-tab: metric aggregated over every (dim1, dim2) combination.
+    Capped to the top N most frequent values per dimension (by row count,
+    not by the metric itself) -- a 20x20 grid stops being readable long
+    before a 20-category single dimension chart would. Cells with no
+    rows for that combination come back as None rather than 0, so the
+    frontend can render them as "no data" instead of a misleading zero."""
+    sub = df[[dim1, dim2, metric]].dropna(subset=[dim1, dim2])
+    top1 = sub[dim1].value_counts().head(top_n).index.tolist()
+    top2 = sub[dim2].value_counts().head(top_n).index.tolist()
+    sub = sub[sub[dim1].isin(top1) & sub[dim2].isin(top2)]
+
+    grouped = sub.groupby([dim1, dim2])[metric]
+    agg = grouped.mean() if aggregation == "avg" else grouped.sum()
+
+    cells = []
+    for d1 in top1:
+        for d2 in top2:
+            try:
+                val = agg.loc[(d1, d2)]
+                val = float(val) if pd.notna(val) else None
+            except KeyError:
+                val = None
+            cells.append({"x": str(d2), "y": str(d1), "value": val})
+    return cells
+
+
 def _compute_boxplot(df, col):
     series = df[col].dropna()
     if series.empty:
@@ -126,6 +153,7 @@ def execute_spec(df: pd.DataFrame, spec) -> dict:
         "importance": spec.importance, "aggregation": spec.aggregation,
         "metric_column": spec.metric_column,
         "column": spec.column,
+        "column2": spec.column2,
         "date_column": spec.date_column,
         "reasoning": spec.reasoning,
     }
@@ -139,6 +167,8 @@ def execute_spec(df: pd.DataFrame, spec) -> dict:
             data = _compute_distribution_count(df, spec.column)
         elif t == "distribution_sum":
             data = _compute_distribution_sum(df, spec.column, spec.metric_column, spec.aggregation or "sum")
+        elif t == "pivot":
+            data = _compute_pivot(df, spec.column, spec.column2, spec.metric_column, spec.aggregation or "sum")
         elif t == "correlation":
             c1, c2 = spec.metric_columns[0], spec.metric_columns[1]
             data = _compute_scatter(df, c1, c2, color_col=spec.column)

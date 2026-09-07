@@ -1645,6 +1645,13 @@
   padding-top: 8px;
 }
 
+.heatmap-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
 .heatmap-grid {
   display: grid;
   gap: 3px;

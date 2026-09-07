@@ -82,6 +82,7 @@ IMPORTANCE_BASE = {
     "trend": 85,
     "distribution_count": 75,   # the entity itself — what this domain is actually about
     "distribution_sum": 55,     # the metric's breakdown by entity — supporting, not primary
+    "pivot": 45,                # a single dimension's breakdown, crossed with a second one
     "histogram": 50,
     "correlation_matrix": 40,
     "correlation": 35,
@@ -93,6 +94,7 @@ TYPE_TO_SECTION = {
     "trend": "Trends",
     "distribution_count": "Distributions",
     "distribution_sum": "Distributions",
+    "pivot": "Relationships",
     "histogram": "Distributions",
     "correlation": "Relationships",
     "correlation_matrix": "Correlations",
@@ -115,11 +117,12 @@ def _slug(text: str) -> str:
 class AnalysisSpec:
     id: str
     title: str
-    type: str            # trend | histogram | distribution_count | distribution_sum | correlation | correlation_matrix | outlier
+    type: str            # trend | histogram | distribution_count | distribution_sum | correlation | correlation_matrix | outlier | pivot
     chart_type: str       # line | histogram | horizontal_bar | donut | treemap | scatter | heatmap | boxplot
     section: str          # Trends | Distributions | Relationships | Correlations | Outliers
     importance: int
     column: str = None
+    column2: str = None   # second dimension, for pivot only
     metric_column: str = None
     metric_columns: list = field(default_factory=list)  # for correlation_matrix (3+ measures)
     date_column: str = None
@@ -255,6 +258,36 @@ def plan_analyses(profile: DatasetProfile, headline_roles: set = None) -> list:
                 reasoning=f"Ranks {d.column} groups by {verb.lower()} {primary.column} — a horizontal "
                           f"bar makes the ranking easy to read at a glance, unlike a raw table.",
             ))
+
+    # --- Pivot: primary measure across the intersection of the two best
+    # dimensions. A single dimension's breakdown can hide a pattern that
+    # only shows up when two categories are crossed (e.g. discounts might
+    # look fine on average per-Region and per-Category separately, but
+    # one specific Region+Category combination could be the real problem).
+    # Only ONE pivot is planned, same philosophy as correlation_matrix —
+    # this is a deep-dive view, not a per-dimension loop.
+    pivot_candidates = [d for d in profile.dimensions if d.is_chartable and 2 <= d.cardinality <= 10]
+    if primary and len(pivot_candidates) >= 2:
+        # Headline dimensions first (most meaningful cross-cut for this
+        # domain), then lowest cardinality (keeps the grid compact).
+        pivot_candidates.sort(key=lambda d: (d.role not in headline_roles, d.cardinality))
+        dim1, dim2 = pivot_candidates[0], pivot_candidates[1]
+        verb = "Average" if primary.aggregation == "avg" else "Total"
+        specs.append(AnalysisSpec(
+            id="pivot_" + _slug(dim1.column) + "_" + _slug(dim2.column),
+            title=f"{primary.column} by {dim1.column} & {dim2.column}",
+            type="pivot",
+            chart_type="heatmap",
+            section=TYPE_TO_SECTION["pivot"],
+            importance=IMPORTANCE_BASE["pivot"],
+            column=dim1.column,
+            column2=dim2.column,
+            metric_column=primary.column,
+            aggregation=primary.aggregation,
+            reasoning=f"{verb} {primary.column} broken down by {dim1.column} AND {dim2.column} together — "
+                      f"a single dimension's breakdown can hide a pattern that only shows up when two "
+                      f"categories are crossed.",
+        ))
 
     return specs
 

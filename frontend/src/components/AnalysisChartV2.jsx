@@ -248,21 +248,46 @@ function TreemapView({ analysis }) {
   );
 }
 
-function HeatmapView({ analysis }) {
+function HeatmapView({ analysis, isCurrency }) {
+  const isPivot = analysis.type === 'pivot';
   const cols = [...new Set(analysis.data.map((d) => d.x))];
+  const rows = [...new Set(analysis.data.map((d) => d.y))];
   const getCell = (x, y) => analysis.data.find((d) => d.x === x && d.y === y);
-  const colorFor = (r) => {
-    if (r === null || r === undefined) return 'var(--surface-raised)';
-    const abs = Math.abs(r);
-    if (r > 0) return `rgba(79, 166, 155, ${0.15 + abs * 0.7})`;
+
+  const values = analysis.data.map((d) => d.value).filter((v) => v !== null && v !== undefined);
+  const minVal = values.length ? Math.min(...values) : 0;
+  const maxVal = values.length ? Math.max(...values) : 1;
+  const valueRange = maxVal - minVal || 1;
+
+  const colorFor = (v) => {
+    if (v === null || v === undefined) return 'var(--surface-raised)';
+    if (isPivot) {
+      const intensity = 0.1 + ((v - minVal) / valueRange) * 0.75;
+      return `rgba(79, 166, 155, ${intensity.toFixed(2)})`;
+    }
+    const abs = Math.abs(v);
+    if (v > 0) return `rgba(79, 166, 155, ${0.15 + abs * 0.7})`;
     return `rgba(217, 99, 107, ${0.15 + abs * 0.7})`;
   };
+
+  const formatCell = (v) => {
+    if (v === null || v === undefined) return '–';
+    if (isPivot) return `${isCurrency ? '$' : ''}${formatAxisValue(v)}`;
+    return v.toFixed(2);
+  };
+
   return (
     <div className="heatmap-wrap">
+      {isPivot && (
+        <div className="heatmap-axis-labels">
+          <span className="dim-sub">↓ {analysis.column}</span>
+          <span className="dim-sub">→ {analysis.column2}</span>
+        </div>
+      )}
       <div className="heatmap-grid" style={{ gridTemplateColumns: `100px repeat(${cols.length}, 1fr)` }}>
         <div />
         {cols.map((c) => <div key={c} className="heatmap-label mono">{c}</div>)}
-        {cols.map((rowLabel) => (
+        {rows.map((rowLabel) => (
           <Fragment key={rowLabel}>
             <div className="heatmap-label mono">{rowLabel}</div>
             {cols.map((colLabel) => {
@@ -272,9 +297,9 @@ function HeatmapView({ analysis }) {
                   key={rowLabel + colLabel}
                   className="heatmap-cell mono"
                   style={{ background: colorFor(cell?.value) }}
-                  title={`${rowLabel} vs ${colLabel}: ${cell?.value?.toFixed(2)}`}
+                  title={`${rowLabel} × ${colLabel}: ${cell?.value != null ? formatCell(cell.value) : 'no data'}`}
                 >
-                  {cell?.value?.toFixed(2)}
+                  {formatCell(cell?.value)}
                 </div>
               );
             })}
@@ -347,7 +372,7 @@ export default function AnalysisChartV2({ analysis }) {
       return <TreemapView analysis={analysis} />;
     case 'heatmap':
       if (!analysis.data?.length) return null;
-      return <HeatmapView analysis={analysis} />;
+      return <HeatmapView analysis={analysis} isCurrency={isCurrency} />;
     case 'boxplot':
       return <BoxplotView analysis={analysis} />;
     default:
