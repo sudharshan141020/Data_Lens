@@ -20,6 +20,7 @@ from app.executor_v2 import execute_all as execute_all_v2
 from app.analyzers.registry import get_analyzer
 from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
+from app.clustering import analyze_segments
 from app.forecasting import forecast_trend
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
@@ -82,6 +83,32 @@ def _serialize_correlation_pair(pair) -> Optional[dict]:
     }
 
 
+def _serialize_segments(segments_report: dict) -> dict:
+    """Serializer for analyze_segments()'s dict, mirroring how
+    _serialize_correlation_pair keeps the Segment dataclass's shape
+    consistent wherever it's used in the response."""
+    if not segments_report.get("available"):
+        return {"available": False, "note": segments_report.get("note")}
+    return {
+        "available": True,
+        "k": segments_report["k"],
+        "measures_used": segments_report["measures_used"],
+        "row_count_used": segments_report["row_count_used"],
+        "note": segments_report["note"],
+        "clusters": [
+            {
+                "id": c.id,
+                "label": c.label,
+                "description": c.description,
+                "size": c.size,
+                "pct": c.pct,
+                "averages": c.averages,
+            }
+            for c in segments_report["clusters"]
+        ],
+    }
+
+
 def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     """
     The full new pipeline: Dataset Understanding -> pick the right domain
@@ -105,6 +132,35 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     top3_ids = {s.id for s in top3}
 
     all_executed = execute_all_v2(df_exec, specs)
+
+    # Segmentation: auto-discovered natural groups via k-means, additive to
+    # the planner-driven specs above rather than routed through it -- the
+    # scatter reuses the exact {x, y, group} shape _compute_scatter already
+    # produces (see executor_v2.py), so AnalysisExplorerV2's ScatterView
+    # renders it with zero frontend changes, colored by segment the same
+    # way it already colors by any other dimension.
+    segments_report = analyze_segments(df_exec, profile)
+    if segments_report.get("available"):
+        all_executed.append({
+            "id": "segments_scatter",
+            "title": f"Natural Groups: {segments_report['x_measure']} vs {segments_report['y_measure']}",
+            "type": "segment",
+            "chart_type": "scatter",
+            "section": "Segments",
+            "importance": 0,
+            "aggregation": None,
+            "metric_column": None,
+            "column": None,
+            "column2": None,
+            "date_column": None,
+            "reasoning": f"Found {segments_report['k']} natural groups across "
+                         f"{', '.join(segments_report['measures_used'])} — plotted on the two measures "
+                         f"that separate the groups most clearly.",
+            "x_label": segments_report["x_measure"],
+            "y_label": segments_report["y_measure"],
+            "color_by": "Segment",
+            "data": segments_report["scatter_points"],
+        })
 
     # Additive: attach a short linear-trend forecast to any trend/line
     # analysis that has enough history and a clear enough pattern to
@@ -186,6 +242,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
                 "note": multicollinearity_report["note"],
             },
         },
+        "segments": _serialize_segments(segments_report),
     }
 
 

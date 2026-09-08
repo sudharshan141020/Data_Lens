@@ -10,6 +10,7 @@ import FindingsPanel from './components/FindingsPanel';
 import WeakPointsPanel from './components/WeakPointsPanel';
 import DataQualityCenter from './components/DataQualityCenter';
 import CorrelationCenter from './components/CorrelationCenter';
+import SegmentsPanel from './components/SegmentsPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -345,6 +346,7 @@ export default function App() {
               <WeakPointsPanel weakPoints={activeSession.result.v2.weak_points} tickNum="06" />
               <DataQualityCenter dataQuality={activeSession.result.v2.data_quality} tickNum="07" />
               <CorrelationCenter correlationCenter={activeSession.result.v2.correlation_center} tickNum="08" />
+              <SegmentsPanel segments={activeSession.result.v2.segments} tickNum="09" />
             </div>
           </div>
         )}

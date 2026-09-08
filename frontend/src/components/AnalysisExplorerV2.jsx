@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import AnalysisChartV2 from './AnalysisChartV2';
 import { FILTER_REACTIVE_TYPES } from '../filterUtils';
 
-const SECTION_ORDER = ['Trends', 'Distributions', 'Relationships', 'Correlations', 'Outliers'];
+const SECTION_ORDER = ['Trends', 'Distributions', 'Relationships', 'Correlations', 'Segments', 'Outliers'];
 
 export default function AnalysisExplorerV2({ analyses, tickNum, filtersActive, jumpTarget }) {
   const sections = SECTION_ORDER.filter((s) => analyses.some((a) => a.section === s));
