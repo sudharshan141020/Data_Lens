@@ -1,47 +1,76 @@
-# Segmentation / Clustering — changed files
+# Seasonality Decomposition — changed files
 
-Drop these into your local project at the matching paths (all under
-`app/` and `frontend/src/`).
+Drop these into your local project at matching paths (`app/` and
+`frontend/src/`). This is backlog item #5.
 
 ## New files
-- `app/clustering.py` — from-scratch numpy k-means (k-means++ init, 5
-  restarts, silhouette-based auto-k in 2–5), rule-based plain-English
-  segment labels, sample-and-assign for large datasets (fit on ≤5,000
-  rows, assign every row).
-- `frontend/src/components/SegmentsPanel.jsx` — cluster cards (reuses
-  existing `insight-card`/`dq-bar-*` CSS, no new styles needed).
+- `app/seasonality.py` — classical additive decomposition (centered 2x12
+  moving-average trend, calendar-month seasonal indices, residual), pandas/
+  numpy only, no statsmodels. Runs on the same monthly trend data
+  `forecast_trend` already consumes.
+- `frontend/src/components/SeasonalityPanel.jsx` — summary panel (peak/
+  trough month, seasonal/trend strength bars), reuses existing
+  `insight-card`/`dq-bar-*` CSS.
 
 ## Modified files
-- `app/main.py` — imports `analyze_segments`, adds `_serialize_segments()`,
-  calls it inside `_run_v2_pipeline` (covers all 3 entry points: single
-  upload, remap, combined files), adds a `segments` key to the v2
-  response, and appends a `segments_scatter` entry to `all_analyses`
-  (section: "Segments") that reuses `_compute_scatter`'s existing
-  `{x, y, group}` shape — zero chart-rendering code changed.
-- `frontend/src/components/AnalysisExplorerV2.jsx` — one-line addition:
-  `'Segments'` added to `SECTION_ORDER`.
-- `frontend/src/App.jsx` — imports and mounts `<SegmentsPanel>` at
-  tick "09", right after `CorrelationCenter`.
+- `app/main.py` — imports `decompose_trend`, adds `_serialize_seasonality()`,
+  calls it on the trend data *before* `forecast_trend` appends its
+  projected points (order matters — decomposition needs real history
+  only). Adds a `seasonality` key to the v2 response, and — only when a
+  pattern is found — appends a `seasonal_decomposition` chart entry to
+  `all_analyses` (section: "Seasonality").
+- `frontend/src/components/AnalysisChartV2.jsx` — new `DecompositionView`
+  component (3 stacked panels: Trend, Seasonal Pattern, Residual) and a
+  new `case 'seasonal_decomposition':` in the render switch.
+- `frontend/src/components/AnalysisExplorerV2.jsx` — `'Seasonality'` added
+  to `SECTION_ORDER`.
+- `frontend/src/App.jsx` — imports and mounts `<SeasonalityPanel>` at
+  tick "10", right after `SegmentsPanel`.
+
+## Why this needed a real fix mid-build (not just tuning a threshold)
+First pass gated "is this a real pattern" on a strength score alone
+(`seasonal_strength > 0.15`). Testing that against **pure noise** exposed
+a false positive: with only 2.5 years of data, each calendar month's
+seasonal index is estimated from just 1–2 points, so the index ends up
+fitting the noise rather than a real pattern — 30 months of pure noise
+scored `seasonal_strength: 0.72`, which would've shown up in the app as a
+confident, fabricated seasonal claim.
+
+Fixed by adding a proper significance test — one-way ANOVA (`scipy.stats.
+f_oneway`) on the detrended values grouped by calendar month, gated at
+p < 0.05 — same spirit as `correlation_center.py` gating correlations on
+a p-value rather than trusting r alone on a small sample. Also raised the
+minimum history from 2 years to **3 full years (36 months)**, since after
+the centered moving-average trims ~12 edge points, 2 years left too few
+valid observations per calendar month for the test to have any real
+degrees of freedom. Re-verified pure noise correctly returns unavailable
+at 30, 36, and 60 months after the fix.
 
 ## Verified this session
-- Synthetic 3-blob test: correctly recovers all 3 groups, sensible labels.
-- Edge cases: <2 measures, <30 usable rows, constant columns — all
-  guarded with plain-English notes, no crashes.
-- 150K rows: 0.87s (well inside the existing performance budget).
-- Real sample datasets (sales/healthcare/manufacturing): all produce
-  distinct, plausible segments.
-- Full HTTP round-trip via `/api/analyze` (FastAPI TestClient): 200 OK,
-  segments present, response JSON-serializes cleanly.
-- `/api/export/pdf` with the new `segments` key in the payload: still
-  200 OK (pdf_report.py doesn't touch it, matches the export's
-  documented scope).
-- `top_analyses` (dashboard top-3) confirmed unaffected — purely additive.
-- `frontend`: `npm install && npm run build` succeeds with no new
-  warnings/errors.
+- Synthetic 36-month series with a known injected trend + seasonal
+  pattern (peak Dec, trough Feb): recovered correctly, `p=0.000`,
+  `seasonal_strength=1.0`.
+- Pure noise at 30/36/60 months: correctly `available: False` at every
+  length (the bug above is fixed).
+- Real sample datasets:
+  - `demo-sales-data.csv` (2 years) — correctly declines, "needs 3 years."
+  - `sample-healthcare-data.csv` (3 years, no real seasonal pattern in
+    this synthetic data) — correctly declines with p=0.32, doesn't force
+    a finding just because there's enough history.
+  - None of the current sample datasets happen to have 3+ years *and* a
+    genuine seasonal pattern, so there's nothing in the gallery today
+    that shows the feature's "available: True" path live — worth keeping
+    in mind if you want a demo dataset for this specifically.
+- Full HTTP round-trip via `/api/analyze` (FastAPI TestClient) on a
+  synthetic 3.5-year seasonal dataset: 200 OK, seasonality detected,
+  forecast still works independently on the same trend, response
+  JSON-serializes.
+- `/api/export/pdf` with the new `seasonality` key present: still 200 OK.
+- `frontend`: `npm run build` succeeds, no new warnings.
 
 ## Not yet done
 - Not visually verified in a browser (no way to screenshot from this
-  sandbox) — worth a quick look once you pull it down, especially the
-  segment card color-to-scatter-point color matching.
-- Segments aren't included in Excel/PDF export content — matches the
-  documented export scope, but flag if you want them added.
+  sandbox) — worth a look once you pull it down, especially the 3-panel
+  stacked decomposition chart layout on narrower screens.
+- No sample dataset currently demonstrates the "pattern found" path —
+  consider adding one to the gallery if you want a live demo.

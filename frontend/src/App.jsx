@@ -11,6 +11,7 @@ import WeakPointsPanel from './components/WeakPointsPanel';
 import DataQualityCenter from './components/DataQualityCenter';
 import CorrelationCenter from './components/CorrelationCenter';
 import SegmentsPanel from './components/SegmentsPanel';
+import SeasonalityPanel from './components/SeasonalityPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -347,6 +348,7 @@ export default function App() {
               <DataQualityCenter dataQuality={activeSession.result.v2.data_quality} tickNum="07" />
               <CorrelationCenter correlationCenter={activeSession.result.v2.correlation_center} tickNum="08" />
               <SegmentsPanel segments={activeSession.result.v2.segments} tickNum="09" />
+              <SeasonalityPanel seasonality={activeSession.result.v2.seasonality} tickNum="10" />
             </div>
           </div>
         )}

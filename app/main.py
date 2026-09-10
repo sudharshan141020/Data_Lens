@@ -21,6 +21,7 @@ from app.analyzers.registry import get_analyzer
 from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
 from app.clustering import analyze_segments
+from app.seasonality import decompose_trend
 from app.forecasting import forecast_trend
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
@@ -109,6 +110,26 @@ def _serialize_segments(segments_report: dict) -> dict:
     }
 
 
+def _serialize_seasonality(seasonality_report: dict) -> dict:
+    """Serializer for decompose_trend()'s dict -- the panel only needs the
+    summary numbers, not the per-point series (that lives on the
+    seasonal_decomposition chart entry in all_analyses instead, so it's
+    not duplicated in the response)."""
+    if not seasonality_report.get("available"):
+        return {"available": False, "note": seasonality_report.get("note")}
+    return {
+        "available": True,
+        "note": None,
+        "years_covered": seasonality_report["years_covered"],
+        "p_value": seasonality_report["p_value"],
+        "seasonal_strength": seasonality_report["seasonal_strength"],
+        "trend_strength": seasonality_report["trend_strength"],
+        "peak_month": seasonality_report["peak_month"],
+        "trough_month": seasonality_report["trough_month"],
+        "summary": seasonality_report["summary"],
+    }
+
+
 def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     """
     The full new pipeline: Dataset Understanding -> pick the right domain
@@ -166,14 +187,41 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     # analysis that has enough history and a clear enough pattern to
     # project. Mutating in place so both top_executed and all_analyses
     # (built from the same dicts below) automatically pick it up.
+    #
+    # Seasonality decomposition runs on the same trend data, but must run
+    # BEFORE forecast_trend appends its projected points below -- it needs
+    # the real historical series only, not a synthetic tail.
+    seasonality_report = {"available": False, "note": None}
     for a in all_executed:
         if a.get("type") == "trend" and a.get("data"):
+            seasonality_report = decompose_trend(a["data"])
+            if seasonality_report.get("available"):
+                all_executed.append({
+                    "id": "seasonal_decomposition",
+                    "title": f"Seasonal Pattern: {a.get('metric_column') or a['title']}",
+                    "type": "seasonality",
+                    "chart_type": "seasonal_decomposition",
+                    "section": "Seasonality",
+                    "importance": 0,
+                    "aggregation": None,
+                    "metric_column": a.get("metric_column"),
+                    "column": None,
+                    "column2": None,
+                    "date_column": None,
+                    "reasoning": seasonality_report["summary"],
+                    "x_label": "Period",
+                    "y_label": a.get("metric_column") or "Value",
+                    "color_by": None,
+                    "data": seasonality_report["points"],
+                })
+
             result = forecast_trend(a["data"])
             if result["forecast_points"]:
                 for point in a["data"]:
                     point["is_forecast"] = False
                 a["data"] = a["data"] + result["forecast_points"]
             a["forecast_note"] = result["note"]
+            break  # plan_analyses only ever produces one trend spec
 
     top_order = {s.id: i for i, s in enumerate(top3)}
     top_executed = sorted(
@@ -243,6 +291,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
             },
         },
         "segments": _serialize_segments(segments_report),
+        "seasonality": _serialize_seasonality(seasonality_report),
     }
 
 

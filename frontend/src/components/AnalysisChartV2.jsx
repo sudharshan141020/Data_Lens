@@ -342,6 +342,54 @@ function BoxplotView({ analysis }) {
   );
 }
 
+function DecompositionView({ analysis }) {
+  const data = analysis.data;
+
+  return (
+    <div>
+      <div style={{ marginBottom: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Trend</span>
+      </div>
+      <ResponsiveContainer width="100%" height={150}>
+        <LineChart data={data} margin={{ top: 6, right: 20, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border-soft)" vertical={false} />
+          <XAxis dataKey="label" stroke="var(--text-faint)" fontSize={11} fontFamily="var(--font-mono)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} minTickGap={30} />
+          <YAxis stroke="var(--text-faint)" fontSize={12} fontFamily="var(--font-mono)" tickLine={false} axisLine={false} tickFormatter={formatAxisValue} />
+          <Tooltip content={<ChartTooltip valueLabel="Value" isCurrency={false} />} cursor={{ stroke: 'var(--border)' }} />
+          <Line type="monotone" dataKey="value" stroke="var(--border)" strokeWidth={1} dot={false} />
+          <Line type="monotone" dataKey="trend" stroke="var(--teal)" strokeWidth={2} dot={false} connectNulls={false} />
+        </LineChart>
+      </ResponsiveContainer>
+
+      <div style={{ margin: '14px 0 4px' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Seasonal Pattern</span>
+      </div>
+      <ResponsiveContainer width="100%" height={110}>
+        <LineChart data={data} margin={{ top: 6, right: 20, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border-soft)" vertical={false} />
+          <XAxis dataKey="label" stroke="var(--text-faint)" fontSize={11} fontFamily="var(--font-mono)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} minTickGap={30} />
+          <YAxis stroke="var(--text-faint)" fontSize={12} fontFamily="var(--font-mono)" tickLine={false} axisLine={false} tickFormatter={formatAxisValue} />
+          <Tooltip content={<ChartTooltip valueLabel="Seasonal effect" isCurrency={false} />} cursor={{ stroke: 'var(--border)' }} />
+          <Line type="monotone" dataKey="seasonal" stroke="var(--chart-3)" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+
+      <div style={{ margin: '14px 0 4px' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Residual</span>
+      </div>
+      <ResponsiveContainer width="100%" height={90}>
+        <LineChart data={data} margin={{ top: 6, right: 20, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border-soft)" vertical={false} />
+          <XAxis dataKey="label" stroke="var(--text-faint)" fontSize={11} fontFamily="var(--font-mono)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} minTickGap={30} />
+          <YAxis stroke="var(--text-faint)" fontSize={12} fontFamily="var(--font-mono)" tickLine={false} axisLine={false} tickFormatter={formatAxisValue} />
+          <Tooltip content={<ChartTooltip valueLabel="Residual" isCurrency={false} />} cursor={{ stroke: 'var(--border)' }} />
+          <Line type="monotone" dataKey="residual" stroke="var(--text-faint)" strokeWidth={1.5} dot={false} connectNulls={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export default function AnalysisChartV2({ analysis }) {
   if (!analysis) return null;
   const isCurrency = looksLikeCurrency(analysis.metric_column) && analysis.type !== 'distribution_count';
@@ -375,6 +423,9 @@ export default function AnalysisChartV2({ analysis }) {
       return <HeatmapView analysis={analysis} isCurrency={isCurrency} />;
     case 'boxplot':
       return <BoxplotView analysis={analysis} />;
+    case 'seasonal_decomposition':
+      if (!analysis.data?.length) return null;
+      return <DecompositionView analysis={analysis} />;
     default:
       return null;
   }
