@@ -14,8 +14,84 @@ function CloudIcon() {
   );
 }
 
+// Pasted data (especially copied straight out of Excel/Sheets) usually
+// comes tab-separated, not comma-separated -- sniff the first non-empty
+// line so the synthesized file gets the right extension. The backend
+// (app/main.py's _load_dataframe) picks its parser purely from the file
+// extension: ".tsv" -> tab, anything else -> comma. Naming the file
+// correctly here is the only thing that needs to be right for the
+// existing upload pipeline to handle it with zero backend changes.
+function sniffDelimiter(text) {
+  const firstLine = text.split('\n').find((l) => l.trim().length > 0) || '';
+  const tabs = (firstLine.match(/\t/g) || []).length;
+  const commas = (firstLine.match(/,/g) || []).length;
+  return tabs > commas ? '\t' : ',';
+}
+
+function buildFileFromPastedText(text) {
+  const trimmed = text.trim();
+  const lines = trimmed.split('\n').filter((l) => l.trim().length > 0);
+  if (lines.length < 2) {
+    return { file: null, error: 'Paste at least a header row and one data row.' };
+  }
+  const delimiter = sniffDelimiter(trimmed);
+  const ext = delimiter === '\t' ? 'tsv' : 'csv';
+  const blob = new Blob([trimmed], { type: 'text/csv' });
+  return { file: new File([blob], `pasted-data.${ext}`, { type: 'text/csv' }), error: null };
+}
+
+function PasteImportPanel({ onFilesSelected, compact, onClose }) {
+  const [text, setText] = useState('');
+
+  const handleSubmit = () => {
+    const { file, error } = buildFileFromPastedText(text);
+    if (!file) {
+      onFilesSelected([], error);
+      return;
+    }
+    onFilesSelected([file], null);
+    setText('');
+    onClose();
+  };
+
+  return (
+    <div className="upload-zone" style={{ display: 'block', cursor: 'default', padding: compact ? 16 : 28 }}>
+      <p className="upload-sub" style={{ marginBottom: 8 }}>
+        Paste rows copied from Excel, Google Sheets, or a CSV — first row should be headers.
+      </p>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={'Name\tRevenue\tRegion\nAcme Co\t12000\tWest'}
+        rows={compact ? 5 : 8}
+        style={{
+          width: '100%',
+          resize: 'vertical',
+          background: 'var(--surface-raised)',
+          color: 'var(--text)',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          padding: '8px 10px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 12.5,
+          boxSizing: 'border-box',
+        }}
+      />
+      <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center' }}>
+        <span className="upload-browse-btn" style={{ cursor: 'pointer' }} onClick={handleSubmit}>
+          Analyze Pasted Data
+        </span>
+        <span className="upload-sub" style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={onClose}>
+          Cancel
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function UploadZone({ onFilesSelected, error, compact = false }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [pasteMode, setPasteMode] = useState(false);
   const inputRef = useRef(null);
 
   const handleFiles = useCallback((fileList) => {
@@ -46,6 +122,15 @@ export default function UploadZone({ onFilesSelected, error, compact = false }) 
     setIsDragging(false);
     handleFiles(e.dataTransfer.files);
   };
+
+  if (pasteMode) {
+    return (
+      <div className={compact ? 'upload-wrap-compact' : 'upload-wrap'}>
+        <PasteImportPanel onFilesSelected={onFilesSelected} compact={compact} onClose={() => setPasteMode(false)} />
+        {error && <p className="upload-error">{error}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className={compact ? 'upload-wrap-compact' : 'upload-wrap'}>
@@ -79,7 +164,12 @@ export default function UploadZone({ onFilesSelected, error, compact = false }) 
           </>
         )}
       </div>
+      <p className="upload-sub" style={{ marginTop: 10, cursor: 'pointer', textDecoration: 'underline' }}
+         onClick={(e) => { e.stopPropagation(); setPasteMode(true); }}>
+        or paste data instead
+      </p>
       {error && <p className="upload-error">{error}</p>}
     </div>
   );
 }
+

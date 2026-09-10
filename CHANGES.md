@@ -1,76 +1,44 @@
-# Seasonality Decomposition — changed files
+# Paste-CSV / Sheets Import — changed files
 
-Drop these into your local project at matching paths (`app/` and
-`frontend/src/`). This is backlog item #5.
-
-## New files
-- `app/seasonality.py` — classical additive decomposition (centered 2x12
-  moving-average trend, calendar-month seasonal indices, residual), pandas/
-  numpy only, no statsmodels. Runs on the same monthly trend data
-  `forecast_trend` already consumes.
-- `frontend/src/components/SeasonalityPanel.jsx` — summary panel (peak/
-  trough month, seasonal/trend strength bars), reuses existing
-  `insight-card`/`dq-bar-*` CSS.
+This is backlog item #6. Only **one file changed** — extract into
+`frontend/src/components/`.
 
 ## Modified files
-- `app/main.py` — imports `decompose_trend`, adds `_serialize_seasonality()`,
-  calls it on the trend data *before* `forecast_trend` appends its
-  projected points (order matters — decomposition needs real history
-  only). Adds a `seasonality` key to the v2 response, and — only when a
-  pattern is found — appends a `seasonal_decomposition` chart entry to
-  `all_analyses` (section: "Seasonality").
-- `frontend/src/components/AnalysisChartV2.jsx` — new `DecompositionView`
-  component (3 stacked panels: Trend, Seasonal Pattern, Residual) and a
-  new `case 'seasonal_decomposition':` in the render switch.
-- `frontend/src/components/AnalysisExplorerV2.jsx` — `'Seasonality'` added
-  to `SECTION_ORDER`.
-- `frontend/src/App.jsx` — imports and mounts `<SeasonalityPanel>` at
-  tick "10", right after `SegmentsPanel`.
+- `frontend/src/components/UploadZone.jsx` — added a "paste data instead"
+  link (shown under both the full and compact upload zones) that reveals
+  a textarea. On submit, the pasted text is converted client-side into a
+  `File` object and passed through the exact same `onFilesSelected`
+  callback the drag-and-drop / browse path already uses.
 
-## Why this needed a real fix mid-build (not just tuning a threshold)
-First pass gated "is this a real pattern" on a strength score alone
-(`seasonal_strength > 0.15`). Testing that against **pure noise** exposed
-a false positive: with only 2.5 years of data, each calendar month's
-seasonal index is estimated from just 1–2 points, so the index ends up
-fitting the noise rather than a real pattern — 30 months of pure noise
-scored `seasonal_strength: 0.72`, which would've shown up in the app as a
-confident, fabricated seasonal claim.
-
-Fixed by adding a proper significance test — one-way ANOVA (`scipy.stats.
-f_oneway`) on the detrended values grouped by calendar month, gated at
-p < 0.05 — same spirit as `correlation_center.py` gating correlations on
-a p-value rather than trusting r alone on a small sample. Also raised the
-minimum history from 2 years to **3 full years (36 months)**, since after
-the centered moving-average trims ~12 edge points, 2 years left too few
-valid observations per calendar month for the test to have any real
-degrees of freedom. Re-verified pure noise correctly returns unavailable
-at 30, 36, and 60 months after the fix.
+## Zero backend changes
+This reuses the existing upload pipeline end to end, unmodified:
+- `app/main.py`'s `_load_dataframe()` already picks its CSV parser purely
+  from the file extension (`.tsv` → tab-separated, anything else →
+  comma-separated).
+- The frontend sniffs the pasted text's first line for tabs vs. commas
+  (pasting straight out of Excel/Google Sheets is tab-separated, typing
+  or pasting a CSV is comma-separated) and names the synthesized `File`
+  `pasted-data.tsv` or `pasted-data.csv` accordingly — so the backend's
+  existing dispatch handles it correctly without knowing anything changed.
+- Confirmed via `loadSampleFile` in `api.js`, which already does exactly
+  this (`fetch` → `blob` → `new File(...)`) for the sample-dataset
+  gallery — this feature follows that same established pattern.
 
 ## Verified this session
-- Synthetic 36-month series with a known injected trend + seasonal
-  pattern (peak Dec, trough Feb): recovered correctly, `p=0.000`,
-  `seasonal_strength=1.0`.
-- Pure noise at 30/36/60 months: correctly `available: False` at every
-  length (the bug above is fixed).
-- Real sample datasets:
-  - `demo-sales-data.csv` (2 years) — correctly declines, "needs 3 years."
-  - `sample-healthcare-data.csv` (3 years, no real seasonal pattern in
-    this synthetic data) — correctly declines with p=0.32, doesn't force
-    a finding just because there's enough history.
-  - None of the current sample datasets happen to have 3+ years *and* a
-    genuine seasonal pattern, so there's nothing in the gallery today
-    that shows the feature's "available: True" path live — worth keeping
-    in mind if you want a demo dataset for this specifically.
-- Full HTTP round-trip via `/api/analyze` (FastAPI TestClient) on a
-  synthetic 3.5-year seasonal dataset: 200 OK, seasonality detected,
-  forecast still works independently on the same trend, response
-  JSON-serializes.
-- `/api/export/pdf` with the new `seasonality` key present: still 200 OK.
-- `frontend`: `npm run build` succeeds, no new warnings.
+- `npm run build`: clean, no new warnings.
+- Delimiter sniffing (tested directly in Node): comma-CSV → `.csv`,
+  tab-separated (Sheets-style) paste → `.tsv`; empty, whitespace-only,
+  and header-only pastes all correctly rejected with a clear error
+  message routed through the existing `error` prop.
+- Backend round-trip via FastAPI TestClient, sending raw text bytes
+  under both filenames exactly as the frontend would produce them:
+  `pasted-data.csv` (comma) and `pasted-data.tsv` (tab) both return
+  200 and parse correctly, with **no backend code touched at all**.
 
 ## Not yet done
 - Not visually verified in a browser (no way to screenshot from this
-  sandbox) — worth a look once you pull it down, especially the 3-panel
-  stacked decomposition chart layout on narrower screens.
-- No sample dataset currently demonstrates the "pattern found" path —
-  consider adding one to the gallery if you want a live demo.
+  sandbox) — worth a look at the textarea's placement/sizing in both the
+  full first-run screen and the compact sidebar "+ New analysis" button.
+- No delimiter override in the UI if the auto-sniff ever guesses wrong
+  (e.g. a single-column paste with no delimiter at all falls back to
+  `.csv`, which is harmless but worth knowing).
