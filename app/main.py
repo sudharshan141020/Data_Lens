@@ -21,6 +21,7 @@ from app.analyzers.registry import get_analyzer
 from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
 from app.simpsons_paradox import check_simpsons_paradox
+from app.benford import check_benfords_law
 from app.clustering import analyze_segments
 from app.anomaly_detection import detect_anomalies
 from app.seasonality import decompose_trend
@@ -288,6 +289,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     correlation_report = analyze_correlations(df_exec, profile)
     multicollinearity_report = analyze_multicollinearity(df_exec, profile)
     simpsons_paradox_report = check_simpsons_paradox(df_exec, profile, correlation_report["pairs"])
+    benford_report = check_benfords_law(df_exec, profile)
     filterable_data = build_filterable_data(df_exec, profile)
 
     return {
@@ -348,6 +350,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "period_comparison": period_comparison_report,
         "anomalies": _serialize_anomalies(anomaly_report),
         "simpsons_paradox": simpsons_paradox_report,
+        "benford": benford_report,
     }
 
 
