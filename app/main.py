@@ -22,6 +22,7 @@ from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
 from app.clustering import analyze_segments
 from app.seasonality import decompose_trend
+from app.period_comparison import compare_periods
 from app.forecasting import forecast_trend
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
@@ -63,7 +64,7 @@ app = FastAPI(title="DataLens", default_response_class=SafeJSONResponse)
 
 STATIC_DIR = Path(__file__).parent / "static"
 
-ALLOWED_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls"}
+ALLOWED_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls", ".json", ".parquet"}
 
 
 def _serialize_correlation_pair(pair) -> Optional[dict]:
@@ -192,6 +193,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     # BEFORE forecast_trend appends its projected points below -- it needs
     # the real historical series only, not a synthetic tail.
     seasonality_report = {"available": False, "note": None}
+    period_comparison_report = {"available": False, "note": None}
     for a in all_executed:
         if a.get("type") == "trend" and a.get("data"):
             seasonality_report = decompose_trend(a["data"])
@@ -214,6 +216,14 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
                     "color_by": None,
                     "data": seasonality_report["points"],
                 })
+
+            # Period comparison needs row-level values, so it re-groups
+            # df_exec itself (see period_comparison.py) rather than reusing
+            # the already-aggregated monthly trend points.
+            if a.get("date_column") and a.get("metric_column"):
+                period_comparison_report = compare_periods(
+                    df_exec, a["date_column"], a["metric_column"], a.get("aggregation") or "sum",
+                )
 
             result = forecast_trend(a["data"])
             if result["forecast_points"]:
@@ -292,6 +302,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         },
         "segments": _serialize_segments(segments_report),
         "seasonality": _serialize_seasonality(seasonality_report),
+        "period_comparison": period_comparison_report,
     }
 
 
@@ -357,13 +368,33 @@ def _coerce_mostly_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _json_records_to_dataframe(data) -> pd.DataFrame:
+    """Real-world JSON exports show up in a few common shapes:
+    - a flat array of objects: [{"a": 1, "b": 2}, ...]              -> the normal case
+    - an object of column arrays: {"a": [1, 2], "b": [3, 4]}        -> "columns" orientation
+    - a wrapper object with the actual records nested one level in,
+      e.g. {"data": [...]}, {"results": [...]}, {"records": [...]}  -> common API-dump shape
+    json_normalize also flattens one level of nested objects (e.g. a
+    {"address": {"city": ..., "zip": ...}} field becomes address.city /
+    address.zip columns) so moderately nested exports still work without
+    the user needing to flatten them first."""
+    if isinstance(data, list):
+        return pd.json_normalize(data)
+    if isinstance(data, dict):
+        list_fields = [v for v in data.values() if isinstance(v, list) and v and isinstance(v[0], dict)]
+        if len(list_fields) == 1:
+            return pd.json_normalize(list_fields[0])
+        return pd.DataFrame(data)  # columns-orientation dict
+    raise ValueError("Expected a JSON array of records, or an object of columns.")
+
+
 def _load_dataframe(filename: str, raw: bytes) -> pd.DataFrame:
     ext = Path(filename).suffix.lower()
 
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             400,
-            f"Unsupported file type '{ext}'. Upload a .csv, .tsv, .xlsx, or .xls file.",
+            f"Unsupported file type '{ext}'. Upload a .csv, .tsv, .xlsx, .xls, .json, or .parquet file.",
         )
 
     if ext in (".xlsx", ".xls"):
@@ -371,6 +402,23 @@ def _load_dataframe(filename: str, raw: bytes) -> pd.DataFrame:
             return _coerce_mostly_numeric_columns(pd.read_excel(io.BytesIO(raw)))
         except Exception as e:
             raise HTTPException(400, f"Couldn't read the Excel file: {e}")
+
+    if ext == ".parquet":
+        try:
+            return _coerce_mostly_numeric_columns(pd.read_parquet(io.BytesIO(raw)))
+        except Exception as e:
+            raise HTTPException(400, f"Couldn't read the Parquet file: {e}")
+
+    if ext == ".json":
+        try:
+            data = json.loads(raw.decode("utf-8"))
+        except Exception as e:
+            raise HTTPException(400, f"Couldn't parse the JSON file: {e}")
+        try:
+            df = _json_records_to_dataframe(data)
+        except Exception as e:
+            raise HTTPException(400, f"Couldn't convert the JSON structure into a table: {e}")
+        return _coerce_mostly_numeric_columns(df)
 
     sep = "\t" if ext == ".tsv" else ","
     last_error = None

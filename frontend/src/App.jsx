@@ -12,6 +12,7 @@ import DataQualityCenter from './components/DataQualityCenter';
 import CorrelationCenter from './components/CorrelationCenter';
 import SegmentsPanel from './components/SegmentsPanel';
 import SeasonalityPanel from './components/SeasonalityPanel';
+import PeriodComparisonPanel from './components/PeriodComparisonPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -362,6 +363,7 @@ export default function App() {
               <CorrelationCenter correlationCenter={activeSession.result.v2.correlation_center} tickNum="08" />
               <SegmentsPanel segments={activeSession.result.v2.segments} tickNum="09" />
               <SeasonalityPanel seasonality={activeSession.result.v2.seasonality} tickNum="10" />
+              <PeriodComparisonPanel periodComparison={activeSession.result.v2.period_comparison} tickNum="11" />
             </div>
           </div>
         )}
