@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function ExportMenu({ onExportExcel, onExportPdf, pdfLoading }) {
+export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, pdfLoading }) {
   const [open, setOpen] = useState(false);
+  const [copyState, setCopyState] = useState('idle'); // idle | copied | error
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -21,6 +22,19 @@ export default function ExportMenu({ onExportExcel, onExportPdf, pdfLoading }) {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [open]);
+
+  const handleCopyFindings = async () => {
+    try {
+      const ok = await onCopyFindings();
+      setCopyState(ok ? 'copied' : 'error');
+    } catch {
+      setCopyState('error');
+    }
+    setTimeout(() => setCopyState('idle'), 1800);
+    setOpen(false);
+  };
+
+  const copyLabel = copyState === 'copied' ? 'Copied!' : copyState === 'error' ? "Couldn't copy" : 'Copy findings as text';
 
   return (
     <div className="export-menu-wrap" ref={wrapRef}>
@@ -60,6 +74,17 @@ export default function ExportMenu({ onExportExcel, onExportPdf, pdfLoading }) {
             <span>{pdfLoading ? 'Generating…' : 'PDF report'}</span>
             <span className="export-menu-ext">.pdf</span>
           </button>
+          {onCopyFindings && (
+            <button
+              type="button"
+              className="export-menu-item"
+              role="menuitem"
+              onClick={handleCopyFindings}
+            >
+              <span>{copyLabel}</span>
+              <span className="export-menu-ext">Slack/email</span>
+            </button>
+          )}
         </div>
       )}
     </div>

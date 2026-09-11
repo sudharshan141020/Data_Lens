@@ -20,6 +20,7 @@ import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
 import { analyzeFile, analyzeCombined, loadSampleFile, exportPdf } from './api';
 import { exportAnalysisToExcel } from './exportReport';
+import { buildFindingsText } from './findingsText';
 import { applyFilters, recomputeAnalysis } from './filterUtils';
 import { buildSearchIndex } from './searchUtils';
 
@@ -141,6 +142,17 @@ export default function App() {
     }
   };
 
+  const handleCopyFindings = async (session) => {
+    const text = buildFindingsText(session);
+    if (!text) return false;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleToggleCombineMode = () => {
     setCombineMode((m) => !m);
     setSelectedForCombine([]);
@@ -259,7 +271,7 @@ export default function App() {
               </div>
               <p className="hero-kicker">Automated Data Intelligence</p>
               <p className="hero-desc">
-                Upload any Excel or CSV file and instantly surface trends,
+                Upload any Excel, CSV, JSON, or Parquet file and instantly surface trends,
                 correlations, outliers, and concrete recommendations — ranked
                 by how much they actually matter. Works on any dataset;
                 sales files unlock deeper findings like profit risk and
@@ -313,6 +325,7 @@ export default function App() {
               <ExportMenu
                 onExportExcel={() => exportAnalysisToExcel(activeSession)}
                 onExportPdf={() => handleExportPdf(activeSession)}
+                onCopyFindings={() => handleCopyFindings(activeSession)}
                 pdfLoading={pdfLoading}
               />
             </div>
