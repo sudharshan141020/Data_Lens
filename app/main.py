@@ -21,6 +21,7 @@ from app.analyzers.registry import get_analyzer
 from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
 from app.clustering import analyze_segments
+from app.anomaly_detection import detect_anomalies
 from app.seasonality import decompose_trend
 from app.period_comparison import compare_periods
 from app.forecasting import forecast_trend
@@ -131,6 +132,23 @@ def _serialize_seasonality(seasonality_report: dict) -> dict:
     }
 
 
+def _serialize_anomalies(anomaly_report: dict) -> dict:
+    """Serializer for detect_anomalies()'s dict -- drops scatter_points
+    (that lives on the anomalies_scatter chart entry in all_analyses
+    instead) so the summary panel's payload doesn't duplicate it."""
+    if not anomaly_report.get("available"):
+        return {"available": False, "note": anomaly_report.get("note")}
+    return {
+        "available": True,
+        "note": None,
+        "measures_used": anomaly_report["measures_used"],
+        "row_count_used": anomaly_report["row_count_used"],
+        "anomaly_count": anomaly_report["anomaly_count"],
+        "anomaly_pct": anomaly_report["anomaly_pct"],
+        "anomalies": anomaly_report["anomalies"][:10],  # panel only needs a handful to list
+    }
+
+
 def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     """
     The full new pipeline: Dataset Understanding -> pick the right domain
@@ -182,6 +200,29 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
             "y_label": segments_report["y_measure"],
             "color_by": "Segment",
             "data": segments_report["scatter_points"],
+        })
+
+    anomaly_report = detect_anomalies(df_exec, profile)
+    if anomaly_report.get("available") and anomaly_report["anomaly_count"] > 0:
+        all_executed.append({
+            "id": "anomalies_scatter",
+            "title": f"Unusual Rows: {anomaly_report['x_measure']} vs {anomaly_report['y_measure']}",
+            "type": "anomaly",
+            "chart_type": "scatter",
+            "section": "Anomalies",
+            "importance": 0,
+            "aggregation": None,
+            "metric_column": None,
+            "column": None,
+            "column2": None,
+            "date_column": None,
+            "reasoning": f"Found {anomaly_report['anomaly_count']} rows ({anomaly_report['anomaly_pct']}%) that look "
+                         f"unusual across {', '.join(anomaly_report['measures_used'])} taken together — even where "
+                         f"no single measure looks extreme on its own.",
+            "x_label": anomaly_report["x_measure"],
+            "y_label": anomaly_report["y_measure"],
+            "color_by": "Status",
+            "data": anomaly_report["scatter_points"],
         })
 
     # Additive: attach a short linear-trend forecast to any trend/line
@@ -303,6 +344,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "segments": _serialize_segments(segments_report),
         "seasonality": _serialize_seasonality(seasonality_report),
         "period_comparison": period_comparison_report,
+        "anomalies": _serialize_anomalies(anomaly_report),
     }
 
 

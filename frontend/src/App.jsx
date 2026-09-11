@@ -13,6 +13,7 @@ import CorrelationCenter from './components/CorrelationCenter';
 import SegmentsPanel from './components/SegmentsPanel';
 import SeasonalityPanel from './components/SeasonalityPanel';
 import PeriodComparisonPanel from './components/PeriodComparisonPanel';
+import AnomaliesPanel from './components/AnomaliesPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -364,6 +365,7 @@ export default function App() {
               <SegmentsPanel segments={activeSession.result.v2.segments} tickNum="09" />
               <SeasonalityPanel seasonality={activeSession.result.v2.seasonality} tickNum="10" />
               <PeriodComparisonPanel periodComparison={activeSession.result.v2.period_comparison} tickNum="11" />
+              <AnomaliesPanel anomalies={activeSession.result.v2.anomalies} tickNum="12" />
             </div>
           </div>
         )}
