@@ -39,6 +39,8 @@ DOMAIN_DEFAULT_ENTITY = {
     "education": "Student",
     "hr": "Employee",
     "finance": "Account",
+    "real_estate": "Property",
+    "saas": "Subscriber",
 }
 
 # Roles that represent something worth measuring/aggregating numerically,
@@ -70,6 +72,17 @@ MEASURE_ROLES = {
     "CPC": "avg",
     "ROAS": "avg",
     "AD_SPEND": "sum",
+    "LISTING_PRICE": "avg",
+    "SALE_PRICE": "avg",
+    "SQUARE_FOOTAGE": "avg",
+    "BEDROOMS": "avg",
+    "BATHROOMS": "avg",
+    "DAYS_ON_MARKET": "avg",
+    "MRR": "sum",
+    "ARR": "sum",
+    "CHURN_RATE": "avg",
+    "SEATS": "sum",
+    "NPS_SCORE": "avg",
 }
 
 # Roles that represent a "slice by this" dimension.
@@ -80,6 +93,8 @@ DIMENSION_ROLES = {
     "STORE", "SUPPLIER", "WAREHOUSE",
     "MACHINE", "SHIFT", "PRODUCTION_LINE",
     "CAMPAIGN", "CHANNEL",
+    "PROPERTY_TYPE", "PROPERTY_STATUS",
+    "SUBSCRIPTION_PLAN", "CHURN_STATUS", "TRIAL_STATUS",
 }
 
 

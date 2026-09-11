@@ -13,6 +13,8 @@ from app.analyzers.education_analyzer import EducationAnalyzer
 from app.analyzers.hr_analyzer import HRAnalyzer
 from app.analyzers.traffic_analyzer import TrafficAnalyzer
 from app.analyzers.finance_analyzer import FinanceAnalyzer
+from app.analyzers.real_estate_analyzer import RealEstateAnalyzer
+from app.analyzers.saas_analyzer import SaasAnalyzer
 from app.analyzers.generic_analyzer import GenericAnalyzer
 
 REGISTRY = {
@@ -25,6 +27,8 @@ REGISTRY = {
     "hr": HRAnalyzer,
     "traffic": TrafficAnalyzer,
     "finance": FinanceAnalyzer,
+    "real_estate": RealEstateAnalyzer,
+    "saas": SaasAnalyzer,
     "generic": GenericAnalyzer,
 }
 

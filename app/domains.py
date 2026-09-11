@@ -55,6 +55,14 @@ DOMAIN_SIGNALS = {
     "traffic": {
         "VEHICLE": 3, "ACCIDENT": 2, "CONGESTION": 2, "SPEED": 1, "DRIVER": 1,
     },
+    "real_estate": {
+        "PROPERTY_TYPE": 3, "SQUARE_FOOTAGE": 3, "DAYS_ON_MARKET": 2,
+        "BEDROOMS": 2, "BATHROOMS": 2, "LISTING_PRICE": 2, "SALE_PRICE": 1,
+    },
+    "saas": {
+        "MRR": 3, "ARR": 3, "SUBSCRIPTION_PLAN": 3,
+        "CHURN_STATUS": 2, "CHURN_RATE": 2, "TRIAL_STATUS": 1, "SEATS": 1, "NPS_SCORE": 1,
+    },
 }
 
 # A domain needs at least this much weighted signal to be claimed at all —

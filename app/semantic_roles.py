@@ -123,6 +123,30 @@ ROLE_KEYWORDS = {
     "CONGESTION": ["congestion", "traffic_flow", "delay_minutes", "delay"],
     "SPEED": ["speed", "velocity"],
 
+    # --- Real estate-specific (checked before generic CATEGORY, since
+    # "property_type" and "listing_status" would otherwise get caught by
+    # CATEGORY's broad "type"/"status" keywords) ---
+    "PROPERTY_TYPE": ["property_type", "home_type", "house_type", "listing_type", "building_type"],
+    "PROPERTY_STATUS": ["listing_status", "property_status", "sale_status"],
+    "LISTING_PRICE": ["listing_price", "asking_price"],
+    "SALE_PRICE": ["sale_price", "sold_price", "closing_price", "final_price"],
+    "SQUARE_FOOTAGE": ["square_feet", "square_footage", "sqft", "floor_area", "living_area"],
+    "BEDROOMS": ["bedrooms", "bedroom_count", "beds", "num_bedrooms"],
+    "BATHROOMS": ["bathrooms", "bathroom_count", "baths", "num_bathrooms"],
+    "DAYS_ON_MARKET": ["days_on_market", "dom", "listing_days", "time_on_market"],
+
+    # --- SaaS / subscription-specific (checked before generic CATEGORY,
+    # for the same reason -- "subscription_status" and "trial_status"
+    # would otherwise fall into the generic "status" keyword) ---
+    "MRR": ["mrr", "monthly_recurring_revenue"],
+    "ARR": ["arr", "annual_recurring_revenue"],
+    "SUBSCRIPTION_PLAN": ["subscription_plan", "plan_name", "pricing_tier", "subscription_tier", "plan_tier", "plan"],
+    "CHURN_STATUS": ["churned", "churn_status", "is_churned", "subscription_status", "cancellation_status"],
+    "CHURN_RATE": ["churn_rate", "attrition_rate", "cancellation_rate"],
+    "TRIAL_STATUS": ["trial_status", "is_trial", "on_trial"],
+    "SEATS": ["seats", "seat_count", "licenses", "license_count"],
+    "NPS_SCORE": ["nps", "nps_score", "net_promoter_score"],
+
     # --- Generic categorical (checked late — very common words) ---
     "CATEGORY": ["category", "segment", "product_type", "sub_category", "type", "class", "status"],
 
