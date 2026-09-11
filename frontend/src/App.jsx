@@ -14,6 +14,7 @@ import SegmentsPanel from './components/SegmentsPanel';
 import SeasonalityPanel from './components/SeasonalityPanel';
 import PeriodComparisonPanel from './components/PeriodComparisonPanel';
 import AnomaliesPanel from './components/AnomaliesPanel';
+import SimpsonsParadoxPanel from './components/SimpsonsParadoxPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -366,6 +367,7 @@ export default function App() {
               <SeasonalityPanel seasonality={activeSession.result.v2.seasonality} tickNum="10" />
               <PeriodComparisonPanel periodComparison={activeSession.result.v2.period_comparison} tickNum="11" />
               <AnomaliesPanel anomalies={activeSession.result.v2.anomalies} tickNum="12" />
+              <SimpsonsParadoxPanel simpsonsParadox={activeSession.result.v2.simpsons_paradox} tickNum="13" />
             </div>
           </div>
         )}
