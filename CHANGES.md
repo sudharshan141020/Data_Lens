@@ -1,39 +1,46 @@
-# New Domains: Real Estate + SaaS/Subscription — changed files
+# Compare Two Files Side-by-Side — changed files
 
-Item #5 of the "add all" batch. New: `app/analyzers/real_estate_analyzer.py`,
-`app/analyzers/saas_analyzer.py`. Modified: `app/semantic_roles.py`,
-`app/understanding.py`, `app/domains.py`, `app/analyzers/registry.py`.
+Item #6 of the "add all" batch. New: `app/comparison.py`,
+`frontend/src/components/CompareView.jsx`. Modified: `app/main.py`,
+`frontend/src/api.js`, `frontend/src/App.jsx`,
+`frontend/src/components/Sidebar.jsx`.
 
-Followed the existing plugin architecture exactly as documented in the
-codebase's own comments (registry.py: "the ONLY place that needs to
-change... nowhere else branches on domain name"):
-- New semantic roles (PROPERTY_TYPE, SQUARE_FOOTAGE, BEDROOMS, SALE_PRICE,
-  etc. for real estate; MRR, ARR, SUBSCRIPTION_PLAN, CHURN_STATUS, etc.
-  for SaaS) added to `semantic_roles.py`, inserted *before* the generic
-  CATEGORY block so specific matches (e.g. "property_type") win over
-  CATEGORY's broad "type"/"status" catch-all keywords.
-- Aggregation defaults (MEASURE_ROLES) and dimension classification
-  (DIMENSION_ROLES) added to `understanding.py`, plus entity-noun
-  fallbacks ("Property", "Subscriber") in DOMAIN_DEFAULT_ENTITY.
-- Domain scoring weights added to `domains.py`'s DOMAIN_SIGNALS, using
-  only genuinely distinctive roles per the lesson already documented
-  there (the Titanic/CATEGORY false-positive story) — no FINANCIAL_METRIC
-  or generic CATEGORY signal used for either new domain.
-- Two new analyzer classes, each just class attributes
-  (headline_dimension_roles + key_kpis), no method overrides — same
-  pattern every existing domain analyzer already follows.
+Different from the existing `/api/analyze-combined` (which merges two
+files' rows into one dataset) — this runs each file through the exact
+same pipeline independently, then diffs the two results: KPI deltas
+(sorted by size of change), correlation changes (including sign flips),
+row count / data quality / domain comparison.
+
+`main.py` refactor: extracted `/api/analyze`'s column-detection logic
+into a shared `_full_analyze_from_df()` helper, used by both
+`/api/analyze` and the new `/api/compare` — avoids duplicating that
+logic a second time, which is exactly the failure mode ("recurring bug
+pattern... across ~5 independent code paths") already documented for
+this project. Regression-tested: `/api/analyze` still works identically
+after the refactor.
+
+Frontend: a new "Compare two files…" mode in the sidebar, mirroring the
+existing combine-mode UI pattern exactly but capped at exactly 2
+selections. Produces a pseudo-session (`isComparison: true`) that
+renders `<CompareView>` instead of the normal dashboard.
 
 ## Verified this session
-- Synthetic real estate dataset: detected at confidence 1.0, zero
-  incidental score in any other domain, primary_entity correctly
-  resolved to "Property" via the fallback.
-- Synthetic SaaS dataset: detected at confidence 0.83, primary_entity
-  correctly resolved to "Customer" (a Customer ID column was present,
-  so the explicit match took precedence over the "Subscriber" fallback).
-- Full HTTP round-trip + PDF export on both: 200 OK, all downstream
-  features (segments, seasonality, anomalies, Simpson's paradox,
-  Benford's Law, findings, weak points, story) ran without errors.
-- Regression check: all 3 existing sample datasets
-  (sales/healthcare/manufacturing) still classify correctly at full
-  confidence — the new keyword insertions didn't shift any existing
-  classification.
+- Full HTTP round-trip on two real months of your actual sales data
+  (November vs December): correct KPI deltas (e.g. total_units_sold
+  +23.3%, avg_revenue_per_customer -22.6%), correct correlation deltas
+  with no false sign-flips.
+- Edge case: comparing a file with no usable numeric metric correctly
+  returns 400 with a clear message, rather than crashing on a missing
+  `kpis` key deeper in the diff logic (caught and fixed during
+  testing — the categorical-only fallback response always includes a
+  `kpis` key, just a minimal one, so the guard checks the actual
+  `no_numeric_metric` flag instead).
+- Regression check: `/api/analyze` and `/api/analyze-combined` both
+  still return 200 and work identically after the `_full_analyze_from_df`
+  refactor.
+- `frontend`: `npm run build` succeeds, no new warnings.
+
+## Not yet done
+- Not visually verified in a browser — worth checking the sidebar's
+  compare-mode checkboxes (capped at 2, so a 3rd click should just do
+  nothing rather than deselecting anything) and the CompareView layout.

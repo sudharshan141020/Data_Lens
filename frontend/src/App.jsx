@@ -22,9 +22,10 @@ import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
-import { analyzeFile, analyzeCombined, loadSampleFile, exportPdf } from './api';
+import { analyzeFile, analyzeCombined, compareFiles, loadSampleFile, exportPdf } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { buildFindingsText } from './findingsText';
+import CompareView from './components/CompareView';
 import { applyFilters, recomputeAnalysis } from './filterUtils';
 import { buildSearchIndex } from './searchUtils';
 
@@ -46,6 +47,8 @@ export default function App() {
   const [uploadError, setUploadError] = useState(null);
   const [combineMode, setCombineMode] = useState(false);
   const [selectedForCombine, setSelectedForCombine] = useState([]);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState([]);
   const [sampleLoadingId, setSampleLoadingId] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
@@ -204,6 +207,55 @@ export default function App() {
       });
   };
 
+  const handleToggleCompareMode = () => {
+    setCompareMode((m) => !m);
+    setSelectedForCompare([]);
+  };
+
+  const handleToggleSelectForCompare = (id) => {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(id)) return prev.filter((sid) => sid !== id);
+      if (prev.length >= 2) return prev; // capped at exactly two
+      return [...prev, id];
+    });
+  };
+
+  const handleCompare = () => {
+    const chosen = sessions.filter((s) => (
+      selectedForCompare.includes(s.id) && s.status === 'ready' && s.sourceFile
+    ));
+    if (chosen.length !== 2) return;
+
+    const compareId = makeId();
+    const compareName = `Compare: ${chosen[0].fileName} vs ${chosen[1].fileName}`;
+
+    setSessions((prev) => [...prev, {
+      id: compareId,
+      fileName: compareName,
+      status: 'loading',
+      result: null,
+      error: null,
+      pinned: false,
+      sourceFile: null,
+      isComparison: true,
+    }]);
+    setActiveId(compareId);
+    setCompareMode(false);
+    setSelectedForCompare([]);
+
+    compareFiles(chosen[0].sourceFile, chosen[1].sourceFile)
+      .then((data) => {
+        setSessions((prev) => prev.map((s) => (
+          s.id === compareId ? { ...s, status: 'ready', result: data } : s
+        )));
+      })
+      .catch((e) => {
+        setSessions((prev) => prev.map((s) => (
+          s.id === compareId ? { ...s, status: 'error', error: e.message } : s
+        )));
+      });
+  };
+
   const handleTrySample = (sample) => {
     setSampleLoadingId(sample.id);
     loadSampleFile(sample.filename)
@@ -262,6 +314,11 @@ export default function App() {
           selectedForCombine={selectedForCombine}
           onToggleSelect={handleToggleSelect}
           onCombine={handleCombine}
+          compareMode={compareMode}
+          onToggleCompareMode={handleToggleCompareMode}
+          selectedForCompare={selectedForCompare}
+          onToggleSelectForCompare={handleToggleSelectForCompare}
+          onCompare={handleCompare}
         />
       )}
 
@@ -304,7 +361,7 @@ export default function App() {
         {activeSession && activeSession.status === 'loading' && (
           <div className="session-loading">
             <p className="upload-title">
-              {activeSession.isCombined ? 'Combining files…' : `Reading ${activeSession.fileName}…`}
+              {activeSession.isCombined ? 'Combining files…' : activeSession.isComparison ? 'Comparing files…' : `Reading ${activeSession.fileName}…`}
             </p>
             <p className="dim-sub">Detecting columns, computing KPIs, ranking findings</p>
           </div>
@@ -317,7 +374,11 @@ export default function App() {
           </div>
         )}
 
-        {activeSession && activeSession.status === 'ready' && (
+        {activeSession && activeSession.status === 'ready' && activeSession.isComparison && (
+          <CompareView data={activeSession.result} />
+        )}
+
+        {activeSession && activeSession.status === 'ready' && !activeSession.isComparison && (
           <div className="dashboard">
             {activeSession.isCombined && (
               <p className="dim-sub" style={{ marginBottom: 12 }}>

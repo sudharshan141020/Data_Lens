@@ -22,6 +22,7 @@ from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
 from app.simpsons_paradox import check_simpsons_paradox
 from app.benford import check_benfords_law
+from app.comparison import compare_results
 from app.clustering import analyze_segments
 from app.anomaly_detection import detect_anomalies
 from app.seasonality import decompose_trend
@@ -578,11 +579,11 @@ def _load_and_detect(filename: str, raw: bytes):
     return df_prepared, mapping
 
 
-@app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...), column_overrides: str = Form(None)):
-    raw = await file.read()
-    df = _load_dataframe(file.filename, raw)
-
+def _full_analyze_from_df(df: pd.DataFrame, column_overrides: str = None) -> dict:
+    """Shared by /api/analyze and /api/compare -- column detection through
+    to the full response dict. Pulled out once so both endpoints run the
+    exact same logic rather than risking two copies drifting apart (the
+    project has a documented history of that exact failure mode)."""
     if df.empty:
         raise HTTPException(400, "The uploaded file has no rows.")
 
@@ -617,6 +618,34 @@ async def analyze(file: UploadFile = File(...), column_overrides: str = Form(Non
         return _categorical_only_analysis(df, detection, v2_role_overrides=v2_role_overrides)
 
     return _analyze_df(df, mapping, confidence, unmapped, detection["extra_categoricals"], v2_role_overrides=v2_role_overrides)
+
+
+@app.post("/api/analyze")
+async def analyze(file: UploadFile = File(...), column_overrides: str = Form(None)):
+    raw = await file.read()
+    df = _load_dataframe(file.filename, raw)
+    return _full_analyze_from_df(df, column_overrides=column_overrides)
+
+
+@app.post("/api/compare")
+async def compare(file_a: UploadFile = File(...), file_b: UploadFile = File(...)):
+    """Compares two SEPARATE analyses (e.g. this month's export vs. last
+    month's) -- different from /api/analyze-combined, which merges two
+    files' rows into one dataset. Each file runs through the exact same
+    pipeline as a normal single-file upload, independently; comparison.py
+    then diffs the two already-computed results."""
+    raw_a, raw_b = await file_a.read(), await file_b.read()
+    df_a = _load_dataframe(file_a.filename, raw_a)
+    df_b = _load_dataframe(file_b.filename, raw_b)
+
+    result_a = _full_analyze_from_df(df_a)
+    result_b = _full_analyze_from_df(df_b)
+
+    if result_a.get("no_numeric_metric") or result_b.get("no_numeric_metric"):
+        raise HTTPException(400, "Both files need a usable numeric metric to compare.")
+
+    diff = compare_results(result_a, result_b, file_a.filename, file_b.filename)
+    return {"result_a": result_a, "result_b": result_b, "diff": diff}
 
 
 @app.post("/api/analyze-combined")

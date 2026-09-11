@@ -9,10 +9,13 @@ function StatusDot({ status }) {
 export default function Sidebar({
   sessions, activeId, onSelect, onRemove, onFilesSelected, uploadError,
   onTogglePin, combineMode, onToggleCombineMode, selectedForCombine,
-  onToggleSelect, onCombine,
+  onToggleSelect, onCombine, compareMode, onToggleCompareMode,
+  selectedForCompare, onToggleSelectForCompare, onCompare,
 }) {
   const readySessions = sessions.filter((s) => s.status === 'ready' && s.sourceFile);
   const canCombine = readySessions.length >= 2;
+  const canCompare = readySessions.length >= 2;
+  const anySelectMode = combineMode || compareMode;
 
   return (
     <aside className="sidebar">
@@ -24,7 +27,7 @@ export default function Sidebar({
       <UploadZone onFilesSelected={onFilesSelected} error={uploadError} compact />
 
       <div className="sidebar-actions">
-        {canCombine && (
+        {canCombine && !compareMode && (
           <button
             className={`combine-toggle ${combineMode ? 'active' : ''}`}
             onClick={onToggleCombineMode}
@@ -41,6 +44,23 @@ export default function Sidebar({
             Combine selected ({selectedForCombine.length})
           </button>
         )}
+        {canCompare && !combineMode && (
+          <button
+            className={`combine-toggle ${compareMode ? 'active' : ''}`}
+            onClick={onToggleCompareMode}
+          >
+            {compareMode ? 'Cancel compare' : 'Compare two files…'}
+          </button>
+        )}
+        {compareMode && (
+          <button
+            className="combine-run"
+            disabled={selectedForCompare.length !== 2}
+            onClick={onCompare}
+          >
+            Compare selected ({selectedForCompare.length}/2)
+          </button>
+        )}
       </div>
 
       <div className="session-list">
@@ -49,13 +69,19 @@ export default function Sidebar({
         )}
         {sessions.map((s) => {
           const canSelectForCombine = combineMode && s.status === 'ready' && s.sourceFile;
+          const canSelectForCompare = compareMode && s.status === 'ready' && s.sourceFile
+            && (selectedForCompare.includes(s.id) || selectedForCompare.length < 2);
           return (
             <div
               key={s.id}
-              className={`session-item ${s.id === activeId ? 'active' : ''} ${combineMode ? 'combine-mode' : ''}`}
-              onClick={() => (combineMode ? canSelectForCombine && onToggleSelect(s.id) : onSelect(s.id))}
+              className={`session-item ${s.id === activeId ? 'active' : ''} ${anySelectMode ? 'combine-mode' : ''}`}
+              onClick={() => {
+                if (combineMode) return canSelectForCombine && onToggleSelect(s.id);
+                if (compareMode) return canSelectForCompare && onToggleSelectForCompare(s.id);
+                return onSelect(s.id);
+              }}
             >
-              {combineMode ? (
+              {combineMode && (
                 <input
                   type="checkbox"
                   className="session-checkbox"
@@ -64,9 +90,18 @@ export default function Sidebar({
                   onChange={() => onToggleSelect(s.id)}
                   onClick={(e) => e.stopPropagation()}
                 />
-              ) : (
-                <StatusDot status={s.status} />
               )}
+              {compareMode && (
+                <input
+                  type="checkbox"
+                  className="session-checkbox"
+                  checked={selectedForCompare.includes(s.id)}
+                  disabled={!canSelectForCompare}
+                  onChange={() => onToggleSelectForCompare(s.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+              {!anySelectMode && <StatusDot status={s.status} />}
 
               <div className="session-item-body">
                 <span className="session-name mono">{s.fileName}</span>
@@ -80,7 +115,7 @@ export default function Sidebar({
                 {s.status === 'error' && <span className="session-sub session-sub-error">Failed</span>}
               </div>
 
-              {!combineMode && (
+              {!anySelectMode && (
                 <>
                   <button
                     className={`session-pin ${s.pinned ? 'pinned' : ''}`}
