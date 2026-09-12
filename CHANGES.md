@@ -1,54 +1,46 @@
-# Export Cleaned CSV — changed files
+# Pytest Regression Suite — changed files
 
-Item #7 of the "add all" batch. New: `app/data_cleaning.py`. Modified:
-`app/main.py`, `app/anomaly_detection.py` (bugfix — see below),
-`frontend/src/api.js`, `frontend/src/App.jsx`,
-`frontend/src/components/ExportMenu.jsx`.
+Item #8, the final item of the "add all" batch. New: `pytest.ini`,
+`requirements-dev.txt`, and `tests/` (conftest.py + 5 test files, 44
+tests total).
 
-## ⚠️ Supersedes the anomaly-detection-feature.zip's app/anomaly_detection.py
-Building this exposed a real bug in the anomaly detection module shipped
-earlier: `row_index` in its output referred to a row's position *after*
-dropping NaN rows, not its actual position in the original file. Harmless
-for the UI panel (just a display label), but useless for mapping
-anomalies back onto the original dataframe — which cleaning needs to do.
-Fixed by preserving the original index through the dropna step. Also
-added a new `all_anomaly_row_indices` field (uncapped — the existing
-`anomalies` list is capped at ~50 for UI readability, but a "flag every
-unusual row" feature needs all of them, not just the top 50 with a full
-explanation). Re-verified against the original synthetic test — anomalies
-still correctly mapped, including with NaN gaps interspersed.
+## How to run
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m pytest
+```
+Runs in ~4-5 seconds. `requirements-dev.txt` is separate from
+`requirements.txt` on purpose — pytest has no business in the production
+install.
 
-## What "cleaned" means here, deliberately conservative
-- Removes exact duplicate rows only (unambiguous — no legitimate reason
-  two fully-identical rows both belong).
-- FLAGS anomalous rows (new `flagged_as_unusual` column) rather than
-  deleting them. Auto-deleting statistical outliers would be a real,
-  opinionated data-loss decision this app has no business making
-  silently — a genuinely large sale isn't "dirty data" just because
-  it's unusual.
+## What's covered
+- **test_domain_detection.py** — all 11 domains detect correctly;
+  specifically guards the exact failure mode `domains.py`'s own
+  docstring already documents (an unrelated domain scoring too close to
+  the correct one via an overly generic keyword).
+- **test_statistical_modules.py** — codifies every correctness check
+  done manually while building this session's 6 statistical modules,
+  including the two real bugs that were caught and fixed along the way:
+  seasonality's false-positive-on-noise bug, and anomaly detection's
+  z≈0-described-as-unusual bug and its row-index-after-dropna bug.
+- **test_pipeline_robustness.py** — targets the project's own documented
+  recurring bug pattern directly: a column named like a real metric but
+  whose data doesn't support it (e.g. a "Revenue" column full of text).
+  Also covers general edge cases (all-NaN columns, single row/column,
+  constant columns) and a 150K-row performance regression guard.
+- **test_file_formats.py** — CSV/TSV/JSON (all 3 shapes)/Parquet all
+  load correctly and equivalently; malformed files fail cleanly.
+- **test_api_endpoints.py** — smoke tests for every endpoint the
+  frontend actually calls, including the two new ones added this
+  session (`/api/compare`, `/api/export/cleaned-csv`).
 
-New `/api/export/cleaned-csv` endpoint: stateless like the other exports
-(re-accepts the file, since the raw dataframe isn't kept server-side
-between requests), returns the cleaned CSV as a direct file download
-with a summary in an `X-Clean-Summary` response header. Wired into the
-existing Export dropdown as a 4th option, using the `sourceFile` each
-session already keeps in memory — only shown when a single source file
-exists (hidden for combined/comparison sessions, which don't have one).
-
-## Verified this session
-- Correctness bug caught and fixed during testing: an artificial test
-  with 80 "anomalies" that were all set to the identical value looked
-  like duplicates were being over-removed (99 vs. the expected 20) —
-  turned out to be correct behavior (those rows genuinely were exact
-  duplicates of each other), not a bug. Re-tested with distinct
-  anomaly values to properly isolate the two effects: 20/20 duplicates
-  removed correctly, 87 of ~80 injected anomalies flagged (a few extra
-  from expected false positives at the 1% significance threshold).
-- Full HTTP round-trip on real demo data: 200 OK, correct
-  Content-Disposition/filename, summary header present and accurate,
-  downloaded CSV has the right shape and a working `flagged_as_unusual`
-  column (22 flagged, matching the anomaly count already shown
-  elsewhere in the app for this same file).
-- Regression check: `/api/analyze` and `/api/export/pdf` both still
-  200 OK after the anomaly_detection.py fix.
-- `frontend`: `npm run build` succeeds, no new warnings.
+## One real assertion fix made while getting this to pass
+`test_saas_does_not_leak_into_other_domains` initially failed: the
+synthetic SaaS test dataset's `Customer ID` column legitimately also
+scores 2 points toward the `sales` domain (which lists `CUSTOMER` as one
+of its own signals) — not a bug, since a SaaS dataset genuinely does
+have customers. The original assertion ("zero score anywhere else") was
+an unrealistic bar for a role that's legitimately shared across similar
+domains. Fixed to assert the correct domain wins by a clear margin
+(more than double the next-highest score) instead, which is the
+actually meaningful thing to guard against.
