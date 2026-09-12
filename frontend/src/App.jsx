@@ -22,7 +22,7 @@ import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
-import { analyzeFile, analyzeCombined, compareFiles, loadSampleFile, exportPdf } from './api';
+import { analyzeFile, analyzeCombined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { buildFindingsText } from './findingsText';
 import CompareView from './components/CompareView';
@@ -158,6 +158,11 @@ export default function App() {
     } catch {
       return false;
     }
+  };
+
+  const handleDownloadCleanedCsv = async (session) => {
+    if (!session?.sourceFile) throw new Error('No source file available for this session.');
+    await downloadCleanedCsv(session.sourceFile, session.fileName);
   };
 
   const handleToggleCombineMode = () => {
@@ -391,6 +396,7 @@ export default function App() {
                 onExportExcel={() => exportAnalysisToExcel(activeSession)}
                 onExportPdf={() => handleExportPdf(activeSession)}
                 onCopyFindings={() => handleCopyFindings(activeSession)}
+                onDownloadCleanedCsv={activeSession.sourceFile ? () => handleDownloadCleanedCsv(activeSession) : null}
                 pdfLoading={pdfLoading}
               />
             </div>

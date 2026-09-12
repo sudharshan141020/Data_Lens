@@ -23,6 +23,7 @@ from app.correlation_center import analyze_correlations, analyze_multicollineari
 from app.simpsons_paradox import check_simpsons_paradox
 from app.benford import check_benfords_law
 from app.comparison import compare_results
+from app.data_cleaning import build_cleaned_csv
 from app.clustering import analyze_segments
 from app.anomaly_detection import detect_anomalies
 from app.seasonality import decompose_trend
@@ -690,6 +691,34 @@ def health():
 class PdfExportRequest(BaseModel):
     file_name: str
     v2: dict
+
+
+@app.post("/api/export/cleaned-csv")
+async def export_cleaned_csv(file: UploadFile = File(...)):
+    """Stateless like the other export endpoints -- takes a fresh upload
+    of the same file (the raw dataframe isn't kept server-side between
+    requests) and returns a cleaned CSV: exact duplicate rows removed,
+    and a `flagged_as_unusual` column added rather than removing
+    anything else -- see data_cleaning.py for why deletion isn't the
+    default here."""
+    raw = await file.read()
+    df = _load_dataframe(file.filename, raw)
+    if df.empty:
+        raise HTTPException(400, "The uploaded file has no rows.")
+
+    profile = understand_dataset(df)
+    cleaned, summary = build_cleaned_csv(df, profile)
+
+    csv_bytes = cleaned.to_csv(index=False).encode("utf-8")
+    safe_name = "".join(c for c in file.filename.rsplit(".", 1)[0] if c.isalnum() or c in ("-", "_")) or "datalens-data"
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}_cleaned.csv"',
+            "X-Clean-Summary": json.dumps(summary),
+        },
+    )
 
 
 @app.post("/api/export/pdf")

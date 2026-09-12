@@ -106,6 +106,7 @@ def detect_anomalies(df: pd.DataFrame, profile) -> dict:
     p_values = _chi2_p_value(d_squared, df=len(cols))
     is_anomaly = p_values < SIGNIFICANCE_ALPHA
 
+    original_indices = usable.index.to_numpy()  # preserve the original file's row numbers
     usable = usable.reset_index(drop=True)
     overall_mean = usable.mean()
     overall_std = usable.std(ddof=0)
@@ -128,7 +129,7 @@ def detect_anomalies(df: pd.DataFrame, profile) -> dict:
             # off (e.g. two measures that normally move together, here don't).
             why = f"an unusual combination of {' and '.join(cols)} relative to how they typically move together"
         anomalies.append({
-            "row_index": int(i),
+            "row_index": int(original_indices[i]),
             "distance": round(float(np.sqrt(d_squared[i])), 2),
             "p_value": round(float(p_values[i]), 5),
             "why": why,
@@ -164,5 +165,6 @@ def detect_anomalies(df: pd.DataFrame, profile) -> dict:
         "x_measure": x_col,
         "y_measure": y_col,
         "anomalies": anomalies,
+        "all_anomaly_row_indices": [int(v) for v in original_indices[is_anomaly]],  # uncapped, unlike `anomalies` above -- for callers (like cleaned-CSV export) that need every flagged row, not just the top N with a full explanation
         "scatter_points": scatter_points,
     }

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, pdfLoading }) {
+export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, pdfLoading }) {
   const [open, setOpen] = useState(false);
   const [copyState, setCopyState] = useState('idle'); // idle | copied | error
+  const [cleanState, setCleanState] = useState('idle'); // idle | downloading | done | error
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -35,6 +36,20 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
   };
 
   const copyLabel = copyState === 'copied' ? 'Copied!' : copyState === 'error' ? "Couldn't copy" : 'Copy findings as text';
+
+  const handleDownloadCleaned = async () => {
+    setCleanState('downloading');
+    try {
+      await onDownloadCleanedCsv();
+      setCleanState('done');
+    } catch {
+      setCleanState('error');
+    }
+    setTimeout(() => setCleanState('idle'), 1800);
+    setOpen(false);
+  };
+
+  const cleanLabel = cleanState === 'downloading' ? 'Preparing…' : cleanState === 'done' ? 'Downloaded!' : cleanState === 'error' ? "Couldn't download" : 'Download cleaned CSV';
 
   return (
     <div className="export-menu-wrap" ref={wrapRef}>
@@ -83,6 +98,18 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
             >
               <span>{copyLabel}</span>
               <span className="export-menu-ext">Slack/email</span>
+            </button>
+          )}
+          {onDownloadCleanedCsv && (
+            <button
+              type="button"
+              className="export-menu-item"
+              role="menuitem"
+              disabled={cleanState === 'downloading'}
+              onClick={handleDownloadCleaned}
+            >
+              <span>{cleanLabel}</span>
+              <span className="export-menu-ext">.csv</span>
             </button>
           )}
         </div>

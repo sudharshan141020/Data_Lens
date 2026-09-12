@@ -99,6 +99,44 @@ export async function loadSampleFile(filename) {
   return new File([blob], filename, { type: 'text/csv' });
 }
 
+export async function downloadCleanedCsv(sourceFile, fileName) {
+  const formData = new FormData();
+  formData.append('file', sourceFile);
+
+  const res = await fetch(`${API_BASE}/api/export/cleaned-csv`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let message = 'The cleaned CSV could not be generated.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
+
+  let summary = null;
+  try {
+    const raw = res.headers.get('x-clean-summary');
+    if (raw) summary = JSON.parse(raw);
+  } catch (e) { /* summary is a nice-to-have, not worth failing the download over */ }
+
+  const blob = await res.blob();
+  const safeName = (fileName || 'datalens-data').replace(/\.[^/.]+$/, '').replace(/[^\w-]+/g, '_');
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${safeName}_cleaned.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  return summary;
+}
+
 export async function exportPdf(fileName, v2) {
   // filterable_data exists purely for client-side chart filtering and can
   // be a large payload on big datasets; the PDF generator never reads it,
