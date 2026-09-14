@@ -15,6 +15,7 @@ from app.period_comparison import compare_periods
 from app.anomaly_detection import detect_anomalies
 from app.simpsons_paradox import check_simpsons_paradox
 from app.benford import check_benfords_law
+from app.cohort_analysis import analyze_cohorts
 from app.understanding import understand_dataset
 from app.correlation_center import analyze_correlations
 
@@ -192,3 +193,31 @@ def test_benford_flags_noncompliant_data(rng):
     assert result["available"]
     checked = next(r for r in result["results"] if r["checked"])
     assert checked["deviates"]
+
+
+# --------------------------------------------------------------- cohorts
+
+def test_cohort_analysis_recovers_known_retention_rate(rng):
+    rows = []
+    customer_id = 0
+    for cohort_month in range(6):
+        for _ in range(50):
+            customer_id += 1
+            month = cohort_month
+            active = True
+            while active and month < 12:
+                rows.append({"Customer ID": customer_id, "Order Date": pd.Timestamp("2023-01-01") + pd.DateOffset(months=month)})
+                month += 1
+                active = rng.random() < 0.6  # 60% chance of returning next month
+    df = pd.DataFrame(rows)
+    profile = understand_dataset(df)
+    result = analyze_cohorts(df, profile)
+    assert result["available"]
+    assert abs(result["avg_month1_retention_pct"] - 60.0) < 5.0
+
+
+def test_cohort_analysis_declines_without_entity_column():
+    df = pd.DataFrame({"Sales": range(100), "Order Date": pd.date_range("2023-01-01", periods=100)})
+    profile = understand_dataset(df)
+    result = analyze_cohorts(df, profile)
+    assert not result["available"]

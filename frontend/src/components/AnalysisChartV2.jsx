@@ -272,7 +272,7 @@ function HeatmapView({ analysis, isCurrency }) {
 
   const formatCell = (v) => {
     if (v === null || v === undefined) return '–';
-    if (isPivot) return `${isCurrency ? '$' : ''}${formatAxisValue(v)}`;
+    if (isPivot) return `${isCurrency ? '$' : ''}${formatAxisValue(v)}${analysis.value_suffix || ''}`;
     return v.toFixed(2);
   };
 

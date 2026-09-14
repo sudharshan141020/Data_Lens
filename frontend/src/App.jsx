@@ -16,6 +16,7 @@ import PeriodComparisonPanel from './components/PeriodComparisonPanel';
 import AnomaliesPanel from './components/AnomaliesPanel';
 import SimpsonsParadoxPanel from './components/SimpsonsParadoxPanel';
 import BenfordPanel from './components/BenfordPanel';
+import CohortsPanel from './components/CohortsPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -437,6 +438,7 @@ export default function App() {
               <AnomaliesPanel anomalies={activeSession.result.v2.anomalies} tickNum="12" />
               <SimpsonsParadoxPanel simpsonsParadox={activeSession.result.v2.simpsons_paradox} tickNum="13" />
               <BenfordPanel benford={activeSession.result.v2.benford} tickNum="14" />
+              <CohortsPanel cohorts={activeSession.result.v2.cohorts} tickNum="15" />
             </div>
           </div>
         )}

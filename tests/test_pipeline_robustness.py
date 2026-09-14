@@ -74,7 +74,7 @@ def test_all_new_statistical_sections_degrade_gracefully_on_thin_data():
     df = pd.DataFrame({"A": [1, 2, 3, 4, 5], "B": ["x", "y", "x", "y", "x"]})
     result = _run_v2_pipeline(df)
 
-    for key in ("segments", "seasonality", "period_comparison", "anomalies", "simpsons_paradox", "benford"):
+    for key in ("segments", "seasonality", "period_comparison", "anomalies", "simpsons_paradox", "benford", "cohorts"):
         assert key in result, f"missing key: {key}"
         assert result[key]["available"] is False
 

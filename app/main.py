@@ -24,6 +24,7 @@ from app.simpsons_paradox import check_simpsons_paradox
 from app.benford import check_benfords_law
 from app.comparison import compare_results
 from app.data_cleaning import build_cleaned_csv
+from app.cohort_analysis import analyze_cohorts
 from app.clustering import analyze_segments
 from app.anomaly_detection import detect_anomalies
 from app.seasonality import decompose_trend
@@ -153,6 +154,24 @@ def _serialize_anomalies(anomaly_report: dict) -> dict:
     }
 
 
+def _serialize_cohorts(cohort_report: dict) -> dict:
+    """Drops heatmap_points (lives on the cohort_retention chart entry in
+    all_analyses instead) and the full per-cohort retention arrays (the
+    chart already has those) -- the panel only needs the headline numbers
+    and cohort sizes."""
+    if not cohort_report.get("available"):
+        return {"available": False, "note": cohort_report.get("note")}
+    return {
+        "available": True,
+        "note": None,
+        "entity_noun": cohort_report["entity_noun"],
+        "cohort_count": cohort_report["cohort_count"],
+        "avg_month1_retention_pct": cohort_report["avg_month1_retention_pct"],
+        "summary": cohort_report["summary"],
+        "cohort_sizes": [{"cohort": c["cohort"], "size": c["size"]} for c in cohort_report["cohorts"]],
+    }
+
+
 def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     """
     The full new pipeline: Dataset Understanding -> pick the right domain
@@ -207,6 +226,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         })
 
     anomaly_report = detect_anomalies(df_exec, profile)
+    cohort_report = analyze_cohorts(df_exec, profile)
     if anomaly_report.get("available") and anomaly_report["anomaly_count"] > 0:
         all_executed.append({
             "id": "anomalies_scatter",
@@ -227,6 +247,27 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
             "y_label": anomaly_report["y_measure"],
             "color_by": "Status",
             "data": anomaly_report["scatter_points"],
+        })
+
+    if cohort_report.get("available"):
+        all_executed.append({
+            "id": "cohort_retention",
+            "title": f"{cohort_report['entity_noun']} Retention by Cohort",
+            "type": "pivot",
+            "chart_type": "heatmap",
+            "section": "Retention",
+            "importance": 0,
+            "aggregation": None,
+            "metric_column": None,
+            "column": f"{cohort_report['entity_noun']} Cohort",
+            "column2": "Months Since First Activity",
+            "date_column": None,
+            "reasoning": cohort_report["summary"],
+            "x_label": None,
+            "y_label": None,
+            "color_by": None,
+            "value_suffix": "%",
+            "data": cohort_report["heatmap_points"],
         })
 
     # Additive: attach a short linear-trend forecast to any trend/line
@@ -353,6 +394,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "anomalies": _serialize_anomalies(anomaly_report),
         "simpsons_paradox": simpsons_paradox_report,
         "benford": benford_report,
+        "cohorts": _serialize_cohorts(cohort_report),
     }
 
 
