@@ -17,6 +17,7 @@ from app.simpsons_paradox import check_simpsons_paradox
 from app.benford import check_benfords_law
 from app.cohort_analysis import analyze_cohorts
 from app.confidence_intervals import compute_kpi_confidence_intervals
+from app.text_analysis import analyze_text_fields
 from app.understanding import understand_dataset
 from app.correlation_center import analyze_correlations
 
@@ -250,3 +251,25 @@ def test_confidence_interval_contains_point_estimate():
     assert result["available"]
     for interval in result["intervals"]:
         assert interval["ci_low"] <= interval["point_estimate"] <= interval["ci_high"]
+
+
+# ----------------------------------------------------------------- text fields
+
+def test_text_analysis_finds_common_words():
+    reviews = ["The product quality is excellent and shipping was fast"] * 20 + \
+              ["Poor product quality and slow shipping overall"] * 15
+    df = pd.DataFrame({"Review Comment": reviews})
+    profile = understand_dataset(df)
+    result = analyze_text_fields(df, profile)
+    assert result["available"]
+    words = {w["word"] for w in result["results"][0]["top_words"]}
+    assert "product" in words
+    assert "quality" in words
+    assert "the" not in words  # stopword must be filtered
+
+
+def test_text_analysis_declines_on_short_codes():
+    df = pd.DataFrame({"Notes": [f"CODE-{i}" for i in range(50)]})
+    profile = understand_dataset(df)
+    result = analyze_text_fields(df, profile)
+    assert not result["available"]

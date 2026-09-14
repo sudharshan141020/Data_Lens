@@ -18,6 +18,7 @@ import SimpsonsParadoxPanel from './components/SimpsonsParadoxPanel';
 import BenfordPanel from './components/BenfordPanel';
 import CohortsPanel from './components/CohortsPanel';
 import ConfidenceIntervalsPanel from './components/ConfidenceIntervalsPanel';
+import TextAnalysisPanel from './components/TextAnalysisPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -441,6 +442,7 @@ export default function App() {
               <BenfordPanel benford={activeSession.result.v2.benford} tickNum="14" />
               <CohortsPanel cohorts={activeSession.result.v2.cohorts} tickNum="15" />
               <ConfidenceIntervalsPanel confidenceIntervals={activeSession.result.v2.confidence_intervals} tickNum="16" />
+              <TextAnalysisPanel textAnalysis={activeSession.result.v2.text_analysis} tickNum="17" />
             </div>
           </div>
         )}
