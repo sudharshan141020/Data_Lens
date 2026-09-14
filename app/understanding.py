@@ -41,6 +41,8 @@ DOMAIN_DEFAULT_ENTITY = {
     "finance": "Account",
     "real_estate": "Property",
     "saas": "Subscriber",
+    "ecommerce": "Shopper",
+    "insurance": "Policyholder",
 }
 
 # Roles that represent something worth measuring/aggregating numerically,
@@ -83,6 +85,12 @@ MEASURE_ROLES = {
     "CHURN_RATE": "avg",
     "SEATS": "sum",
     "NPS_SCORE": "avg",
+    "CART_VALUE": "avg",
+    "PAGE_VIEWS": "avg",
+    "PREMIUM": "sum",
+    "CLAIM_AMOUNT": "sum",
+    "DEDUCTIBLE": "avg",
+    "RISK_SCORE": "avg",
 }
 
 # Roles that represent a "slice by this" dimension.
@@ -95,6 +103,8 @@ DIMENSION_ROLES = {
     "CAMPAIGN", "CHANNEL",
     "PROPERTY_TYPE", "PROPERTY_STATUS",
     "SUBSCRIPTION_PLAN", "CHURN_STATUS", "TRIAL_STATUS",
+    "CART_STATUS", "CONVERSION_STATUS", "PAYMENT_METHOD",
+    "CLAIM_STATUS", "COVERAGE_TYPE",
 }
 
 

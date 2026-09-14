@@ -63,6 +63,14 @@ DOMAIN_SIGNALS = {
         "MRR": 3, "ARR": 3, "SUBSCRIPTION_PLAN": 3,
         "CHURN_STATUS": 2, "CHURN_RATE": 2, "TRIAL_STATUS": 1, "SEATS": 1, "NPS_SCORE": 1,
     },
+    "ecommerce": {
+        "CART_VALUE": 3, "CART_STATUS": 3, "CONVERSION_STATUS": 2,
+        "PAGE_VIEWS": 2, "PAYMENT_METHOD": 1,
+    },
+    "insurance": {
+        "PREMIUM": 3, "CLAIM_AMOUNT": 3, "CLAIM_STATUS": 2,
+        "COVERAGE_TYPE": 2, "DEDUCTIBLE": 1, "RISK_SCORE": 1,
+    },
 }
 
 # A domain needs at least this much weighted signal to be claimed at all —

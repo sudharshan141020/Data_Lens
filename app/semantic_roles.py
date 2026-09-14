@@ -147,6 +147,21 @@ ROLE_KEYWORDS = {
     "SEATS": ["seats", "seat_count", "licenses", "license_count"],
     "NPS_SCORE": ["nps", "nps_score", "net_promoter_score"],
 
+    # --- E-commerce-specific (checked before generic CATEGORY) ---
+    "CART_VALUE": ["cart_value", "cart_total", "basket_value"],
+    "CART_STATUS": ["cart_status", "checkout_status", "abandoned_cart", "cart_abandoned"],
+    "CONVERSION_STATUS": ["conversion_status", "converted", "purchase_status"],
+    "PAGE_VIEWS": ["page_views", "pageviews", "sessions_viewed"],
+    "PAYMENT_METHOD": ["payment_method", "payment_type"],
+
+    # --- Insurance-specific (checked before generic CATEGORY) ---
+    "PREMIUM": ["premium", "premium_amount", "annual_premium"],
+    "CLAIM_AMOUNT": ["claim_amount", "claim_value", "payout", "payout_amount"],
+    "CLAIM_STATUS": ["claim_status", "claim_state"],
+    "COVERAGE_TYPE": ["coverage_type", "policy_type", "plan_type"],
+    "DEDUCTIBLE": ["deductible"],
+    "RISK_SCORE": ["risk_score", "risk_rating"],
+
     # --- Generic categorical (checked late — very common words) ---
     "CATEGORY": ["category", "segment", "product_type", "sub_category", "type", "class", "status"],
 

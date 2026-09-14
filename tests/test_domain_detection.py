@@ -38,6 +38,16 @@ def test_saas_domain_detected(saas_df):
     assert result["domain"] == "saas"
 
 
+def test_ecommerce_domain_detected(ecommerce_df):
+    result = _detected_domain(ecommerce_df)
+    assert result["domain"] == "ecommerce"
+
+
+def test_insurance_domain_detected(insurance_df):
+    result = _detected_domain(insurance_df)
+    assert result["domain"] == "insurance"
+
+
 def test_real_estate_dominates_incidental_overlap(real_estate_df):
     """Regression guard for the exact failure mode domains.py's own
     docstring warns about: an unrelated domain outscoring or coming
@@ -59,6 +69,20 @@ def test_saas_dominates_incidental_overlap(saas_df):
     assert result["domain"] == "saas"
     other_scores = [v for k, v in result["scores"].items() if k != "saas"]
     assert result["scores"]["saas"] > 2 * max(other_scores, default=0)
+
+
+def test_ecommerce_dominates_incidental_overlap(ecommerce_df):
+    result = _detected_domain(ecommerce_df)
+    assert result["domain"] == "ecommerce"
+    other_scores = [v for k, v in result["scores"].items() if k != "ecommerce"]
+    assert result["scores"]["ecommerce"] > 2 * max(other_scores, default=0)
+
+
+def test_insurance_dominates_incidental_overlap(insurance_df):
+    result = _detected_domain(insurance_df)
+    assert result["domain"] == "insurance"
+    other_scores = [v for k, v in result["scores"].items() if k != "insurance"]
+    assert result["scores"]["insurance"] > 2 * max(other_scores, default=0)
 
 
 def test_full_pipeline_resolves_correct_analyzer_for_new_domains(real_estate_df, saas_df):

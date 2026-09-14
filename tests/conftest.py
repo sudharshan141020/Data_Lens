@@ -87,3 +87,28 @@ def saas_df(rng):
         "NPS Score": rng.integers(-100, 100, n),
         "Customer ID": [f"CUST{i}" for i in range(n)],
     })
+
+
+@pytest.fixture
+def ecommerce_df(rng):
+    n = 300
+    return pd.DataFrame({
+        "Cart Value": rng.uniform(20, 500, n).round(2),
+        "Cart Status": rng.choice(["Completed", "Abandoned"], n, p=[0.6, 0.4]),
+        "Conversion Status": rng.choice(["Converted", "Not Converted"], n),
+        "Page Views": rng.integers(1, 30, n),
+        "Payment Method": rng.choice(["Credit Card", "PayPal", "Apple Pay"], n),
+    })
+
+
+@pytest.fixture
+def insurance_df(rng):
+    n = 300
+    return pd.DataFrame({
+        "Premium": rng.uniform(500, 5000, n).round(2),
+        "Claim Amount": rng.uniform(0, 20000, n).round(2),
+        "Claim Status": rng.choice(["Approved", "Denied", "Pending"], n),
+        "Coverage Type": rng.choice(["Auto", "Home", "Life", "Health"], n),
+        "Deductible": rng.choice([500, 1000, 2500], n),
+        "Risk Score": rng.integers(1, 100, n),
+    })
