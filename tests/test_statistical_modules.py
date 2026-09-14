@@ -16,6 +16,7 @@ from app.anomaly_detection import detect_anomalies
 from app.simpsons_paradox import check_simpsons_paradox
 from app.benford import check_benfords_law
 from app.cohort_analysis import analyze_cohorts
+from app.confidence_intervals import compute_kpi_confidence_intervals
 from app.understanding import understand_dataset
 from app.correlation_center import analyze_correlations
 
@@ -221,3 +222,31 @@ def test_cohort_analysis_declines_without_entity_column():
     profile = understand_dataset(df)
     result = analyze_cohorts(df, profile)
     assert not result["available"]
+
+
+# --------------------------------------------------------- confidence intervals
+
+def test_confidence_interval_point_estimate_matches_true_value_even_when_sampled(rng):
+    """Regression for a real bug: when the dataset is large enough that
+    the bootstrap samples down for speed, the reported point_estimate
+    must still be the TRUE full-dataset sum/mean, not the sampled
+    subset's -- otherwise the number shown wouldn't match the actual KPI
+    shown elsewhere in the app."""
+    n = 30_000  # exceeds MAX_BOOTSTRAP_ROWS, forcing the sampled path
+    df = pd.DataFrame({"Sales": rng.normal(500, 100, n)})
+    profile = understand_dataset(df)
+    result = compute_kpi_confidence_intervals(df, profile)
+    assert result["available"]
+    assert result["note"] is not None  # sampling disclosure must be present
+    true_sum = float(df["Sales"].sum())
+    reported = result["intervals"][0]["point_estimate"]
+    assert abs(reported - true_sum) < 1.0
+
+
+def test_confidence_interval_contains_point_estimate():
+    df = pd.DataFrame({"Sales": [10, 20, 30, 40, 50] * 20})
+    profile = understand_dataset(df)
+    result = compute_kpi_confidence_intervals(df, profile)
+    assert result["available"]
+    for interval in result["intervals"]:
+        assert interval["ci_low"] <= interval["point_estimate"] <= interval["ci_high"]

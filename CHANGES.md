@@ -1,44 +1,35 @@
-# Cohort / Retention Analysis — changed files
+# Confidence Intervals on KPIs — changed files
 
-First item of the new round. New: `app/cohort_analysis.py`,
-`frontend/src/components/CohortsPanel.jsx`. Modified: `app/main.py`,
-`frontend/src/components/AnalysisChartV2.jsx`,
-`frontend/src/components/AnalysisExplorerV2.jsx`, plus the two test
-files updated with cohort coverage.
+Second item of this round. New: `app/confidence_intervals.py`,
+`frontend/src/components/ConfidenceIntervalsPanel.jsx`. Modified:
+`app/main.py`, plus two test files updated with coverage.
 
-Groups each entity (customer/patient/student/etc.) by the month of
-their FIRST appearance, then tracks what fraction of that cohort is
-still active in each subsequent month — the classic retention-curve
-view. Distinct from period_comparison.py (aggregate totals between two
-periods) and seasonality.py (repeating calendar pattern): this is
-specifically about whether the SAME entities keep coming back.
+Bootstrap resampling (not the classic mean ± 1.96×SE formula — makes no
+distributional assumption about the data) on each numeric measure,
+reporting a 95% interval alongside the point estimate. Same
+performance-conscious sampling pattern as clustering.py/
+anomaly_detection.py for very large datasets, with the same honest
+disclosure when it kicks in.
 
-Reuses the existing heatmap chart component directly — a small,
-backward-compatible addition (`value_suffix` field, defaults to empty
-string) lets it show "65.0%" instead of a bare number, and setting
-`type: "pivot"` gets the correct single-color intensity scale instead
-of the diverging red/green one meant for signed values like
-correlations.
-
-## Two real bugs caught and fixed while building this
-1. Assumed `profile.semantic_roles` was `{column: {"role": ..., ...}}`
-   (matching a shape used internally, transiently, in understanding.py)
-   when it's actually stored as the flattened `{column: role_string}`.
-   Caused an immediate `TypeError`.
-2. A variable-ordering bug: `cohort_report = analyze_cohorts(...)` was
-   placed after the code that already referenced it, causing an
-   `UnboundLocalError`. Caught immediately by the very API smoke tests
-   `pytest-suite-feature.zip` added last round — direct evidence that
-   suite is already paying for itself.
+## A real bug caught and fixed mid-build
+First version sampled down to 20,000 rows for speed on large datasets,
+then computed BOTH the point estimate and the CI from that same sample
+— meaning a "sum" KPI would report a sampled subset's total, not the
+real total. Fixed by decoupling the two: the point estimate is always
+computed from the complete data (cheap, exact, O(n) regardless of
+size), and only the bootstrap's job — estimating how wide the interval
+should be — uses the sampled subset when the dataset is huge, correctly
+rescaled by the TRUE row count rather than the sample size. Added a
+dedicated regression test for exactly this (`test_confidence_interval_
+point_estimate_matches_true_value_even_when_sampled`).
 
 ## Verified this session
-- Real demo sales data: correctly finds 5 cohorts, "26.1% average
-  month-1 retention" (this dataset has no real repeat-customer pattern
-  baked in, so a modest/noisy retention rate is the honest answer).
-- Synthetic dataset with a known, injected 60% month-over-month
-  retention probability: recovered exactly 60.0%.
-- Edge cases (no entity column, single cohort month) both correctly
-  decline with a clear note.
+- 150K rows: 0.22s, point estimate exactly matches the true full sum
+  (74,989,965.04 both ways).
+- Real demo sales data: Sales point estimate ($106,276.56) matches the
+  actual total shown elsewhere in the app throughout this whole session
+  — confirms the fix is correct, not just internally consistent.
+- Both `avg` and `sum` aggregations verified against their true values.
+- Edge cases (too few rows, no numeric measures) handled cleanly.
 - Full HTTP round-trip + PDF export: 200 OK.
-- Full pytest suite: 46/46 passing (44 existing + 2 new for this
-  feature), ~4.9s.
+- Full pytest suite: 48/48 passing (46 existing + 2 new), ~7s.

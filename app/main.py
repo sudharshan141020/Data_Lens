@@ -25,6 +25,7 @@ from app.benford import check_benfords_law
 from app.comparison import compare_results
 from app.data_cleaning import build_cleaned_csv
 from app.cohort_analysis import analyze_cohorts
+from app.confidence_intervals import compute_kpi_confidence_intervals
 from app.clustering import analyze_segments
 from app.anomaly_detection import detect_anomalies
 from app.seasonality import decompose_trend
@@ -227,6 +228,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
 
     anomaly_report = detect_anomalies(df_exec, profile)
     cohort_report = analyze_cohorts(df_exec, profile)
+    confidence_interval_report = compute_kpi_confidence_intervals(df_exec, profile)
     if anomaly_report.get("available") and anomaly_report["anomaly_count"] > 0:
         all_executed.append({
             "id": "anomalies_scatter",
@@ -395,6 +397,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "simpsons_paradox": simpsons_paradox_report,
         "benford": benford_report,
         "cohorts": _serialize_cohorts(cohort_report),
+        "confidence_intervals": confidence_interval_report,
     }
 
 
