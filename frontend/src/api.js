@@ -169,3 +169,33 @@ export async function exportPdf(fileName, v2) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+export async function exportHtml(fileName, v2) {
+  const { filterable_data, ...v2ForExport } = v2;
+
+  const res = await fetch(`${API_BASE}/api/export/html`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_name: fileName, v2: v2ForExport }),
+  });
+
+  if (!res.ok) {
+    let message = 'The HTML report could not be generated.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const safeName = (fileName || 'datalens-report').replace(/\.[^/.]+$/, '').replace(/[^\w-]+/g, '_');
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${safeName}_report.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

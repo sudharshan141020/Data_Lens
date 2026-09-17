@@ -60,6 +60,29 @@ def test_export_cleaned_csv_endpoint(client, sales_df):
     assert "duplicates_removed" in summary
 
 
+def test_export_html_endpoint(client, sales_df):
+    analyze_resp = client.post("/api/analyze", files={"file": ("d.csv", sales_df.to_csv(index=False).encode(), "text/csv")})
+    v2 = analyze_resp.json()["v2"]
+    resp = client.post("/api/export/html", json={"file_name": "d.csv", "v2": v2})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/html")
+    assert resp.text.startswith("<!DOCTYPE html>")
+    assert "<script src" not in resp.text  # must stay self-contained, no external scripts
+    assert "<link " not in resp.text  # no external stylesheets either
+
+
+def test_export_html_escapes_special_characters(client):
+    df = pd.DataFrame({
+        "Category": ["<script>alert(1)</script>", "Normal Category"] * 15,
+        "Sales": range(1, 31),
+    })
+    analyze_resp = client.post("/api/analyze", files={"file": ("d.csv", df.to_csv(index=False).encode(), "text/csv")})
+    v2 = analyze_resp.json()["v2"]
+    resp = client.post("/api/export/html", json={"file_name": "d.csv", "v2": v2})
+    assert "<script>alert(1)</script>" not in resp.text
+    assert "&lt;script&gt;" in resp.text
+
+
 def test_analyze_rejects_empty_file(client):
     resp = client.post("/api/analyze", files={"file": ("empty.csv", b"", "text/csv")})
     assert resp.status_code >= 400

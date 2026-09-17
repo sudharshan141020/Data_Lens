@@ -34,6 +34,7 @@ from app.period_comparison import compare_periods
 from app.forecasting import forecast_trend
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
+from app.html_report import build_html_report
 
 import math
 from starlette.responses import JSONResponse as _StarletteJSONResponse
@@ -788,6 +789,26 @@ def export_pdf(payload: PdfExportRequest):
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}_report.pdf"'},
+    )
+
+
+@app.post("/api/export/html")
+def export_html(payload: PdfExportRequest):
+    """Same stateless shape as /api/export/pdf -- reuses the same
+    PdfExportRequest model since the payload is identical (file_name +
+    v2), just rendered into a self-contained HTML document instead."""
+    if not payload.v2:
+        raise HTTPException(400, "No analysis data provided.")
+    try:
+        html_str = build_html_report(payload.file_name, payload.v2)
+    except Exception:
+        raise HTTPException(500, "Could not generate the HTML report.")
+
+    safe_name = "".join(c for c in payload.file_name.rsplit(".", 1)[0] if c.isalnum() or c in ("-", "_")) or "datalens-report"
+    return Response(
+        content=html_str.encode("utf-8"),
+        media_type="text/html",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}_report.html"'},
     )
 
 
