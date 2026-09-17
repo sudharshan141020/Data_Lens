@@ -16,6 +16,23 @@ def test_analyze_endpoint(client, sales_df):
     assert v2["profile"]["domain"] == "sales"
 
 
+def test_analyze_endpoint_handles_downcast_numpy_dtypes(client, rng):
+    """Regression for a real, multi-layered bug: the chunked CSV reader
+    downcasts to float32/int8 for memory savings, but numpy.float64
+    happens to subclass Python's built-in float (so it always
+    serialized fine by accident) while float32/int8 do not subclass
+    anything JSON-aware -- every endpoint returning one immediately
+    500'd. Needs an int column whose values genuinely fit in int8
+    (small integers) to force that specific downcast path."""
+    df = pd.DataFrame({
+        "Sales": rng.uniform(10, 2000, 500).round(2),
+        "SmallCount": rng.integers(1, 100, 500),  # fits in int8 after downcasting
+    })
+    resp = client.post("/api/analyze", files={"file": ("d.csv", df.to_csv(index=False).encode(), "text/csv")})
+    assert resp.status_code == 200
+    assert resp.json()["v2"]["profile"]["row_count"] == 500
+
+
 def test_analyze_combined_endpoint(client, sales_df, healthcare_df):
     resp = client.post("/api/analyze-combined", files=[
         ("files", ("a.csv", sales_df.to_csv(index=False).encode(), "text/csv")),

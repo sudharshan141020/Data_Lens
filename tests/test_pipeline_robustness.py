@@ -11,6 +11,8 @@ easily regress on without anyone noticing until a real upload breaks.
 """
 import numpy as np
 import pandas as pd
+import pytest
+from fastapi import HTTPException
 
 from app.main import _run_v2_pipeline
 
@@ -96,3 +98,32 @@ def test_150k_rows_completes_quickly():
     elapsed = time.time() - start
     assert "profile" in result
     assert elapsed < 30, f"pipeline took {elapsed:.1f}s on 150K rows -- investigate before this regresses further"
+
+
+def test_low_cardinality_dirty_numeric_column_still_coerces_correctly():
+    """Regression for a real bug in the chunked CSV reader: a numeric
+    column with few distinct values (so it would look like a category
+    candidate) and a handful of stray text placeholders must still end
+    up numeric, not get sidetracked into category dtype before the
+    existing mostly-numeric coercion logic gets to clean it up."""
+    from app.main import _load_dataframe
+    rng = np.random.default_rng(0)
+    n = 5000
+    values = list(rng.choice([10, 20, 30, 40, 50], n - 10).astype(str)) + ["N/A"] * 5 + ["-"] * 5
+    csv_text = "Score,Category\n" + "\n".join(f"{v},{c}" for v, c in zip(values, rng.choice(["A", "B"], n)))
+    df = _load_dataframe("test.csv", csv_text.encode())
+    assert pd.api.types.is_numeric_dtype(df["Score"])
+    assert df["Score"].isna().sum() == 10
+
+
+def test_oversized_file_rejected_with_clear_message():
+    from app.main import _load_dataframe
+    import app.main as main_module
+    original_cap = main_module.MAX_FILE_SIZE_MB
+    main_module.MAX_FILE_SIZE_MB = 1
+    try:
+        oversized = b"A,B\n" + b"1,2\n" * 500_000  # ~2MB, exceeds the 1MB test cap
+        with pytest.raises(HTTPException):
+            _load_dataframe("big.csv", oversized)
+    finally:
+        main_module.MAX_FILE_SIZE_MB = original_cap
