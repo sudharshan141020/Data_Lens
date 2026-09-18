@@ -8,17 +8,7 @@ import StoryMode from './components/StoryMode';
 import AnalysisExplorerV2 from './components/AnalysisExplorerV2';
 import FindingsPanel from './components/FindingsPanel';
 import WeakPointsPanel from './components/WeakPointsPanel';
-import DataQualityCenter from './components/DataQualityCenter';
-import CorrelationCenter from './components/CorrelationCenter';
-import SegmentsPanel from './components/SegmentsPanel';
-import SeasonalityPanel from './components/SeasonalityPanel';
-import PeriodComparisonPanel from './components/PeriodComparisonPanel';
-import AnomaliesPanel from './components/AnomaliesPanel';
-import SimpsonsParadoxPanel from './components/SimpsonsParadoxPanel';
-import BenfordPanel from './components/BenfordPanel';
-import CohortsPanel from './components/CohortsPanel';
-import ConfidenceIntervalsPanel from './components/ConfidenceIntervalsPanel';
-import TextAnalysisPanel from './components/TextAnalysisPanel';
+import DeepDivePanel from './components/DeepDivePanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -437,17 +427,7 @@ export default function App() {
               <AnalysisExplorerV2 analyses={displayedAllAnalyses} tickNum="04" filtersActive={hasActiveFilters} jumpTarget={jumpTarget} />
               <FindingsPanel findings={activeSession.result.v2.findings} tickNum="05" />
               <WeakPointsPanel weakPoints={activeSession.result.v2.weak_points} tickNum="06" />
-              <DataQualityCenter dataQuality={activeSession.result.v2.data_quality} tickNum="07" />
-              <CorrelationCenter correlationCenter={activeSession.result.v2.correlation_center} tickNum="08" />
-              <SegmentsPanel segments={activeSession.result.v2.segments} tickNum="09" />
-              <SeasonalityPanel seasonality={activeSession.result.v2.seasonality} tickNum="10" />
-              <PeriodComparisonPanel periodComparison={activeSession.result.v2.period_comparison} tickNum="11" />
-              <AnomaliesPanel anomalies={activeSession.result.v2.anomalies} tickNum="12" />
-              <SimpsonsParadoxPanel simpsonsParadox={activeSession.result.v2.simpsons_paradox} tickNum="13" />
-              <BenfordPanel benford={activeSession.result.v2.benford} tickNum="14" />
-              <CohortsPanel cohorts={activeSession.result.v2.cohorts} tickNum="15" />
-              <ConfidenceIntervalsPanel confidenceIntervals={activeSession.result.v2.confidence_intervals} tickNum="16" />
-              <TextAnalysisPanel textAnalysis={activeSession.result.v2.text_analysis} tickNum="17" />
+              <DeepDivePanel v2={activeSession.result.v2} tickNum="07" />
             </div>
           </div>
         )}

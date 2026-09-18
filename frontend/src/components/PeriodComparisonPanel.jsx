@@ -3,7 +3,7 @@ export default function PeriodComparisonPanel({ periodComparison, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Period Comparison</h3>
             <p className="dim-sub">Latest month vs. the one before</p>
@@ -22,7 +22,7 @@ export default function PeriodComparisonPanel({ periodComparison, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Period Comparison</h3>
           <p className="dim-sub">{period_a.label} vs. {period_b.label}</p>

@@ -5,7 +5,7 @@ export default function TextAnalysisPanel({ textAnalysis, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Text Fields</h3>
             <p className="dim-sub">What shows up most in free-text columns</p>
@@ -21,7 +21,7 @@ export default function TextAnalysisPanel({ textAnalysis, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Text Fields</h3>
           <p className="dim-sub">What shows up most in free-text columns</p>

@@ -3,7 +3,7 @@ export default function CohortsPanel({ cohorts, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Retention</h3>
             <p className="dim-sub">Whether the same entities keep coming back</p>
@@ -21,7 +21,7 @@ export default function CohortsPanel({ cohorts, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Retention</h3>
           <p className="dim-sub">{cohort_count} {entity_noun.toLowerCase()} cohorts tracked</p>

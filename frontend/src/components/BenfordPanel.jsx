@@ -5,7 +5,7 @@ export default function BenfordPanel({ benford, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Benford's Law Check</h3>
             <p className="dim-sub">Digit-distribution data-integrity check on monetary columns</p>
@@ -21,7 +21,7 @@ export default function BenfordPanel({ benford, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Benford's Law Check</h3>
           <p className="dim-sub">Digit-distribution data-integrity check on monetary columns</p>

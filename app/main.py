@@ -740,14 +740,49 @@ def _full_analyze_from_df(df: pd.DataFrame, column_overrides: str = None) -> dic
     return _analyze_df(df, mapping, confidence, unmapped, detection["extra_categoricals"], v2_role_overrides=v2_role_overrides)
 
 
-@app.post("/api/analyze")
+class AnalyzeResponse(BaseModel):
+    """Top-level shape only -- `v2` and `analyses` hold this session's
+    17+ analysis modules, each with its own evolving nested shape (some
+    domain-dependent). Modeling those exhaustively would go stale the
+    next time a module's output changes, so they're documented as
+    generic objects here; the field NAMES and top-level TYPES are still
+    real, accurate documentation, which is the actual gap this closes --
+    previously every endpoint showed no response schema at all in
+    /docs."""
+    detected_columns: dict
+    detection_confidence: dict
+    unmapped_columns: list
+    kpis: dict
+    monthly_trend: list
+    breakdowns: dict
+    insights: list
+    domain: str
+    domain_confidence: float
+    semantic_roles: dict
+    analyses: list
+    v2: dict
+    no_numeric_metric: bool = False
+    source_files: Optional[list] = None
+
+
+class CompareResponse(BaseModel):
+    result_a: AnalyzeResponse
+    result_b: AnalyzeResponse
+    diff: dict
+
+
+class HealthResponse(BaseModel):
+    status: str
+
+
+@app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze(file: UploadFile = File(...), column_overrides: str = Form(None)):
     raw = await file.read()
     df = _load_dataframe(file.filename, raw)
     return SafeJSONResponse(_full_analyze_from_df(df, column_overrides=column_overrides))
 
 
-@app.post("/api/compare")
+@app.post("/api/compare", response_model=CompareResponse)
 async def compare(file_a: UploadFile = File(...), file_b: UploadFile = File(...)):
     """Compares two SEPARATE analyses (e.g. this month's export vs. last
     month's) -- different from /api/analyze-combined, which merges two
@@ -768,7 +803,7 @@ async def compare(file_a: UploadFile = File(...), file_b: UploadFile = File(...)
     return SafeJSONResponse({"result_a": result_a, "result_b": result_b, "diff": diff})
 
 
-@app.post("/api/analyze-combined")
+@app.post("/api/analyze-combined", response_model=AnalyzeResponse)
 async def analyze_combined(files: list[UploadFile] = File(...)):
     if len(files) < 2:
         raise HTTPException(400, "Select at least two files to combine.")
@@ -802,7 +837,7 @@ async def analyze_combined(files: list[UploadFile] = File(...)):
     return SafeJSONResponse(result)
 
 
-@app.get("/api/health")
+@app.get("/api/health", response_model=HealthResponse)
 def health():
     return {"status": "ok"}
 
@@ -812,7 +847,10 @@ class PdfExportRequest(BaseModel):
     v2: dict
 
 
-@app.post("/api/export/cleaned-csv")
+@app.post(
+    "/api/export/cleaned-csv",
+    responses={200: {"content": {"text/csv": {}}, "description": "The cleaned CSV file, as a direct download."}},
+)
 async def export_cleaned_csv(file: UploadFile = File(...)):
     """Stateless like the other export endpoints -- takes a fresh upload
     of the same file (the raw dataframe isn't kept server-side between
@@ -840,7 +878,10 @@ async def export_cleaned_csv(file: UploadFile = File(...)):
     )
 
 
-@app.post("/api/export/pdf")
+@app.post(
+    "/api/export/pdf",
+    responses={200: {"content": {"application/pdf": {}}, "description": "The PDF report, as a direct download."}},
+)
 def export_pdf(payload: PdfExportRequest):
     """Stateless PDF export: the frontend already has the full analysis
     result in memory (same shape /api/analyze returns), so it sends that
@@ -862,7 +903,10 @@ def export_pdf(payload: PdfExportRequest):
     )
 
 
-@app.post("/api/export/html")
+@app.post(
+    "/api/export/html",
+    responses={200: {"content": {"text/html": {}}, "description": "The self-contained HTML report, as a direct download."}},
+)
 def export_html(payload: PdfExportRequest):
     """Same stateless shape as /api/export/pdf -- reuses the same
     PdfExportRequest model since the payload is identical (file_name +

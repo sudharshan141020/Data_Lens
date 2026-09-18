@@ -9,7 +9,7 @@ export default function SegmentsPanel({ segments, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Segments</h3>
             <p className="dim-sub">Natural groups found in the data</p>
@@ -27,7 +27,7 @@ export default function SegmentsPanel({ segments, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Segments</h3>
           <p className="dim-sub">

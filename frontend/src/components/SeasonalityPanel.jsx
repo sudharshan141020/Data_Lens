@@ -3,7 +3,7 @@ export default function SeasonalityPanel({ seasonality, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Seasonality</h3>
             <p className="dim-sub">Repeating yearly patterns</p>
@@ -21,7 +21,7 @@ export default function SeasonalityPanel({ seasonality, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Seasonality</h3>
           <p className="dim-sub">{years_covered} years of history · statistically significant yearly pattern</p>

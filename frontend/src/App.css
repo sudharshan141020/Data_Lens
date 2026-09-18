@@ -625,6 +625,10 @@
   grid-column: 1 / -1;
 }
 
+.deep-dive-panel {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 820px) {
   .dashboard-grid {
     grid-template-columns: 1fr;

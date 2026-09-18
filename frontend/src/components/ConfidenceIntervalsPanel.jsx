@@ -7,7 +7,7 @@ export default function ConfidenceIntervalsPanel({ confidenceIntervals, tickNum 
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>How Precise Are These Numbers?</h3>
             <p className="dim-sub">95% confidence intervals on key metrics</p>
@@ -25,7 +25,7 @@ export default function ConfidenceIntervalsPanel({ confidenceIntervals, tickNum 
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>How Precise Are These Numbers?</h3>
           <p className="dim-sub">95% confidence intervals — how much each figure might naturally vary</p>

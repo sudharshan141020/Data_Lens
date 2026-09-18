@@ -32,7 +32,7 @@ export default function CorrelationCenter({ correlationCenter, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <h3>Correlation Center</h3>
         </div>
         <p className="dim-sub" style={{ padding: '4px 0 16px' }}>
@@ -45,7 +45,7 @@ export default function CorrelationCenter({ correlationCenter, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Correlation Center</h3>
           <p className="dim-sub">Which measures actually move together</p>

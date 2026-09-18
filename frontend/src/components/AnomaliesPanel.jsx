@@ -3,7 +3,7 @@ export default function AnomaliesPanel({ anomalies, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Anomalies</h3>
             <p className="dim-sub">Rows unusual across multiple measures at once</p>
@@ -22,7 +22,7 @@ export default function AnomaliesPanel({ anomalies, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Anomalies</h3>
             <p className="dim-sub">Checked {measures_used.join(', ')}</p>
@@ -36,7 +36,7 @@ export default function AnomaliesPanel({ anomalies, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Anomalies</h3>
           <p className="dim-sub">{anomaly_count} rows ({anomaly_pct}%) unusual across {measures_used.join(', ')}</p>

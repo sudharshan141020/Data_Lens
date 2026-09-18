@@ -18,7 +18,7 @@ export default function DataQualityCenter({ dataQuality, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Data Quality</h3>
           <p className="dim-sub">Structural health of this dataset</p>

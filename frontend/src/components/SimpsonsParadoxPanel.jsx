@@ -5,7 +5,7 @@ export default function SimpsonsParadoxPanel({ simpsonsParadox, tickNum }) {
     return (
       <div className="panel">
         <div className="panel-head">
-          <span className="tick">{tickNum}</span>
+          {tickNum && <span className="tick">{tickNum}</span>}
           <div>
             <h3>Simpson's Paradox Check</h3>
             <p className="dim-sub">Whether any relationship reverses when split by a category</p>
@@ -21,7 +21,7 @@ export default function SimpsonsParadoxPanel({ simpsonsParadox, tickNum }) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <span className="tick">{tickNum}</span>
+        {tickNum && <span className="tick">{tickNum}</span>}
         <div>
           <h3>Simpson's Paradox Check</h3>
           <p className="dim-sub">{flags.length} relationship{flags.length > 1 ? 's' : ''} that reverse when split by a category</p>
