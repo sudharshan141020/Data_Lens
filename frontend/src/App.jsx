@@ -15,7 +15,7 @@ import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
-import { analyzeFile, analyzeCombined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml } from './api';
+import { analyzeFile, analyzeCombined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { buildFindingsText } from './findingsText';
 import CompareView from './components/CompareView';
@@ -48,6 +48,43 @@ export default function App() {
   const [filters, setFilters] = useState(null);
   const [jumpTarget, setJumpTarget] = useState(null);
   const jumpNonceRef = useRef(0);
+  const [sharedLoadState, setSharedLoadState] = useState(null); // null | 'loading' | 'error'
+  const [sharedLoadError, setSharedLoadError] = useState(null);
+
+  useEffect(() => {
+    // A share link looks like /share/<token> -- the SPA catch-all on the
+    // backend already serves index.html for any non-API path, so this is
+    // the only piece needed to make the link actually work: read the
+    // token off the URL once on mount, fetch the stored snapshot, and
+    // drop it into `sessions` as a normal (read-only) session. Reusing
+    // the existing session/dashboard rendering this way means the shared
+    // view gets every panel, filter, and export option for free, with no
+    // separate rendering path to keep in sync.
+    const match = window.location.pathname.match(/^\/share\/([\w-]+)/);
+    if (!match) return;
+    const token = match[1];
+    setSharedLoadState('loading');
+    fetchSharedAnalysis(token)
+      .then((data) => {
+        const sharedId = `shared-${token}`;
+        setSessions([{
+          id: sharedId,
+          fileName: data.file_name,
+          status: 'ready',
+          result: { kpis: data.kpis, v2: data.v2 },
+          error: null,
+          pinned: false,
+          sourceFile: null,
+          isShared: true,
+        }]);
+        setActiveId(sharedId);
+        setSharedLoadState(null);
+      })
+      .catch((e) => {
+        setSharedLoadError(e.message || "This share link has expired or doesn't exist.");
+        setSharedLoadState('error');
+      });
+  }, []);
 
   const handleJumpToAnalysis = (analysisId) => {
     jumpNonceRef.current += 1;
@@ -162,6 +199,10 @@ export default function App() {
     await exportHtml(session.fileName, session.result.v2);
   };
 
+  const handleCreateShareLink = async (session) => {
+    return createShareLink(session.fileName, session.result.kpis, session.result.v2);
+  };
+
   const handleToggleCombineMode = () => {
     setCombineMode((m) => !m);
     setSelectedForCombine([]);
@@ -268,6 +309,7 @@ export default function App() {
 
   const displaySessions = sortSessions(sessions);
   const activeSession = sessions.find((s) => s.id === activeId);
+  const isSharedMode = !!activeSession?.isShared;
 
   const filterableData = activeSession?.result?.v2?.filterable_data;
   const hasActiveFilters = !!(filters && (
@@ -298,11 +340,38 @@ export default function App() {
     return buildSearchIndex(activeSession.result.v2);
   }, [activeSession]);
 
+  if (sharedLoadState === 'loading') {
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="app-main-area centered">
+          <div className="empty-state">
+            <p className="dim-sub">Loading shared analysis…</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (sharedLoadState === 'error') {
+    return (
+      <div className="app-shell">
+        <TopBar />
+        <main className="app-main-area centered">
+          <div className="empty-state">
+            <p className="upload-error">{sharedLoadError}</p>
+            <a href="/" className="upload-browse-btn" style={{ display: 'inline-block', marginTop: 12 }}>Analyze your own data</a>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <TopBar />
 
-      {sessions.length > 0 && (
+      {sessions.length > 0 && !isSharedMode && (
         <Sidebar
           sessions={displaySessions}
           activeId={activeId}
@@ -325,6 +394,11 @@ export default function App() {
       )}
 
       <main className={`app-main-area ${sessions.length === 0 ? 'centered' : ''}`}>
+        {isSharedMode && (
+          <p className="dim-sub" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-soft)', marginBottom: 4 }}>
+            You're viewing a shared analysis (read-only) — <a href="/">analyze your own data</a>
+          </p>
+        )}
         {sessions.length === 0 && (
           <div className="empty-state">
             <div className="hero">
@@ -395,6 +469,7 @@ export default function App() {
                 onCopyFindings={() => handleCopyFindings(activeSession)}
                 onDownloadCleanedCsv={activeSession.sourceFile ? () => handleDownloadCleanedCsv(activeSession) : null}
                 onExportHtml={() => handleExportHtml(activeSession)}
+                onCreateShareLink={() => handleCreateShareLink(activeSession)}
                 pdfLoading={pdfLoading}
               />
             </div>

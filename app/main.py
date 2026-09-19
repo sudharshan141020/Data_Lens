@@ -35,6 +35,7 @@ from app.forecasting import forecast_trend
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
 from app.html_report import build_html_report
+from app.share_cache import create_share, get_share
 
 import math
 import numpy as np
@@ -845,6 +846,40 @@ def health():
 class PdfExportRequest(BaseModel):
     file_name: str
     v2: dict
+
+
+class ShareRequest(BaseModel):
+    file_name: str
+    kpis: dict = {}
+    v2: dict
+
+
+class ShareCreateResponse(BaseModel):
+    token: str
+    expires_at: float
+    share_path: str
+
+
+@app.post("/api/share", response_model=ShareCreateResponse)
+def create_share_link(payload: ShareRequest):
+    """Stores a snapshot of an already-computed analysis (kpis + v2,
+    filterable_data included so the recipient gets the same interactive
+    filtering the original session has, not a stripped static view) and
+    returns a token -- share_cache.py explains why this is in-memory and
+    ephemeral rather than a database."""
+    try:
+        token, expires_at = create_share({"file_name": payload.file_name, "kpis": payload.kpis, "v2": payload.v2})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return ShareCreateResponse(token=token, expires_at=expires_at, share_path=f"/share/{token}")
+
+
+@app.get("/api/share/{token}")
+def get_share_link(token: str):
+    payload = get_share(token)
+    if payload is None:
+        raise HTTPException(404, "This share link has expired or doesn't exist.")
+    return SafeJSONResponse(payload)
 
 
 @app.post(

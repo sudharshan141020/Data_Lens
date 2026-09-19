@@ -100,6 +100,31 @@ def test_export_html_escapes_special_characters(client):
     assert "&lt;script&gt;" in resp.text
 
 
+def test_share_create_and_retrieve(client, sales_df):
+    analyze_resp = client.post("/api/analyze", files={"file": ("d.csv", sales_df.to_csv(index=False).encode(), "text/csv")})
+    data = analyze_resp.json()
+
+    share_resp = client.post("/api/share", json={"file_name": "d.csv", "kpis": data["kpis"], "v2": data["v2"]})
+    assert share_resp.status_code == 200
+    token = share_resp.json()["token"]
+    assert share_resp.json()["share_path"] == f"/share/{token}"
+
+    get_resp = client.get(f"/api/share/{token}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["file_name"] == "d.csv"
+    assert get_resp.json()["v2"]["profile"]["domain"] == data["v2"]["profile"]["domain"]
+
+
+def test_share_unknown_token_returns_404(client):
+    resp = client.get("/api/share/this-token-does-not-exist")
+    assert resp.status_code == 404
+
+
+def test_share_oversized_payload_rejected(client):
+    resp = client.post("/api/share", json={"file_name": "d.csv", "v2": {"data": "x" * (20 * 1024 * 1024)}})
+    assert resp.status_code == 400
+
+
 def test_analyze_rejects_empty_file(client):
     resp = client.post("/api/analyze", files={"file": ("empty.csv", b"", "text/csv")})
     assert resp.status_code >= 400

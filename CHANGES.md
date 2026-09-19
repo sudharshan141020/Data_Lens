@@ -1,88 +1,65 @@
-# Dashboard Reorganization + Pydantic Response Models — changed files
+# Tier 1: Ephemeral Shareable Links — changed files
 
-Two items from the follow-up round, combined since both are polish
-work rather than new analysis capability.
+New: `app/share_cache.py`. Modified: `app/main.py`,
+`frontend/src/api.js`, `frontend/src/App.jsx`,
+`frontend/src/components/ExportMenu.jsx`, `tests/test_api_endpoints.py`.
 
-## Part 1: Dashboard reorganization
-New: `frontend/src/components/DeepDivePanel.jsx`. Modified:
-`frontend/src/App.jsx`, `frontend/src/App.css`, plus 11 existing panel
-components (small conditional-render fix, see below).
+## Design
+In-memory, TTL-based (24h), unguessable-token cache — no database, no
+accounts. "Copy share link" in the Export menu POSTs the current
+session's `kpis`+`v2` (filterable_data included, so the recipient gets
+full interactive filtering, not a stripped static view) to `/api/share`,
+gets back a token, and the URL is copied to the clipboard.
+`GET /api/share/{token}` returns the stored snapshot or a 404 if
+expired/unknown.
 
-The dashboard had grown to 13 stacked panels in one long scroll as
-features piled on session after session. `DeepDivePanel` groups the 10
-"secondary" panels (everything past Findings/Weak Points) into 4
-browsable tabs, reusing `AnalysisExplorerV2`'s existing tab CSS classes
-(`explorer-tabs`/`explorer-tab`) so it reads as the same UI pattern
-already established, not a second one:
-- **Quality & Relationships** — Data Quality, Correlation Center
-- **Patterns** — Segments, Seasonality, Period Comparison, Retention
-- **Anomalies & Integrity** — Anomalies, Simpson's Paradox, Benford's Law
-- **Precision & Text** — Confidence Intervals, Text Fields
+The natural upgrade path if this ever needs to survive process
+restarts or run across multiple instances is swapping `share_cache.py`'s
+storage for Redis — the three function signatures
+(`create_share`/`get_share`/the pruning) wouldn't need to change, and
+nothing else in the app touches storage directly.
 
-Each panel still renders its own "not available" state internally, so
-a tab always shows even if everything in it happens to be unavailable
-for a given dataset — no group-level availability logic needed.
+Defensive limits: 15MB per-entry size cap (rejects with a clear 400,
+not a crash), 500-entry total cap with oldest-expiring-first eviction
+so the cache can't grow unbounded.
 
-Small fix applied to all 11 sub-panels: each has a numbered "tick"
-badge in its header, which looked like an empty bordered box when
-nested inside a tab with no `tickNum` passed. Fixed by conditionally
-rendering the badge (`{tickNum && <span className="tick">...}`)
-instead of always rendering it — applied via a single `sed` pass across
-all 11 files rather than 13 individual edits, since the markup was
-identical everywhere.
-
-`DeepDivePanel` spans the full dashboard grid width (new
-`.deep-dive-panel` CSS rule), same treatment already given to
-`AnalysisExplorerV2`, since it holds noticeably more content per tab
-than a typical half-width grid panel.
-
-## Part 2: Pydantic response models
-Modified: `app/main.py` only.
-
-Added `AnalyzeResponse`, `CompareResponse`, `HealthResponse` models and
-wired them via `response_model=` on `/api/analyze`, `/api/compare`,
-`/api/analyze-combined`, `/api/health`. Deliberately top-level-only —
-`v2` and `analyses` hold 17+ analysis modules with their own evolving,
-domain-dependent nested shapes; modeling those exhaustively would go
-stale the next time any one of them changes. The field NAMES and
-top-level TYPES are still real, accurate documentation, which is the
-actual gap this closes (previously every endpoint showed no response
-schema at all in `/docs`).
-
-Also added explicit `responses={200: {"content": {...}}}` OpenAPI
-metadata to the three file-download endpoints (cleaned-csv, PDF, HTML
-export), so `/docs` shows their real content types instead of nothing.
-
-### The one thing that had to be verified, not assumed
-`/api/analyze`, `/api/compare`, and `/api/analyze-combined` all
-currently return `SafeJSONResponse` objects directly rather than plain
-dicts — a change from earlier this session specifically to bypass
-FastAPI's own `jsonable_encoder`, which crashes on `numpy.float32`/
-`int8` (the chunked-CSV-reading bug chain). Adding `response_model=`
-could theoretically reintroduce that exact crash if FastAPI re-applied
-model validation/serialization to the response. Verified empirically
-rather than trusted from memory: ran the full pytest suite — including
-the specific regression test for that exact bug
-(`test_analyze_endpoint_handles_downcast_numpy_dtypes`) — after adding
-the response models, confirmed all 64 still pass. Then separately
-confirmed the actual value shows up: fetched `/openapi.json` directly
-and checked the generated schema has the right field names and the
-file-download endpoints show their real content types
-(`application/pdf`, `text/html`, `text/csv`).
+## No new backend routing needed for the link itself
+The existing SPA catch-all (`@app.get("/{full_path:path}")`, already
+serving `index.html` for any non-API path) already handles
+`/share/<token>` with zero changes — confirmed this by fetching it
+directly through the real built static files, not assumed. The React
+app just reads the token off `window.location.pathname` on mount,
+fetches the snapshot, and drops it into the existing session list as a
+normal (read-only) session — reuses 100% of the existing dashboard
+rendering (every panel, every export option) with no separate view to
+keep in sync. A small banner ("You're viewing a shared analysis...")
+and hidden sidebar are the only shared-mode-specific UI.
 
 ## Verified this session
-- Full pytest suite: 64/64 passing after both changes.
+- share_cache.py tested standalone: create/retrieve round-trip, unknown
+  token, expiry (TTL monkeypatched to prove it actually expires), size
+  cap, and entry-count eviction all correct.
+- One cosmetic bug caught and fixed: the size-limit error message mixed
+  binary MB (the actual cap, `1024*1024`) with decimal MB (`1e6`) for
+  display, so a 15MB cap displayed as "16MB" — fixed to consistent
+  binary-MB units throughout.
+- Full HTTP round-trip: create a share of a real analysis, retrieve it
+  by token, confirm the data matches; unknown token returns 404.
+- Confirmed the SPA catch-all correctly serves `index.html` for
+  `/share/<token>` using the actual built static files, not just
+  reasoned about.
+- Confirmed the sample CSVs (served from the same static directory)
+  weren't affected by rebuilding — they live in `frontend/public/` and
+  Vite copies them into `dist/` automatically.
+- Confirmed the share-detection code is actually present in the
+  compiled JS bundle, not just the source.
+- Full pytest suite: 67/67 passing (64 existing + 3 new: create/
+  retrieve, unknown-token-404, oversized-payload-400).
 - `frontend`: `npm run build` succeeds, no new warnings.
-- `/openapi.json` fetched directly and inspected: `AnalyzeResponse`,
-  `CompareResponse`, `HealthResponse` schemas all present with correct
-  field names; file-download endpoints show correct content types.
-- `/docs` (Swagger UI) loads successfully (200).
 
 ## Not yet done
-- Not visually verified in a browser — worth opening `/docs` once you
-  pull this down to see the generated Swagger UI, and clicking through
-  the dashboard's new tabs to confirm the visual grouping reads well.
-- The file-download endpoints' OpenAPI response still lists a leftover
-  generic `application/json` content-type entry alongside the real one
-  (FastAPI's default, not fully overridden) — cosmetic, not functional;
-  worth a closer look if you want the docs fully clean.
+- Not visually verified in a browser — worth actually clicking "Copy
+  share link", pasting it in a new tab, and confirming the read-only
+  banner + full dashboard render correctly once you pull this down.
+- The `/api/share/{token}` GET endpoint isn't rate-limited — fine for a
+  portfolio demo, worth knowing if this ever sees real traffic.

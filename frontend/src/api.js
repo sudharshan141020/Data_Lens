@@ -99,6 +99,39 @@ export async function loadSampleFile(filename) {
   return new File([blob], filename, { type: 'text/csv' });
 }
 
+export async function createShareLink(fileName, kpis, v2) {
+  const res = await fetch(`${API_BASE}/api/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_name: fileName, kpis: kpis || {}, v2 }),
+  });
+
+  if (!res.ok) {
+    let message = 'The share link could not be created.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
+
+  const data = await res.json();
+  return `${window.location.origin}${data.share_path}`;
+}
+
+export async function fetchSharedAnalysis(token) {
+  const res = await fetch(`${API_BASE}/api/share/${token}`);
+  if (!res.ok) {
+    let message = 'This share link has expired or doesn\'t exist.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
 export async function downloadCleanedCsv(sourceFile, fileName) {
   const formData = new FormData();
   formData.append('file', sourceFile);

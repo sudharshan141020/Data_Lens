@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, pdfLoading }) {
+export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, onCreateShareLink, pdfLoading }) {
   const [open, setOpen] = useState(false);
   const [copyState, setCopyState] = useState('idle'); // idle | copied | error
   const [cleanState, setCleanState] = useState('idle'); // idle | downloading | done | error
   const [htmlState, setHtmlState] = useState('idle'); // idle | downloading | done | error
+  const [shareState, setShareState] = useState('idle'); // idle | creating | copied | error
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -65,6 +66,21 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
   };
 
   const htmlLabel = htmlState === 'downloading' ? 'Preparing…' : htmlState === 'done' ? 'Downloaded!' : htmlState === 'error' ? "Couldn't download" : 'HTML report (self-contained)';
+
+  const handleCreateShareLink = async () => {
+    setShareState('creating');
+    try {
+      const url = await onCreateShareLink();
+      await navigator.clipboard.writeText(url);
+      setShareState('copied');
+    } catch {
+      setShareState('error');
+    }
+    setTimeout(() => setShareState('idle'), 1800);
+    setOpen(false);
+  };
+
+  const shareLabel = shareState === 'creating' ? 'Creating link…' : shareState === 'copied' ? 'Link copied!' : shareState === 'error' ? "Couldn't create link" : 'Copy share link';
 
   return (
     <div className="export-menu-wrap" ref={wrapRef}>
@@ -137,6 +153,18 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
             >
               <span>{htmlLabel}</span>
               <span className="export-menu-ext">.html</span>
+            </button>
+          )}
+          {onCreateShareLink && (
+            <button
+              type="button"
+              className="export-menu-item"
+              role="menuitem"
+              disabled={shareState === 'creating'}
+              onClick={handleCreateShareLink}
+            >
+              <span>{shareLabel}</span>
+              <span className="export-menu-ext">24h link</span>
             </button>
           )}
         </div>
