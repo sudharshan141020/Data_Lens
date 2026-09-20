@@ -229,6 +229,10 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  background-image: url('/hero-bg.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .empty-state {
