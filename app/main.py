@@ -332,7 +332,11 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
                     df_exec, a["date_column"], a["metric_column"], a.get("aggregation") or "sum",
                 )
 
-            result = forecast_trend(a["data"])
+            seasonal_by_month = (
+                seasonality_report.get("seasonal_by_month")
+                if seasonality_report.get("available") else None
+            )
+            result = forecast_trend(a["data"], seasonal_by_month=seasonal_by_month)
             if result["forecast_points"]:
                 for point in a["data"]:
                     point["is_forecast"] = False

@@ -185,4 +185,10 @@ def decompose_trend(trend_data: list, period: int = PERIOD) -> dict:
         "trough_month": {"name": MONTH_NAMES[trough_month_num], "pct": trough_pct},
         "summary": summary,
         "points": points,
+        # Calendar-month -> additive seasonal offset (same units as the
+        # metric, already centered so the 12 values sum to ~0). Exposed so
+        # forecasting.py can deseasonalize before fitting its trend line and
+        # reapply the right offset to each projected future month, instead
+        # of forecasting straight over the raw seasonal wobble.
+        "seasonal_by_month": {m: round(v, 4) for m, v in seasonal_by_month.items()},
     }
