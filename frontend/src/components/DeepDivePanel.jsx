@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import DataQualityCenter from './DataQualityCenter';
 import CorrelationCenter from './CorrelationCenter';
+import PartialCorrelationsPanel from './PartialCorrelationsPanel';
 import SegmentsPanel from './SegmentsPanel';
 import SeasonalityPanel from './SeasonalityPanel';
 import PeriodComparisonPanel from './PeriodComparisonPanel';
@@ -54,6 +55,7 @@ export default function DeepDivePanel({ v2, tickNum }) {
           <>
             <DataQualityCenter dataQuality={v2.data_quality} tickNum={null} />
             <CorrelationCenter correlationCenter={v2.correlation_center} tickNum={null} />
+            <PartialCorrelationsPanel partialCorrelations={v2.partial_correlations} tickNum={null} />
           </>
         )}
         {active === 'patterns' && (

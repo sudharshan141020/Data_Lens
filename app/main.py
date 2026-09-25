@@ -21,6 +21,7 @@ from app.analyzers.registry import get_analyzer
 from app.data_quality import analyze_data_quality
 from app.correlation_center import analyze_correlations, analyze_multicollinearity
 from app.simpsons_paradox import check_simpsons_paradox
+from app.partial_correlation import analyze_partial_correlations
 from app.benford import check_benfords_law
 from app.comparison import compare_results
 from app.data_cleaning import build_cleaned_csv
@@ -357,6 +358,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     correlation_report = analyze_correlations(df_exec, profile)
     multicollinearity_report = analyze_multicollinearity(df_exec, profile)
     simpsons_paradox_report = check_simpsons_paradox(df_exec, profile, correlation_report["pairs"])
+    partial_correlation_report = analyze_partial_correlations(df_exec, profile, correlation_report["pairs"])
     benford_report = check_benfords_law(df_exec, profile)
     filterable_data = build_filterable_data(df_exec, profile)
 
@@ -418,6 +420,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "period_comparison": period_comparison_report,
         "anomalies": _serialize_anomalies(anomaly_report),
         "simpsons_paradox": simpsons_paradox_report,
+        "partial_correlations": partial_correlation_report,
         "benford": benford_report,
         "cohorts": _serialize_cohorts(cohort_report),
         "confidence_intervals": confidence_interval_report,

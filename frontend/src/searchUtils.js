@@ -46,6 +46,14 @@ export function buildSearchIndex(v2) {
     });
   });
 
+  (v2.partial_correlations?.results || []).forEach((r, i) => {
+    index.push({
+      category: 'Partial Correlation',
+      text: `${r.col1} and ${r.col2} — ${r.summary}`,
+      anchorId: `search-partial-correlation-${i}`,
+    });
+  });
+
   return index;
 }
 

@@ -120,6 +120,30 @@ export function exportAnalysisToExcel(session) {
     }
   }
 
+  // --- Partial Correlations ---
+  const pc = v2.partial_correlations;
+  if (pc?.results?.length) {
+    const rows = [];
+    pc.results.forEach((r) => {
+      if (r.robust) {
+        rows.push({
+          'Column A': r.col1, 'Column B': r.col2, 'Overall r': r.overall_r,
+          'Controlling for': '', 'Partial r': '', Classification: 'robust', Note: r.summary,
+        });
+      } else {
+        r.explained_by.forEach((e) => {
+          rows.push({
+            'Column A': r.col1, 'Column B': r.col2, 'Overall r': r.overall_r,
+            'Controlling for': e.control, 'Partial r': e.partial_r, Classification: e.classification, Note: e.text,
+          });
+        });
+      }
+    });
+    const ws = sheetFromRows(rows);
+    autoWidth(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Partial Correlations');
+  }
+
   const safeName = (session.fileName || 'datalens-report').replace(/\.[^/.]+$/, '').replace(/[^\w\-]+/g, '_');
   XLSX.writeFile(wb, `${safeName}_report.xlsx`);
 }
