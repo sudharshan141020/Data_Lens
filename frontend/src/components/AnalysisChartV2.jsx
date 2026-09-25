@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, ScatterChart, Scatter,
+  ComposedChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, ScatterChart, Scatter,
   Treemap, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from 'recharts';
 
@@ -25,17 +25,24 @@ function ChartTooltip({ active, payload, label, valueLabel, isCurrency }) {
   // source (actual takes precedence at the shared bridge point).
   const actualEntry = payload.find((p) => p.dataKey === 'actual' && typeof p.value === 'number');
   const forecastEntry = payload.find((p) => p.dataKey === 'forecast' && typeof p.value === 'number');
+  const rangeEntry = payload.find((p) => p.dataKey === 'ciRange' && Array.isArray(p.value));
   const entry = actualEntry || forecastEntry || payload.find((p) => typeof p.value === 'number') || payload[0];
   const v = entry?.value;
   const isProjected = !actualEntry && !!forecastEntry;
+  const fmt = (n) => `${isCurrency ? '$' : ''}${n.toLocaleString('en-US', { maximumFractionDigits: 1 })}`;
   return (
     <div className="chart-tooltip">
       <p className="tooltip-label mono">
         {label}{isProjected && <span className="tooltip-projected-tag"> · projected</span>}
       </p>
       <p className="mono" style={{ color: isProjected ? 'var(--text-muted)' : 'var(--teal)' }}>
-        {valueLabel}: {isCurrency ? '$' : ''}{typeof v === 'number' ? v.toLocaleString('en-US', { maximumFractionDigits: 1 }) : v}
+        {valueLabel}: {typeof v === 'number' ? fmt(v) : v}
       </p>
+      {isProjected && rangeEntry && (
+        <p className="mono" style={{ color: 'var(--text-faint)', fontSize: 11 }}>
+          Likely range: {fmt(rangeEntry.value[0])} – {fmt(rangeEntry.value[1])}
+        </p>
+      )}
     </div>
   );
 }
@@ -49,6 +56,7 @@ function LineView({ analysis, isCurrency }) {
       label: d.label,
       actual: d.is_forecast ? null : d.value,
       forecast: d.is_forecast ? d.value : null,
+      ciRange: d.is_forecast && d.ci_low != null && d.ci_high != null ? [d.ci_low, d.ci_high] : null,
     }));
     // Bridge the two series at the last actual point so the dashed
     // forecast line starts exactly where the solid line ends, instead of
@@ -62,20 +70,21 @@ function LineView({ analysis, isCurrency }) {
 
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+      <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
         <CartesianGrid stroke="var(--border-soft)" vertical={false} />
         <XAxis dataKey="label" stroke="var(--text-faint)" fontSize={12} fontFamily="var(--font-mono)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
         <YAxis stroke="var(--text-faint)" fontSize={12} fontFamily="var(--font-mono)" tickLine={false} axisLine={false} tickFormatter={formatAxisValue} />
         <Tooltip content={<ChartTooltip valueLabel={analysis.metric_column || 'Value'} isCurrency={isCurrency} />} cursor={{ stroke: 'var(--border)' }} />
         {hasForecast ? (
           <>
+            <Area type="monotone" dataKey="ciRange" stroke="none" fill="var(--text-muted)" fillOpacity={0.15} connectNulls={false} isAnimationActive={false} />
             <Line type="monotone" dataKey="actual" stroke="var(--teal)" strokeWidth={2} dot={false} connectNulls={false} />
             <Line type="monotone" dataKey="forecast" stroke="var(--text-muted)" strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={false} />
           </>
         ) : (
           <Line type="monotone" dataKey="value" stroke="var(--teal)" strokeWidth={2} dot={false} />
         )}
-      </LineChart>
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }

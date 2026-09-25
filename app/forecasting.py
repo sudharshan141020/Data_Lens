@@ -16,6 +16,18 @@ of fitting a straight line through the seasonal wobble. Without one --
 no significant pattern, or not enough history for seasonality.py to even
 test for one -- this falls back to the original plain-linear behavior
 unchanged.
+
+Confidence bands: each projected point also gets a rough 95% plausible
+range, via the same residual-bootstrap idea confidence_intervals.py uses
+for KPIs (resample with replacement, recompute, take the 2.5th/97.5th
+percentiles) -- adapted here for a regression line rather than a plain
+mean, since a bare projected line invites more confidence than a rough
+linear extrapolation deserves. Two sources of uncertainty are folded in:
+resampling the fit's residuals and refitting captures "how much would the
+line itself move with slightly different history"; adding a fresh
+residual draw to each future point on top of that captures "how much
+would the actual value wobble around whatever line we'd fit" -- together
+a prediction interval, not just a confidence interval on the trend.
 """
 from typing import Optional
 import numpy as np
@@ -23,6 +35,9 @@ import numpy as np
 MIN_POINTS_FOR_FORECAST = 6
 FORECAST_PERIODS = 3
 MIN_R2_FOR_FORECAST = 0.3
+N_BOOTSTRAP_FORECAST = 1000
+CI_PERCENTILES = (2.5, 97.5)
+CI_RANDOM_SEED = 42
 
 
 def _next_month_label(label: str) -> Optional[str]:
@@ -63,6 +78,71 @@ def _deseasonalize(trend_data: list, y: np.ndarray, seasonal_by_month: dict) -> 
         out[i] = y[i] - seasonal_by_month[m]
     return out
 
+
+def _bootstrap_forecast_intervals(
+    x: np.ndarray,
+    y: np.ndarray,
+    forecast_indices: list,
+    forecast_offsets: Optional[list],
+    n_boot: int = N_BOOTSTRAP_FORECAST,
+    seed: int = CI_RANDOM_SEED,
+) -> Optional[tuple]:
+    """Residual bootstrap around the already-fitted line (x, y are the
+    same arrays forecast_trend just called np.polyfit on -- post
+    exclusion of a detected partial last period, post deseasonalization
+    if that applied). x is always a plain np.arange, so it's never
+    degenerate the way a resampled x could be with pairs bootstrap.
+
+    forecast_offsets is the seasonal offset to add back at each
+    forecast_indices step (same length), or None when the caller isn't
+    running the seasonality-aware path.
+
+    Returns (ci_low, ci_high) arrays aligned with forecast_indices, or
+    None if too many bootstrap iterations failed to produce a usable fit
+    to trust the result (degenerate residuals, a singular refit, etc.) --
+    callers treat None as "can't estimate a band here" rather than
+    showing a misleadingly narrow or fabricated one."""
+    n = len(x)
+    if n < 2:
+        return None
+    try:
+        slope, intercept = np.polyfit(x, y, 1)
+    except (np.linalg.LinAlgError, ValueError):
+        return None
+
+    residuals = y - (slope * x + intercept)
+    if np.allclose(residuals, 0):
+        # A perfect fit (e.g. exactly 2 points) has no residual variance to
+        # resample from -- every bootstrap draw would just reproduce the
+        # same line, giving a fake zero-width band rather than an honest
+        # "can't estimate" signal.
+        return None
+
+    rng = np.random.default_rng(seed)
+    n_forecast = len(forecast_indices)
+    forecast_idx_arr = np.array(forecast_indices, dtype=float)
+    projections = np.full((n_boot, n_forecast), np.nan)
+
+    for b in range(n_boot):
+        y_star = (slope * x + intercept) + rng.choice(residuals, size=n, replace=True)
+        try:
+            s_b, i_b = np.polyfit(x, y_star, 1)
+        except (np.linalg.LinAlgError, ValueError):
+            continue
+        future_noise = rng.choice(residuals, size=n_forecast, replace=True)
+        row = s_b * forecast_idx_arr + i_b + future_noise
+        if forecast_offsets is not None:
+            row = row + np.array(forecast_offsets, dtype=float)
+        projections[b, :] = row
+
+    valid = ~np.isnan(projections).any(axis=1)
+    if valid.sum() < n_boot * 0.5:
+        return None
+    projections = projections[valid]
+
+    low = np.percentile(projections, CI_PERCENTILES[0], axis=0)
+    high = np.percentile(projections, CI_PERCENTILES[1], axis=0)
+    return low, high
 
 def forecast_trend(
     trend_data: list,
@@ -136,6 +216,8 @@ def forecast_trend(
     true_last_index = n - 1
     label = trend_data[-1]["label"]  # always continue from the true last period's label,
     forecast_points = []              # never the (possibly earlier) last-fitted period's label,
+    forecast_indices = []
+    forecast_offsets = [] if seasonally_adjusted else None
     for i in range(1, periods_ahead + 1):  # so labels never duplicate or skip.
         label = _next_month_label(label)
         if label is None:
@@ -145,9 +227,19 @@ def forecast_trend(
             future_month = _month_of(label)
             offset = seasonal_by_month.get(future_month, 0.0) if future_month is not None else 0.0
             projected = trend_component + offset
+            forecast_offsets.append(offset)
         else:
             projected = trend_component
         forecast_points.append({"label": label, "value": round(float(projected), 2), "is_forecast": True})
+        forecast_indices.append(true_last_index + i)
+
+    if forecast_points:
+        ci = _bootstrap_forecast_intervals(x, y, forecast_indices, forecast_offsets)
+        if ci is not None:
+            ci_low, ci_high = ci
+            for point, lo, hi in zip(forecast_points, ci_low, ci_high):
+                point["ci_low"] = round(float(lo), 2)
+                point["ci_high"] = round(float(hi), 2)
 
     if not forecast_points:
         return {"forecast_points": [], "note": None}
@@ -168,4 +260,6 @@ def forecast_trend(
         )
     if excluded_last:
         note += " The most recent period looked incomplete, so it was excluded from the trend calculation."
+    if forecast_points and "ci_low" in forecast_points[0]:
+        note += " Shaded band is a rough 95% plausible range, not a hard bound."
     return {"forecast_points": forecast_points, "note": note}

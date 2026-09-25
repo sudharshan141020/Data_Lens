@@ -108,3 +108,66 @@ def test_seasonal_offsets_missing_a_month_falls_back_to_plain():
     result = forecast_trend(trend_data, seasonal_by_month=incomplete_offsets)
     plain = forecast_trend(trend_data)
     assert result == plain
+
+
+# ------------------------------------------------------------ confidence bands
+
+def test_forecast_points_get_a_confidence_band_with_noisy_data():
+    """A clear-but-noisy trend (still clears the R^2 gate) should get a
+    ci_low/ci_high band that actually brackets the point estimate."""
+    rng = np.random.default_rng(5)
+    labels = _labels_from(2022, 1, 18)
+    values = [100 + 8 * i + float(rng.normal(0, 6)) for i in range(18)]
+    trend_data = [{"label": l, "value": v} for l, v in zip(labels, values)]
+
+    result = forecast_trend(trend_data)
+    assert result["forecast_points"]
+    for p in result["forecast_points"]:
+        assert "ci_low" in p and "ci_high" in p
+        assert p["ci_low"] <= p["value"] <= p["ci_high"]
+    assert "plausible range" in result["note"]
+
+
+def test_confidence_band_widens_for_further_out_points():
+    """Uncertainty should compound the further into the future a point
+    is projected -- a standard property of a linear forecast's band."""
+    rng = np.random.default_rng(9)
+    labels = _labels_from(2022, 1, 18)
+    values = [100 + 8 * i + float(rng.normal(0, 6)) for i in range(18)]
+    trend_data = [{"label": l, "value": v} for l, v in zip(labels, values)]
+
+    result = forecast_trend(trend_data, periods_ahead=3)
+    widths = [p["ci_high"] - p["ci_low"] for p in result["forecast_points"]]
+    assert widths[0] <= widths[-1]
+
+
+def test_no_confidence_band_on_a_perfect_fit():
+    """Zero residual variance (e.g. an exactly linear toy series) means
+    there's nothing to bootstrap from -- the band should be omitted
+    rather than faked as zero-width."""
+    labels = _labels_from(2022, 1, 12)
+    values = [100 + 10 * i for i in range(12)]  # perfectly linear
+    trend_data = [{"label": l, "value": v} for l, v in zip(labels, values)]
+
+    result = forecast_trend(trend_data)
+    assert result["forecast_points"]
+    assert "ci_low" not in result["forecast_points"][0]
+    assert "plausible range" not in result["note"]
+
+
+def test_seasonal_forecast_confidence_band_also_present():
+    rng = np.random.default_rng(3)
+    true_seasonal = {1: -20, 2: -30, 3: -10, 4: 0, 5: 5, 6: 10,
+                      7: 15, 8: 10, 9: 5, 10: 0, 11: 10, 12: 40}
+    labels = _labels_from(2021, 1, 36)
+    trend_data = []
+    for i, label in enumerate(labels):
+        month = int(label.split("-")[1])
+        value = 100 + i * 2 + true_seasonal[month] + float(rng.normal(0, 2))
+        trend_data.append({"label": label, "value": value})
+
+    seasonality = decompose_trend(trend_data)
+    result = forecast_trend(trend_data, seasonal_by_month=seasonality["seasonal_by_month"])
+    for p in result["forecast_points"]:
+        assert "ci_low" in p and "ci_high" in p
+        assert p["ci_low"] <= p["value"] <= p["ci_high"]
