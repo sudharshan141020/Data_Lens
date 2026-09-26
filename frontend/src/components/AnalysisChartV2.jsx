@@ -3,6 +3,7 @@ import {
   ComposedChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, ScatterChart, Scatter,
   Treemap, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from 'recharts';
+import ReadableLegend from './ReadableLegend';
 
 const CURRENCY_HINTS = ['sale', 'revenue', 'price', 'cost', 'amount', 'fare', 'profit', 'value', 'income', 'pay', 'earning', 'billing', 'salary'];
 function looksLikeCurrency(name) {
@@ -152,7 +153,8 @@ function DonutView({ analysis }) {
           layout="horizontal"
           verticalAlign="bottom"
           align="center"
-          wrapperStyle={{ fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text-muted)', paddingTop: 12 }}
+          wrapperStyle={{ paddingTop: 12 }}
+          content={<ReadableLegend />}
         />
       </PieChart>
     </ResponsiveContainer>
@@ -204,7 +206,7 @@ function ScatterView({ analysis }) {
               verticalAlign="top"
               align="right"
               height={26}
-              wrapperStyle={{ fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text-muted)' }}
+              content={<ReadableLegend />}
             />
           </>
         ) : (
