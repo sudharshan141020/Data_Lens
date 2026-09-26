@@ -11,14 +11,36 @@ clearly separate function per detector (not just inlined) is what keeps the
 Language rule for every string below: write it so someone with zero data
 analysis background can read it and understand what's wrong and why it
 matters. No "margin", "concentration", "IQR", "quartile", "variance" — say
-what those things actually mean in plain terms instead.
+what those things actually mean in plain terms instead. Same rule applies
+to the significance check below: no "confidence interval", "bootstrap",
+"p-value" in anything user-facing -- "checked this by reshuffling the data
+thousands of times" says the same thing in plain terms.
+
+Statistical gating: every detector's point estimate (a decline, a gap, a
+share, a margin) is a fact about THIS dataset, but the underlying rows are
+usually themselves a sample of something bigger -- a few unusual rows
+could make an ordinary pattern look like a real problem, or vice versa.
+Each detector that makes a comparison or a percentage claim (all but
+missing_data, which is a fact about the whole dataset, not a sample of
+one) re-checks its own finding with confidence_intervals.bootstrap_metric_
+significance: resample the same rows the claim came from, recompute the
+exact same number many times, and see whether the result reliably clears
+the bar that made it a weak point in the first place. A finding that
+doesn't hold up gets its priority and score turned down (so it naturally
+sorts lower and is less likely to make the final top_k) and a plain-
+language caveat appended, rather than being silently dropped -- it might
+still be worth a look, just not with the same confidence as one that held
+up every time.
 """
 from dataclasses import dataclass
+from typing import Optional
 import pandas as pd
 
 from app.understanding import DatasetProfile
+from app.confidence_intervals import bootstrap_metric_significance
 
 HIGH, MEDIUM, LOW = "high", "medium", "low"
+_DOWNGRADE = {HIGH: MEDIUM, MEDIUM: LOW, LOW: LOW}
 
 
 @dataclass
@@ -29,6 +51,30 @@ class WeakPoint:
     suggested_action: str
     category: str          # "trend" | "data_quality" | "concentration" | "outlier" | "underperformance"
     score: float            # for ranking across weak points
+    significant: Optional[bool] = None   # None = not checked (e.g. missing_data); True/False = bootstrap-checked
+    ci_low: Optional[float] = None
+    ci_high: Optional[float] = None
+
+
+def _gate(wp: WeakPoint, sig: Optional[dict], holds_up_note: str, might_be_noise_note: str) -> WeakPoint:
+    """Applies a bootstrap_metric_significance result to an already-built
+    WeakPoint: leaves it untouched if the check couldn't run (too little
+    data to trust an interval -- not the same as "checked and it didn't
+    hold up"), otherwise records the interval, appends a plain-language
+    note either way, and turns the priority/score down a notch when the
+    finding didn't reliably clear its own bar."""
+    if sig is None:
+        return wp
+    wp.significant = sig["significant"]
+    wp.ci_low = round(sig["ci_low"], 3)
+    wp.ci_high = round(sig["ci_high"], 3)
+    if sig["significant"]:
+        wp.impact += f" {holds_up_note}"
+    else:
+        wp.impact += f" {might_be_noise_note}"
+        wp.priority = _DOWNGRADE[wp.priority]
+        wp.score *= 0.6
+    return wp
 
 
 def _fmt_num(x: float) -> str:
@@ -67,7 +113,7 @@ def declining_trend(df: pd.DataFrame, profile: DatasetProfile) -> list:
     magnitude = abs(change)
     priority = HIGH if magnitude > 30 else MEDIUM if magnitude > 15 else LOW
 
-    return [WeakPoint(
+    wp = WeakPoint(
         problem=f"{primary.column} is trending down",
         impact=f"{primary.column} dropped from {_fmt_num(agg.iloc[0])} to {_fmt_num(agg.iloc[-1])} "
                f"between {agg.index[0]} and {agg.index[-1]} — a {_fmt_pct(magnitude)} decrease.",
@@ -79,6 +125,22 @@ def declining_trend(df: pd.DataFrame, profile: DatasetProfile) -> list:
         ),
         category="trend",
         score=magnitude,
+    )
+
+    first_vals = tmp[tmp["_year"] == agg.index[0]][primary.column].to_numpy(dtype=float)
+    last_vals = tmp[tmp["_year"] == agg.index[-1]][primary.column].to_numpy(dtype=float)
+
+    def _pct_change(r):
+        first_mean = r["first"].mean()
+        if first_mean == 0:
+            return None
+        return (r["last"].mean() - first_mean) / abs(first_mean) * 100
+
+    sig = bootstrap_metric_significance({"first": first_vals, "last": last_vals}, _pct_change, reference=-5.0)
+    return [_gate(
+        wp, sig,
+        "Checked this by reshuffling the data thousands of times — the decline held up every time, so it's not just a fluke of these particular rows.",
+        "Worth a caveat: reshuffling the data sometimes made this decline disappear, so it's a lead worth checking rather than a confirmed trend.",
     )]
 
 
@@ -133,7 +195,7 @@ def outlier_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
         value_share = outliers.sum() / series.sum() * 100 if series.sum() else 0
         if row_share < 8 and value_share > 20:
             priority = HIGH if value_share > 40 else MEDIUM
-            out.append(WeakPoint(
+            wp = WeakPoint(
                 problem=f"A few unusually high {m.column} values",
                 impact=f"Just {len(outliers)} records ({_fmt_pct(row_share)} of all rows) have {m.column} "
                        f"values far above everything else — but together they make up {_fmt_pct(value_share)} "
@@ -148,6 +210,20 @@ def outlier_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
                 ),
                 category="outlier",
                 score=value_share,
+            )
+
+            def _value_share(r, _fence=upper_fence):
+                s = r["series"]
+                total = s.sum()
+                if total == 0:
+                    return None
+                return s[s > _fence].sum() / total * 100
+
+            sig = bootstrap_metric_significance({"series": series.to_numpy(dtype=float)}, _value_share, reference=20.0)
+            out.append(_gate(
+                wp, sig,
+                "Checked this by reshuffling the data thousands of times — these records reliably dominate the total, not just in this exact sample.",
+                "Worth a caveat: reshuffling the data sometimes brought this back under 20%, so how much these records skew things may vary.",
             ))
             break  # one outlier flag is enough signal; don't repeat per measure
     return out
@@ -184,7 +260,7 @@ def concentration_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
         priority = HIGH if share > 50 else MEDIUM if share > expected * 2 else LOW
         problem_label = DOMAIN_FRAME.get(d.role, f"One {d.column} stands out from the rest")
 
-        out.append(WeakPoint(
+        wp = WeakPoint(
             problem=problem_label,
             impact=f"{top_label} alone makes up {_fmt_pct(share)} of all {primary.column} — much more than "
                    f"you'd expect if it were spread evenly across the {len(grouped)} different "
@@ -197,6 +273,22 @@ def concentration_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
             ),
             category="concentration",
             score=share - expected,
+        )
+
+        rows = df[[d.column, primary.column]].dropna()
+
+        def _top_share(r):
+            g = r["rows"].groupby(d.column, observed=True)[primary.column].sum()
+            total = g.sum()
+            if total == 0 or g.empty:
+                return None
+            return g.max() / total * 100
+
+        sig = bootstrap_metric_significance({"rows": rows}, _top_share, reference=expected * 1.5)
+        out.append(_gate(
+            wp, sig,
+            "Checked this by reshuffling the data thousands of times — this one still comes out on top every time, not just in this specific sample.",
+            "Worth a caveat: reshuffling the data sometimes brought this back down to an unremarkable share, so the gap may be less dramatic than it looks here.",
         ))
     return out
 
@@ -223,7 +315,7 @@ def underperforming_segment(df: pd.DataFrame, profile: DatasetProfile) -> list:
             if gap_pct < 15:  # not meaningfully worse than average
                 continue
             priority = HIGH if gap_pct > 35 else MEDIUM
-            out.append(WeakPoint(
+            wp = WeakPoint(
                 problem=f"{worst_label} is falling behind on {m.column}",
                 impact=f"{worst_label} averages {_fmt_num(worst_val)} for {m.column}, which is "
                        f"{_fmt_pct(gap_pct)} lower than the overall average of {_fmt_num(overall_avg)}.",
@@ -235,6 +327,23 @@ def underperforming_segment(df: pd.DataFrame, profile: DatasetProfile) -> list:
                 ),
                 category="underperformance",
                 score=gap_pct,
+            )
+
+            rows = df[[d.column, m.column]].dropna()
+
+            def _gap(r, _label=worst_label):
+                sub = r["rows"]
+                seg = sub[sub[d.column] == _label][m.column]
+                overall = sub[m.column].mean()
+                if seg.empty or overall == 0:
+                    return None
+                return (overall - seg.mean()) / overall * 100
+
+            sig = bootstrap_metric_significance({"rows": rows}, _gap, reference=15.0)
+            out.append(_gate(
+                wp, sig,
+                "Checked this by reshuffling the data thousands of times — this group stayed behind every time, not just in this specific sample.",
+                "Worth a caveat: reshuffling the data sometimes closed this gap, so it may be less consistent than it looks here.",
             ))
     return out
 
@@ -256,7 +365,7 @@ def margin_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
         losers = grouped[grouped["margin"] < 0].sort_values("margin")
         for label, row in losers.head(2).iterrows():
             priority = HIGH if row["margin"] < -20 else MEDIUM
-            out.append(WeakPoint(
+            wp = WeakPoint(
                 problem=f"{label} is actually losing money",
                 impact=f"{label} brought in {_fmt_num(row[revenue.column])} in {revenue.column}, but after "
                        f"costs it lost {_fmt_num(abs(row[profit.column]))} overall — every sale here is "
@@ -270,6 +379,21 @@ def margin_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
                 ),
                 category="underperformance",
                 score=abs(row["margin"]) + 15,
+            )
+
+            segment_rows = df[df[d.column] == label][[revenue.column, profit.column]].dropna()
+
+            def _margin(r):
+                rev_total = r["segment"][revenue.column].sum()
+                if rev_total == 0:
+                    return None
+                return r["segment"][profit.column].sum() / rev_total * 100
+
+            sig = bootstrap_metric_significance({"segment": segment_rows}, _margin, reference=0.0)
+            out.append(_gate(
+                wp, sig,
+                "Checked this by reshuffling the data thousands of times — it stayed unprofitable every time, not just in this specific sample.",
+                "Worth a caveat: reshuffling the data sometimes pushed this back into profit, so the loss may not be as consistent as it looks here.",
             ))
     return out
 
@@ -302,7 +426,7 @@ def discount_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
     safe_ceiling = safe_bands.index[-1] if len(safe_bands) else "0%"
     priority = HIGH if worst_val < -50 else MEDIUM
 
-    return [WeakPoint(
+    wp = WeakPoint(
         problem="Big discounts are losing money, not just cutting profit",
         impact=f"Once a discount goes above {worst_band}, those sales stop making money entirely and "
                f"start losing it instead — on average, losing about {_fmt_pct(abs(worst_val))} of the "
@@ -315,6 +439,21 @@ def discount_risk(df: pd.DataFrame, profile: DatasetProfile) -> list:
         ),
         category="underperformance",
         score=abs(worst_val) + 20,
+    )
+
+    band_rows = tmp[tmp["_band"] == worst_band][[revenue.column, profit.column]].dropna()
+
+    def _band_margin(r):
+        rev_total = r["band"][revenue.column].sum()
+        if rev_total == 0:
+            return None
+        return r["band"][profit.column].sum() / rev_total * 100
+
+    sig = bootstrap_metric_significance({"band": band_rows}, _band_margin, reference=0.0)
+    return [_gate(
+        wp, sig,
+        "Checked this by reshuffling the data thousands of times — this discount band stayed unprofitable every time, not just in this specific sample.",
+        "Worth a caveat: reshuffling the data sometimes pushed this band back into profit, so the loss may not be as consistent as it looks here.",
     )]
 
 

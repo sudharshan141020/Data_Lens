@@ -27,6 +27,12 @@ export default function WeakPointsPanel({ weakPoints, tickNum }) {
               <div key={i} id={`search-weakpoint-${i}`} className="insight-card">
                 <div className="insight-top">
                   <span className="insight-type" style={{ color: meta.color }}>{meta.label} priority</span>
+                  {w.significant === true && (
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--teal)' }}>checked ✓</span>
+                  )}
+                  {w.significant === false && (
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>unconfirmed</span>
+                  )}
                 </div>
                 <p className="insight-text" style={{ fontWeight: 600 }}>{w.problem}</p>
                 <p className="insight-text" style={{ marginTop: -6 }}>{w.impact}</p>

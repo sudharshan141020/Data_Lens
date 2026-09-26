@@ -383,6 +383,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
             {
                 "problem": w.problem, "impact": w.impact, "priority": w.priority,
                 "suggested_action": w.suggested_action, "category": w.category,
+                "significant": w.significant, "ci_low": w.ci_low, "ci_high": w.ci_high,
             }
             for w in weak_points
         ],
