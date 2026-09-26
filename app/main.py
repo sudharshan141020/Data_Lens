@@ -25,7 +25,7 @@ from app.partial_correlation import analyze_partial_correlations
 from app.benford import check_benfords_law
 from app.comparison import compare_results
 from app.data_cleaning import build_cleaned_csv
-from app.cohort_analysis import analyze_cohorts
+from app.cohort_analysis import analyze_cohorts, assess_retention_risk
 from app.confidence_intervals import compute_kpi_confidence_intervals
 from app.text_analysis import analyze_text_fields
 from app.clustering import analyze_segments
@@ -174,22 +174,32 @@ def _serialize_anomalies(anomaly_report: dict) -> dict:
     }
 
 
-def _serialize_cohorts(cohort_report: dict) -> dict:
+def _serialize_cohorts(cohort_report: dict, risk_report: dict) -> dict:
     """Drops heatmap_points (lives on the cohort_retention chart entry in
     all_analyses instead) and the full per-cohort retention arrays (the
     chart already has those) -- the panel only needs the headline numbers
-    and cohort sizes."""
+    and cohort sizes. Also folds in assess_retention_risk's per-entity
+    "overdue to return" flag as a nested "at_risk" section -- same
+    Retention panel, same underlying entity/date columns, just a
+    different (and independently available) question than the cohort
+    curve answers, so it's kept availability-independent: a dataset can
+    have one without the other (e.g. one cohort month is too small to
+    chart, but there's still enough overall repeat activity to learn a
+    typical return window)."""
     if not cohort_report.get("available"):
-        return {"available": False, "note": cohort_report.get("note")}
-    return {
-        "available": True,
-        "note": None,
-        "entity_noun": cohort_report["entity_noun"],
-        "cohort_count": cohort_report["cohort_count"],
-        "avg_month1_retention_pct": cohort_report["avg_month1_retention_pct"],
-        "summary": cohort_report["summary"],
-        "cohort_sizes": [{"cohort": c["cohort"], "size": c["size"]} for c in cohort_report["cohorts"]],
-    }
+        result = {"available": False, "note": cohort_report.get("note")}
+    else:
+        result = {
+            "available": True,
+            "note": None,
+            "entity_noun": cohort_report["entity_noun"],
+            "cohort_count": cohort_report["cohort_count"],
+            "avg_month1_retention_pct": cohort_report["avg_month1_retention_pct"],
+            "summary": cohort_report["summary"],
+            "cohort_sizes": [{"cohort": c["cohort"], "size": c["size"]} for c in cohort_report["cohorts"]],
+        }
+    result["at_risk"] = risk_report if risk_report.get("available") else {"available": False, "note": risk_report.get("note")}
+    return result
 
 
 def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
@@ -247,6 +257,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
 
     anomaly_report = detect_anomalies(df_exec, profile)
     cohort_report = analyze_cohorts(df_exec, profile)
+    retention_risk_report = assess_retention_risk(df_exec, profile)
     confidence_interval_report = compute_kpi_confidence_intervals(df_exec, profile)
     text_analysis_report = analyze_text_fields(df_exec, profile)
     if anomaly_report.get("available") and anomaly_report["anomaly_count"] > 0:
@@ -423,7 +434,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "simpsons_paradox": simpsons_paradox_report,
         "partial_correlations": partial_correlation_report,
         "benford": benford_report,
-        "cohorts": _serialize_cohorts(cohort_report),
+        "cohorts": _serialize_cohorts(cohort_report, retention_risk_report),
         "confidence_intervals": confidence_interval_report,
         "text_analysis": text_analysis_report,
     }
