@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import ThemeToggle from './ThemeToggle';
 
-// EDIT THIS before deploying — point it at your actual repo.
-const GITHUB_URL = 'https://github.com/YOUR_USERNAME/datalens';
+// The developer's GitHub profile — shown as credit for building/maintaining this project.
+const GITHUB_URL = 'https://github.com/sudharshan141020';
 
 export default function TopBar() {
   const [aboutOpen, setAboutOpen] = useState(false);

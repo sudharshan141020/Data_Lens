@@ -268,6 +268,24 @@
   margin-bottom: 10px;
 }
 
+.brand-button {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.brand-button .brand-name {
+  transition: color 0.15s ease;
+}
+
+.brand-button:hover .brand-name {
+  color: var(--teal);
+}
+
 .brand-mark {
   width: 12px;
   height: 12px;

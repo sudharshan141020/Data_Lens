@@ -10,7 +10,7 @@ export default function Sidebar({
   sessions, activeId, onSelect, onRemove, onFilesSelected, uploadError,
   onTogglePin, combineMode, onToggleCombineMode, selectedForCombine,
   onToggleSelect, onCombine, compareMode, onToggleCompareMode,
-  selectedForCompare, onToggleSelectForCompare, onCompare,
+  selectedForCompare, onToggleSelectForCompare, onCompare, onLogoClick,
 }) {
   const readySessions = sessions.filter((s) => s.status === 'ready' && s.sourceFile);
   const canCombine = readySessions.length >= 2;
@@ -19,10 +19,10 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="brand">
+      <button type="button" className="brand brand-button" onClick={onLogoClick} title="Back to home">
         <span className="brand-mark" />
         <span className="brand-name">DATALENS</span>
-      </div>
+      </button>
 
       <UploadZone onFilesSelected={onFilesSelected} error={uploadError} compact />
 

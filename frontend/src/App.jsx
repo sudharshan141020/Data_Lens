@@ -95,6 +95,20 @@ export default function App() {
     setFilters(null); // a filter set for one dataset's columns doesn't apply to another
   }, [activeId]);
 
+  useEffect(() => {
+    // Escape goes back to the landing/home view — skipped while typing in
+    // a text field so it can still blur/clear that field locally instead
+    // of blowing away the current session.
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+      setActiveId(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleFilesSelected = (files, errorMsg) => {
     setUploadError(errorMsg || null);
     if (!files.length) return;
@@ -390,6 +404,7 @@ export default function App() {
           selectedForCompare={selectedForCompare}
           onToggleSelectForCompare={handleToggleSelectForCompare}
           onCompare={handleCompare}
+          onLogoClick={() => setActiveId(null)}
         />
       )}
 
@@ -399,7 +414,7 @@ export default function App() {
             You're viewing a shared analysis (read-only) — <a href="/">analyze your own data</a>
           </p>
         )}
-        {sessions.length === 0 && (
+        {!activeSession && (
           <div className="empty-state">
             <div className="hero">
               <div className="brand">
