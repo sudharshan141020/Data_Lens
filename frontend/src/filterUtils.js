@@ -40,7 +40,7 @@ export function applyFilters(rows, filters) {
   });
 }
 
-function aggregate(values, aggregation) {
+export function aggregate(values, aggregation) {
   if (!values.length) return 0;
   const sum = values.reduce((a, b) => a + b, 0);
   return aggregation === 'avg' ? sum / values.length : sum;
@@ -112,3 +112,78 @@ export function recomputeAnalysis(analysis, filteredRows) {
 }
 
 export const FILTER_REACTIVE_TYPES = new Set(['trend', 'distribution_sum', 'distribution_count']);
+
+// ---------------------------------------------------------------------
+// Ad-hoc query builder ("ask your own question" instead of only the
+// auto-picked Key Analyses). Runs entirely against the same compact
+// `filterable_data` row set everything above already uses -- no new
+// server endpoint, no round trip, same stateless-backend guarantee.
+// Mirrors app/executor_v2.py's _compute_pivot (two dimensions -- same
+// "cap to the top N most frequent values per dimension, by row count"
+// rule, so a 20x20 grid doesn't happen) and _compute_distribution_sum /
+// _compute_distribution_count (one dimension).
+// ---------------------------------------------------------------------
+const QUERY_TOP_N_SINGLE = 15;
+const QUERY_TOP_N_PIVOT = 8;
+
+export function runCustomQuery(rows, { measure, aggregation, dim1, dim2 }) {
+  if (!dim1) return null;
+
+  if (!dim2) {
+    if (aggregation === 'count') return recomputeDistributionCount(rows, dim1, QUERY_TOP_N_SINGLE);
+    if (!measure) return null;
+    return recomputeDistributionSum(rows, dim1, measure, aggregation, QUERY_TOP_N_SINGLE);
+  }
+
+  if (aggregation !== 'count' && !measure) return null;
+
+  const sub = rows.filter((r) => r[dim1] != null && r[dim2] != null);
+  const countOccurrences = (col) => {
+    const c = new Map();
+    for (const r of sub) c.set(r[col], (c.get(r[col]) || 0) + 1);
+    return c;
+  };
+  const topByFrequency = (col) =>
+    Array.from(countOccurrences(col).entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, QUERY_TOP_N_PIVOT)
+      .map(([k]) => k);
+
+  const top1 = topByFrequency(dim1);
+  const top2 = topByFrequency(dim2);
+  const set1 = new Set(top1);
+  const set2 = new Set(top2);
+
+  const buckets = new Map(); // `${d1}||${d2}` -> { count, values }
+  for (const r of sub) {
+    const d1 = r[dim1], d2 = r[dim2];
+    if (!set1.has(d1) || !set2.has(d2)) continue;
+    const key = `${d1}||${d2}`;
+    if (!buckets.has(key)) buckets.set(key, { count: 0, values: [] });
+    const b = buckets.get(key);
+    b.count += 1;
+    if (typeof r[measure] === 'number') b.values.push(r[measure]);
+  }
+
+  const cells = [];
+  for (const d1 of top1) {
+    for (const d2 of top2) {
+      const b = buckets.get(`${d1}||${d2}`);
+      let value = null;
+      if (b) value = aggregation === 'count' ? b.count : (b.values.length ? aggregate(b.values, aggregation) : null);
+      cells.push({ x: String(d2), y: String(d1), value });
+    }
+  }
+  return cells;
+}
+
+// Same rule app/analysis_planner.py's choose_chart_type uses for
+// distribution_count/distribution_sum, so a custom query looks exactly
+// like an auto-picked one of the same shape: a small category count
+// reads better as a donut, a large one as a treemap, otherwise a bar.
+export function chooseQueryChartType(hasSecondDim, cardinality, aggregation) {
+  if (hasSecondDim) return 'heatmap';
+  if (cardinality > 15) return 'treemap';
+  if (aggregation === 'count' && cardinality <= 6) return 'donut';
+  return 'horizontal_bar';
+}

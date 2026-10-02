@@ -1119,6 +1119,46 @@
   gap: 8px;
 }
 
+/* ---------- Query Builder ---------- */
+.query-builder-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.query-builder-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.query-builder-field label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.query-builder-select {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  cursor: pointer;
+  min-width: 150px;
+  max-width: 220px;
+}
+
+.query-builder-select:hover {
+  border-color: var(--teal);
+}
+
 .filter-date-group {
   display: flex;
   align-items: center;

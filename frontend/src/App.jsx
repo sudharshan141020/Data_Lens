@@ -9,6 +9,7 @@ import AnalysisExplorerV2 from './components/AnalysisExplorerV2';
 import FindingsPanel from './components/FindingsPanel';
 import WeakPointsPanel from './components/WeakPointsPanel';
 import DeepDivePanel from './components/DeepDivePanel';
+import QueryBuilderPanel from './components/QueryBuilderPanel';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -513,11 +514,13 @@ export default function App() {
 
             <StoryMode story={activeSession.result.v2.story} tickNum="03" />
 
+            <QueryBuilderPanel filterableData={filterableData} rows={filteredRows} tickNum="04" />
+
             <div className="dashboard-grid">
-              <AnalysisExplorerV2 analyses={displayedAllAnalyses} tickNum="04" filtersActive={hasActiveFilters} jumpTarget={jumpTarget} />
-              <FindingsPanel findings={activeSession.result.v2.findings} tickNum="05" />
-              <WeakPointsPanel weakPoints={activeSession.result.v2.weak_points} tickNum="06" />
-              <DeepDivePanel v2={activeSession.result.v2} tickNum="07" />
+              <AnalysisExplorerV2 analyses={displayedAllAnalyses} tickNum="05" filtersActive={hasActiveFilters} jumpTarget={jumpTarget} />
+              <FindingsPanel findings={activeSession.result.v2.findings} tickNum="06" />
+              <WeakPointsPanel weakPoints={activeSession.result.v2.weak_points} tickNum="07" />
+              <DeepDivePanel v2={activeSession.result.v2} tickNum="08" />
             </div>
           </div>
         )}
