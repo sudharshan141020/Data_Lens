@@ -703,6 +703,44 @@ hand rather than trusting a blind find-and-replace.
 
 **Files:** `CHANGELOG.md`.
 
+## 2026-10-02 — Custom pivot / ad-hoc query builder ("Ask Your Own Question")
+First of the "new territory" batch (ideas that don't overlap anything
+already in `app/`, as opposed to the earlier round that only
+sophisticated existing modules). Until now the only way to see a
+measure-by-dimension breakdown was whichever ones `analysis_planner.py`
+auto-picked for "Key Analyses" — if you wanted "average Profit by
+Region" and the planner hadn't already picked that exact combination,
+there was no way to get it. New panel lets you pick any measure, any
+aggregation (sum/average/count), and up to two dimensions (a cross-tab)
+and see the result instantly.
+
+The nice part: no new backend endpoint at all. `app/filtering.py`
+already ships a compact row-level `filterable_data` payload (every
+measure + every chartable dimension) alongside the analysis, originally
+built for the client-side filter feature — this just reuses the exact
+same data, computing the aggregation in the browser
+(`runCustomQuery()` in `filterUtils.js`, mirroring
+`executor_v2.py`'s `_compute_pivot`/`_compute_distribution_sum` logic
+including the same "cap to the top 8 most frequent values per
+dimension, by row count" rule for cross-tabs). It also respects
+whatever filters are currently active on the dashboard, same as every
+other filter-reactive panel. Results render through the existing
+`AnalysisChartV2` component by building a synthetic analysis object
+client-side — a custom query looks exactly like an auto-picked one of
+the same shape, right down to using the same chart-type rules
+(`chooseQueryChartType()` mirrors `analysis_planner.py`'s
+`choose_chart_type`: donut for a handful of categories, treemap past
+15, bar otherwise, heatmap for two dimensions).
+
+Sanity-checked the aggregation logic directly in Node against a small
+synthetic table (sum/avg/count, one dimension and two, including a
+cross-tab cell with no matching rows correctly coming back `null`
+rather than a misleading 0) before wiring it into the UI.
+
+**Files:** `frontend/src/filterUtils.js`,
+`frontend/src/components/QueryBuilderPanel.jsx` (new),
+`frontend/src/App.jsx`, `frontend/src/App.css`.
+
 ## 2026-10-01 — Fixed: the old-chat merge had deleted this chat's own "Sophistication round" entry
 The merge above replaced an entire block of the file in one shot,
 which — on top of the intended placeholder content — also wiped out
