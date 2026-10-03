@@ -741,6 +741,52 @@ rather than a misleading 0) before wiring it into the UI.
 `frontend/src/components/QueryBuilderPanel.jsx` (new),
 `frontend/src/App.jsx`, `frontend/src/App.css`.
 
+## 2026-10-02 — Relational join across uploaded files ("Join two files…")
+Second of the "new territory" batch. Until now, multi-file support was
+"Combine" (stack same-shaped files' rows — two months of the same
+export) and "Compare" (two independent analyses side by side). Neither
+handles what real exports actually look like most of the time:
+`orders.csv` + `customers.csv` + `products.csv` — differently-shaped
+files that relate to each other through a shared ID column. This adds
+that third option.
+
+New `app/relational_join.py`: `detect_join_key()` finds the shared key
+between two uploaded files automatically, requiring BOTH signals at
+once before trusting a column as a real join key — the column name
+matches (normalized), AND the values actually overlap meaningfully AND
+the column is close to one-value-per-row on at least one side. That
+last check is what stops a shared low-cardinality column (both files
+happen to have a "Region" column with the same four values) from being
+mistaken for a real relational key — tested explicitly, since joining
+on something like that would fan out into a many-to-many mess instead
+of attaching one record to another. `join_dataframes()` then left-joins
+from whichever side turns out to be the "many"/fact side (lower
+uniqueness on the key — e.g. orders, one row per sale) onto the
+"one"/dimension side (e.g. customers, one row per person) — every fact
+row survives even with no match, rather than silently dropping
+unmatched orders — and any column name that exists in both files gets
+suffixed with "(filename)" instead of pandas' opaque default `_x`/`_y`
+collision handling.
+
+New `/api/analyze-joined` endpoint runs the merged table through the
+exact same `_full_analyze_from_df` pipeline as a normal single-file
+upload — every KPI, correlation, and weak point gets computed on the
+real joined rows, not approximated. Returns a 400 with a plain-English
+explanation when no real key is found, suggesting Combine instead if
+the two files are actually the same shape.
+
+Frontend: new "Join two files…" mode in the sidebar, same selection
+UX as Compare (pick exactly two files, capped), plus a banner on the
+resulting dashboard showing exactly what got matched in plain language
+("Joined orders.csv to customers.csv on `Customer_ID` — 892 of 902
+rows matched (98.9%), 10 kept with blank fields from the unmatched
+side") rather than a silent merge with no explanation of what happened.
+
+**Files:** `app/relational_join.py` (new), `app/main.py`,
+`tests/test_relational_join.py` (new), `tests/test_api_endpoints.py`,
+`frontend/src/api.js`, `frontend/src/App.jsx`,
+`frontend/src/components/Sidebar.jsx`.
+
 ## 2026-10-01 — Fixed: the old-chat merge had deleted this chat's own "Sophistication round" entry
 The merge above replaced an entire block of the file in one shot,
 which — on top of the intended placeholder content — also wiped out
