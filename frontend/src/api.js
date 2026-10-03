@@ -48,6 +48,28 @@ export async function analyzeCombined(files) {
   return body;
 }
 
+export async function analyzeJoined(fileA, fileB) {
+  const formData = new FormData();
+  formData.append('files', fileA);
+  formData.append('files', fileB);
+
+  const res = await fetch(`${API_BASE}/api/analyze-joined`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  const body = await res.json();
+
+  if (!res.ok) {
+    const message = typeof body.detail === 'string'
+      ? body.detail
+      : 'The files could not be joined.';
+    throw new Error(message);
+  }
+
+  return body;
+}
+
 export async function compareFiles(fileA, fileB) {
   const formData = new FormData();
   formData.append('file_a', fileA);

@@ -11,11 +11,13 @@ export default function Sidebar({
   onTogglePin, combineMode, onToggleCombineMode, selectedForCombine,
   onToggleSelect, onCombine, compareMode, onToggleCompareMode,
   selectedForCompare, onToggleSelectForCompare, onCompare, onLogoClick,
+  joinMode, onToggleJoinMode, selectedForJoin, onToggleSelectForJoin, onJoin,
 }) {
   const readySessions = sessions.filter((s) => s.status === 'ready' && s.sourceFile);
   const canCombine = readySessions.length >= 2;
   const canCompare = readySessions.length >= 2;
-  const anySelectMode = combineMode || compareMode;
+  const canJoin = readySessions.length >= 2;
+  const anySelectMode = combineMode || compareMode || joinMode;
 
   return (
     <aside className="sidebar">
@@ -27,7 +29,7 @@ export default function Sidebar({
       <UploadZone onFilesSelected={onFilesSelected} error={uploadError} compact />
 
       <div className="sidebar-actions">
-        {canCombine && !compareMode && (
+        {canCombine && !compareMode && !joinMode && (
           <button
             className={`combine-toggle ${combineMode ? 'active' : ''}`}
             onClick={onToggleCombineMode}
@@ -44,7 +46,7 @@ export default function Sidebar({
             Combine selected ({selectedForCombine.length})
           </button>
         )}
-        {canCompare && !combineMode && (
+        {canCompare && !combineMode && !joinMode && (
           <button
             className={`combine-toggle ${compareMode ? 'active' : ''}`}
             onClick={onToggleCompareMode}
@@ -61,6 +63,24 @@ export default function Sidebar({
             Compare selected ({selectedForCompare.length}/2)
           </button>
         )}
+        {canJoin && !combineMode && !compareMode && (
+          <button
+            className={`combine-toggle ${joinMode ? 'active' : ''}`}
+            onClick={onToggleJoinMode}
+            title="Merge two related files side-by-side on a shared ID column (e.g. orders.csv + customers.csv) — different from Combine, which stacks same-shaped files' rows"
+          >
+            {joinMode ? 'Cancel join' : 'Join two files…'}
+          </button>
+        )}
+        {joinMode && (
+          <button
+            className="combine-run"
+            disabled={selectedForJoin.length !== 2}
+            onClick={onJoin}
+          >
+            Join selected ({selectedForJoin.length}/2)
+          </button>
+        )}
       </div>
 
       <div className="session-list">
@@ -71,6 +91,8 @@ export default function Sidebar({
           const canSelectForCombine = combineMode && s.status === 'ready' && s.sourceFile;
           const canSelectForCompare = compareMode && s.status === 'ready' && s.sourceFile
             && (selectedForCompare.includes(s.id) || selectedForCompare.length < 2);
+          const canSelectForJoin = joinMode && s.status === 'ready' && s.sourceFile
+            && (selectedForJoin.includes(s.id) || selectedForJoin.length < 2);
           return (
             <div
               key={s.id}
@@ -78,6 +100,7 @@ export default function Sidebar({
               onClick={() => {
                 if (combineMode) return canSelectForCombine && onToggleSelect(s.id);
                 if (compareMode) return canSelectForCompare && onToggleSelectForCompare(s.id);
+                if (joinMode) return canSelectForJoin && onToggleSelectForJoin(s.id);
                 return onSelect(s.id);
               }}
             >
@@ -98,6 +121,16 @@ export default function Sidebar({
                   checked={selectedForCompare.includes(s.id)}
                   disabled={!canSelectForCompare}
                   onChange={() => onToggleSelectForCompare(s.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+              {joinMode && (
+                <input
+                  type="checkbox"
+                  className="session-checkbox"
+                  checked={selectedForJoin.includes(s.id)}
+                  disabled={!canSelectForJoin}
+                  onChange={() => onToggleSelectForJoin(s.id)}
                   onClick={(e) => e.stopPropagation()}
                 />
               )}

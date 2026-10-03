@@ -41,6 +41,31 @@ def test_analyze_combined_endpoint(client, sales_df, healthcare_df):
     assert resp.status_code == 200
 
 
+def test_analyze_joined_endpoint(client, sales_df):
+    customers_df = pd.DataFrame({
+        "Customer ID": range(1000, 1100),
+        "Customer Segment": ["Consumer", "Corporate", "Home Office"] * 33 + ["Consumer"],
+    })
+    resp = client.post("/api/analyze-joined", files=[
+        ("files", ("orders.csv", sales_df.to_csv(index=False).encode(), "text/csv")),
+        ("files", ("customers.csv", customers_df.to_csv(index=False).encode(), "text/csv")),
+    ])
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["join_info"]["key_in_fact_file"] == "Customer ID"
+    assert body["join_info"]["matched_rows"] == body["join_info"]["total_rows"]  # every customer ID exists in customers.csv
+    assert body["v2"]["profile"]["row_count"] == 300  # every order row survived the join
+    assert "Customer Segment" in body["semantic_roles"]  # the joined-in column made it through detection
+
+
+def test_analyze_joined_endpoint_rejects_unrelated_files(client, sales_df, healthcare_df):
+    resp = client.post("/api/analyze-joined", files=[
+        ("files", ("a.csv", sales_df.to_csv(index=False).encode(), "text/csv")),
+        ("files", ("b.csv", healthcare_df.to_csv(index=False).encode(), "text/csv")),
+    ])
+    assert resp.status_code == 400
+
+
 def test_compare_endpoint(client, sales_df):
     half_a, half_b = sales_df.iloc[:150], sales_df.iloc[150:]
     resp = client.post("/api/compare", files={

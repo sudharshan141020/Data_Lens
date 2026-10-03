@@ -16,7 +16,7 @@ import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
-import { analyzeFile, analyzeCombined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis } from './api';
+import { analyzeFile, analyzeCombined, analyzeJoined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { buildFindingsText } from './findingsText';
 import CompareView from './components/CompareView';
@@ -42,6 +42,8 @@ export default function App() {
   const [combineMode, setCombineMode] = useState(false);
   const [selectedForCombine, setSelectedForCombine] = useState([]);
   const [compareMode, setCompareMode] = useState(false);
+  const [joinMode, setJoinMode] = useState(false);
+  const [selectedForJoin, setSelectedForJoin] = useState([]);
   const [selectedForCompare, setSelectedForCompare] = useState([]);
   const [sampleLoadingId, setSampleLoadingId] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -174,6 +176,7 @@ export default function App() {
       return next;
     });
     setSelectedForCombine((prev) => prev.filter((sid) => sid !== id));
+    setSelectedForJoin((prev) => prev.filter((sid) => sid !== id));
   };
 
   const handleTogglePin = (id) => {
@@ -314,6 +317,55 @@ export default function App() {
       });
   };
 
+  const handleToggleJoinMode = () => {
+    setJoinMode((m) => !m);
+    setSelectedForJoin([]);
+  };
+
+  const handleToggleSelectForJoin = (id) => {
+    setSelectedForJoin((prev) => {
+      if (prev.includes(id)) return prev.filter((sid) => sid !== id);
+      if (prev.length >= 2) return prev; // capped at exactly two
+      return [...prev, id];
+    });
+  };
+
+  const handleJoin = () => {
+    const chosen = sessions.filter((s) => (
+      selectedForJoin.includes(s.id) && s.status === 'ready' && s.sourceFile
+    ));
+    if (chosen.length !== 2) return;
+
+    const joinId = makeId();
+    const joinName = `Join: ${chosen[0].fileName} + ${chosen[1].fileName}`;
+
+    setSessions((prev) => [...prev, {
+      id: joinId,
+      fileName: joinName,
+      status: 'loading',
+      result: null,
+      error: null,
+      pinned: false,
+      sourceFile: null,
+      isJoined: true,
+    }]);
+    setActiveId(joinId);
+    setJoinMode(false);
+    setSelectedForJoin([]);
+
+    analyzeJoined(chosen[0].sourceFile, chosen[1].sourceFile)
+      .then((data) => {
+        setSessions((prev) => prev.map((s) => (
+          s.id === joinId ? { ...s, status: 'ready', result: data } : s
+        )));
+      })
+      .catch((e) => {
+        setSessions((prev) => prev.map((s) => (
+          s.id === joinId ? { ...s, status: 'error', error: e.message } : s
+        )));
+      });
+  };
+
   const handleTrySample = (sample) => {
     setSampleLoadingId(sample.id);
     loadSampleFile(sample.filename)
@@ -403,6 +455,11 @@ export default function App() {
           compareMode={compareMode}
           onToggleCompareMode={handleToggleCompareMode}
           selectedForCompare={selectedForCompare}
+          joinMode={joinMode}
+          onToggleJoinMode={handleToggleJoinMode}
+          selectedForJoin={selectedForJoin}
+          onToggleSelectForJoin={handleToggleSelectForJoin}
+          onJoin={handleJoin}
           onToggleSelectForCompare={handleToggleSelectForCompare}
           onCompare={handleCompare}
           onLogoClick={() => setActiveId(null)}
@@ -453,7 +510,7 @@ export default function App() {
         {activeSession && activeSession.status === 'loading' && (
           <div className="session-loading">
             <p className="upload-title">
-              {activeSession.isCombined ? 'Combining files…' : activeSession.isComparison ? 'Comparing files…' : `Reading ${activeSession.fileName}…`}
+              {activeSession.isCombined ? 'Combining files…' : activeSession.isComparison ? 'Comparing files…' : activeSession.isJoined ? 'Finding a shared key and joining files…' : `Reading ${activeSession.fileName}…`}
             </p>
             <p className="dim-sub">Detecting columns, computing KPIs, ranking findings</p>
           </div>
@@ -477,6 +534,22 @@ export default function App() {
                 Merged from {activeSession.result.source_files?.join(', ')}
               </p>
             )}
+
+            {activeSession.isJoined && activeSession.result.join_info && (() => {
+              const j = activeSession.result.join_info;
+              return (
+                <p className="dim-sub" style={{ marginBottom: 12 }}>
+                  Joined {j.fact_file} to {j.dimension_file} on
+                  {' '}<span className="mono">{j.key_in_fact_file}</span>
+                  {j.key_in_fact_file !== j.key_in_dimension_file && <> / <span className="mono">{j.key_in_dimension_file}</span></>}
+                  {' — '}{j.matched_rows} of {j.total_rows} rows matched ({j.match_rate_pct}%)
+                  {j.unmatched_rows > 0 && `, ${j.unmatched_rows} kept with blank fields from the unmatched side`}
+                  {j.shared_column_names?.length > 0 && (
+                    <> · shared column name{j.shared_column_names.length > 1 ? 's' : ''} {j.shared_column_names.map((c) => `"${c}"`).join(', ')} kept as separate columns per file</>
+                  )}
+                </p>
+              );
+            })()}
 
             <div className="export-row">
               <ExportMenu

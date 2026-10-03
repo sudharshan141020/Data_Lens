@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.column_detector import detect_columns
 from app.kpi import prepare, compute_kpis, timeseries_monthly, breakdown_by, all_breakdowns, combine_dataframes
+from app.relational_join import detect_join_key, join_dataframes
 from app.insights import generate_insights
 from app.semantic_roles import classify_columns
 from app.domains import detect_domain
@@ -783,6 +784,7 @@ class AnalyzeResponse(BaseModel):
     v2: dict
     no_numeric_metric: bool = False
     source_files: Optional[list] = None
+    join_info: Optional[dict] = None
 
 
 class CompareResponse(BaseModel):
@@ -854,6 +856,45 @@ async def analyze_combined(files: list[UploadFile] = File(...)):
     }
     result.update(_semantic_layer(combined_df))
     result["v2"] = _run_v2_pipeline(combined_df)
+    return SafeJSONResponse(result)
+
+
+@app.post("/api/analyze-joined", response_model=AnalyzeResponse)
+async def analyze_joined(files: list[UploadFile] = File(...)):
+    """The relational counterpart to /api/analyze-combined: that one
+    stacks two same-shaped files' ROWS on top of each other; this one
+    merges two DIFFERENTLY-shaped files' COLUMNS side by side on a
+    shared key it detects automatically (app/relational_join.py), the
+    way orders.csv + customers.csv actually relate to each other in
+    real exports. Runs the merged table through the exact same
+    _full_analyze_from_df pipeline as a normal single-file upload, so
+    every stat is computed on the real joined rows."""
+    if len(files) != 2:
+        raise HTTPException(400, "Select exactly two files to join.")
+
+    raw_a, raw_b = await files[0].read(), await files[1].read()
+    df_a = _load_dataframe(files[0].filename, raw_a)
+    df_b = _load_dataframe(files[1].filename, raw_b)
+
+    if df_a.empty or df_b.empty:
+        raise HTTPException(400, "Both files need at least one row to join.")
+
+    key = detect_join_key(df_a, df_b)
+    if key is None:
+        raise HTTPException(
+            400,
+            "Couldn't find a column shared between these two files that looks like a real join key "
+            "— matching column name, with enough overlapping values, and closer to one-value-per-row "
+            "on at least one side. If these files share an ID column under different names, try "
+            "renaming it to match in both files and re-uploading. If these are really the same kind "
+            "of data (same columns, different rows), use Combine instead of Join.",
+        )
+
+    joined_df, join_info = join_dataframes(df_a, df_b, key, files[0].filename, files[1].filename)
+
+    result = _full_analyze_from_df(joined_df)
+    result["join_info"] = join_info
+    result["source_files"] = [files[0].filename, files[1].filename]
     return SafeJSONResponse(result)
 
 
