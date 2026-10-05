@@ -787,6 +787,114 @@ side") rather than a silent merge with no explanation of what happened.
 `frontend/src/api.js`, `frontend/src/App.jsx`,
 `frontend/src/components/Sidebar.jsx`.
 
+## 2026-10-03 — Changepoint / structural break detection
+Third of the "new territory" batch. `forecasting.py` and
+`seasonality.py` both assume the series moves smoothly — a gradual
+trend, a repeating calendar pattern. Neither is built to notice a
+sudden, one-time jump: a price change, a policy shift, a broken data
+pipeline. A break like that just got averaged into the trend line
+instead of called out. New `app/changepoint.py` fills that specific
+gap.
+
+The core idea: for every plausible place to split the series into a
+"before" and "after", fit a separate straight line to each side and
+measure the gap between where the left side's own line would land
+right at the boundary and where the right side's own line starts
+there — a big standardized gap means something changed abruptly right
+there; a small one means the series was already headed that way on
+its own trend. Comparing LOCAL lines at each candidate boundary is
+what makes this a genuine break detector instead of just a trend
+detector with extra steps — a smoothly growing series has ~zero gap
+everywhere, while a sudden jump shows a large one exactly where it
+happened, trend running through it or not.
+
+Two real bugs caught and fixed while building this, both through
+direct testing rather than assuming the math was right:
+1. **False positive on an ordinary gradual trend.** An early version
+   just compared segment means directly, which flagged the back half
+   of ANY smoothly growing series as "a break" — splitting late in a
+   climb naturally shows a mean gap just because the back half is
+   bigger. A next attempt detrended the whole series with one global
+   line first, which fixed that case but broke pure step changes
+   instead (a single straight line fit through flat-then-flat data
+   compromises between the two levels and smears/shifts the detected
+   break date). The local-line-discontinuity approach above was what
+   actually got both cases right at once — verified directly: pure
+   noise → nothing found, gradual trend → nothing found, a clean step
+   → found at the exact right month, a step on top of an ongoing trend
+   → still found at the exact right month.
+2. **4.4 seconds per call.** The first working version fit two
+   `np.polyfit` lines (Python loop, one per candidate split) inside a
+   1000-draw permutation test — measured at 4,369ms for 60 months of
+   data, unacceptable for an HTTP request. Simple linear regression
+   has a closed form, so rewrote the whole scan as cumulative-sum
+   array math (one vectorized pass scores every candidate split at
+   once, for the real data and every permutation draw) — down to
+   ~73ms for 60 months, ~79ms for 120 months, same results verified
+   against the original on every test case.
+
+Whether the best split found is significant at all is judged with a
+permutation test (shuffle, rerun the same search, see how often
+shuffled data would produce as strong a "break" as the real one) —
+same "resample and see how often this could happen by chance" idea
+`confidence_intervals.py` and `weak_points.py` already use, applied to
+a different kind of claim. Seasonality-aware the same way
+`forecasting.py` is: given a real seasonal pattern, the scan runs on
+the deseasonalized series first, so a predictable Dec→Jan swing never
+gets mistaken for a structural break — verified directly too: without
+deseasonalizing, a big seasonal cliff got detected as the "break"
+instead of the real one; with a correct seasonal_by_month supplied,
+the true break date was recovered.
+
+Surfaced as an annotation on the existing trend chart (a dashed
+reference line plus a plain-language caption), the same way
+`forecast_note` already is, rather than as a separate duplicate chart
+card — shows up right where the trend is already being looked at, in
+both Key Analyses and the Explorer.
+
+**Files:** `app/changepoint.py` (new), `app/main.py`,
+`tests/test_changepoint.py` (new), `tests/test_api_endpoints.py`,
+`frontend/src/components/AnalysisChartV2.jsx`,
+`frontend/src/components/IntelligentDashboard.jsx`,
+`frontend/src/components/AnalysisExplorerV2.jsx`.
+
+## 2026-10-04 — Segment-level forecasting
+Fourth of the "new territory" batch. `forecast_trend` only ever ran on
+the overall aggregate — one line for the whole dataset. That hides
+exactly the thing worth knowing: not "is the business trending down,"
+but "which PART is trending down, and is anything actually
+recovering." Two segments heading in opposite directions average out
+to a flat-looking overall line that says nothing useful.
+
+New `app/segment_forecast.py`: runs the exact same `forecast_trend`
+(seasonality-aware, confidence bands included) independently on each
+of the top few segments of the dataset's most relevant dimension —
+same "top N by volume" pattern `weak_points.py` and
+`cohort_analysis.py` already use, and reused the dimension-priority
+ranking the domain analyzer plugins already compute
+(`detect_priority_dimensions()` — headline roles first) rather than
+inventing a new "which dimension matters most" heuristic. A segment
+whose own history is too thin or too noisy to forecast confidently is
+left out rather than shown with a misleading projection — the same
+gate `forecast_trend` already applies to the overall trend, just
+applied per segment here too. Verified directly: a synthetic dataset
+with one declining category, one growing category, and one flat/noisy
+category correctly came back with the first two flagged in opposite
+directions and the noisy one correctly excluded.
+
+Surfaced as a new "Segment Forecasts" chart in the Explorer — one
+line per segment on a shared axis, a shared "Forecast →" reference
+line where the projected portion begins, and a plain-language
+direction summary per segment below the chart (↑/↓ arrows, colored by
+direction). Reused `ReadableLegend` (from the chart-legend readability
+fix) for the per-segment legend and a small dedicated multi-series
+tooltip, since the existing single-series `ChartTooltip` only handles
+one value at a time.
+
+**Files:** `app/segment_forecast.py` (new), `app/main.py`,
+`tests/test_segment_forecast.py` (new), `tests/test_api_endpoints.py`,
+`frontend/src/components/AnalysisChartV2.jsx`.
+
 ## 2026-10-01 — Fixed: the old-chat merge had deleted this chat's own "Sophistication round" entry
 The merge above replaced an entire block of the file in one shot,
 which — on top of the intended placeholder content — also wiped out
