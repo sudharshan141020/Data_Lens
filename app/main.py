@@ -35,6 +35,7 @@ from app.seasonality import decompose_trend
 from app.period_comparison import compare_periods
 from app.forecasting import forecast_trend
 from app.changepoint import detect_changepoint
+from app.segment_forecast import forecast_top_segments
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
 from app.html_report import build_html_report
@@ -255,6 +256,32 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
             "y_label": segments_report["y_measure"],
             "color_by": "Segment",
             "data": segments_report["scatter_points"],
+        })
+
+    priority_dims = [d for d in analyzer.detect_priority_dimensions() if d.is_chartable]
+    segment_forecast_report = forecast_top_segments(df_exec, profile, priority_dims[0] if priority_dims else None)
+    if segment_forecast_report.get("available"):
+        all_executed.append({
+            "id": "segment_forecast",
+            "title": f"Segment Forecasts: {segment_forecast_report['metric_column']} by {segment_forecast_report['dimension']}",
+            "type": "segment_forecast",
+            "chart_type": "segment_forecast",
+            "section": "Trend",
+            "importance": 0,
+            "aggregation": None,
+            "metric_column": segment_forecast_report["metric_column"],
+            "column": segment_forecast_report["dimension"],
+            "column2": None,
+            "date_column": None,
+            "reasoning": f"The overall {segment_forecast_report['metric_column']} trend is one line, but it can hide "
+                         f"individual {segment_forecast_report['dimension']} segments moving in opposite directions — "
+                         f"this forecasts the top segments independently so a recovering one isn't hidden behind a "
+                         f"declining one, or vice versa.",
+            "x_label": "Period",
+            "y_label": segment_forecast_report["metric_column"],
+            "color_by": segment_forecast_report["dimension"],
+            "segments": segment_forecast_report["segments"],
+            "data": [],
         })
 
     anomaly_report = detect_anomalies(df_exec, profile)

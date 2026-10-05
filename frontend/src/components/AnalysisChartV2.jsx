@@ -101,6 +101,84 @@ function LineView({ analysis, isCurrency }) {
   );
 }
 
+function SegmentTooltip({ active, payload, label, isCurrency }) {
+  if (!active || !payload?.length) return null;
+  const entries = payload.filter((p) => typeof p.value === 'number');
+  if (!entries.length) return null;
+  return (
+    <div className="chart-tooltip">
+      <p className="tooltip-label mono">{label}</p>
+      {entries.map((e) => (
+        <p key={e.dataKey} className="mono" style={{ color: e.color }}>
+          {e.dataKey}: {isCurrency ? '$' : ''}{e.value.toLocaleString('en-US', { maximumFractionDigits: 1 })}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function SegmentForecastView({ analysis, isCurrency }) {
+  const segments = analysis.segments || [];
+  if (!segments.length) return null;
+
+  const allLabels = Array.from(new Set(segments.flatMap((s) => s.data.map((d) => d.label)))).sort();
+  const chartData = allLabels.map((label) => {
+    const row = { label };
+    segments.forEach((s) => {
+      const point = s.data.find((d) => d.label === label);
+      row[s.label] = point ? point.value : null;
+    });
+    return row;
+  });
+
+  let forecastStartLabel = null;
+  for (const s of segments) {
+    const firstForecast = s.data.find((d) => d.is_forecast);
+    if (firstForecast && (!forecastStartLabel || firstForecast.label < forecastStartLabel)) {
+      forecastStartLabel = firstForecast.label;
+    }
+  }
+
+  const dirColor = (d) => (d === 'up' ? 'var(--teal)' : d === 'down' ? 'var(--red)' : 'var(--text-faint)');
+  const dirArrow = (d) => (d === 'up' ? '\u2191' : d === 'down' ? '\u2193' : '\u2192');
+
+  return (
+    <>
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border-soft)" vertical={false} />
+          <XAxis dataKey="label" stroke="var(--text-faint)" fontSize={12} fontFamily="var(--font-mono)" tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
+          <YAxis stroke="var(--text-faint)" fontSize={12} fontFamily="var(--font-mono)" tickLine={false} axisLine={false} tickFormatter={formatAxisValue} />
+          <Tooltip content={<SegmentTooltip isCurrency={isCurrency} />} cursor={{ stroke: 'var(--border)' }} />
+          <Legend content={<ReadableLegend />} />
+          {segments.map((s, i) => (
+            <Line key={s.label} type="monotone" dataKey={s.label} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={false} connectNulls />
+          ))}
+          {forecastStartLabel && (
+            <ReferenceLine
+              x={forecastStartLabel}
+              stroke="var(--text-faint)"
+              strokeDasharray="4 4"
+              label={{ value: 'Forecast \u2192', position: 'insideTopLeft', fill: 'var(--text-faint)', fontSize: 11, fontFamily: 'var(--font-body)' }}
+            />
+          )}
+        </LineChart>
+      </ResponsiveContainer>
+      <div style={{ marginTop: 12 }}>
+        {segments.map((s) => (
+          <p key={s.label} className="dim-sub" style={{ marginBottom: 4 }}>
+            <span style={{ color: dirColor(s.direction), fontWeight: 600 }}>
+              {dirArrow(s.direction)} {s.label}
+              {s.projected_change_pct != null && ` ${s.projected_change_pct > 0 ? '+' : ''}${s.projected_change_pct}%`}
+            </span>
+            {' — '}{s.summary.replace(`${s.label}: `, '')}
+          </p>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function BarView({ analysis, isCurrency, horizontal }) {
   const valueLabel = analysis.type === 'distribution_count' ? 'Count'
     : analysis.aggregation === 'avg' ? `Avg ${analysis.metric_column || ''}`
@@ -448,6 +526,9 @@ export default function AnalysisChartV2({ analysis }) {
     case 'seasonal_decomposition':
       if (!analysis.data?.length) return null;
       return <DecompositionView analysis={analysis} />;
+    case 'segment_forecast':
+      if (!analysis.segments?.length) return null;
+      return <SegmentForecastView analysis={analysis} isCurrency={isCurrency} />;
     default:
       return null;
   }

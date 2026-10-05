@@ -72,6 +72,36 @@ def test_analyze_endpoint_surfaces_a_changepoint(client, rng):
     assert cps[0]["direction"] == "jump"
 
 
+def test_analyze_endpoint_surfaces_segment_forecasts(client, rng):
+    """End-to-end: a dataset with a dimension whose segments move in
+    different directions should come back with a segment_forecast
+    entry in all_analyses, not just pass at the unit level."""
+    dates, y, m = [], 2021, 1
+    for _ in range(30):
+        dates.append(pd.Timestamp(f"{y}-{m:02d}-15"))
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+    rows = []
+    for i, d in enumerate(dates):
+        for _ in range(15):
+            rows.append({"Order Date": d, "Category": "Furniture", "Sales": 200 - i * 4 + float(rng.normal(0, 8))})
+        for _ in range(15):
+            rows.append({"Order Date": d, "Category": "Technology", "Sales": 100 + i * 5 + float(rng.normal(0, 8))})
+    df = pd.DataFrame(rows)
+
+    resp = client.post("/api/analyze", files={
+        "file": ("sales.csv", df.to_csv(index=False).encode(), "text/csv"),
+    })
+    assert resp.status_code == 200
+    body = resp.json()
+
+    sf = [a for a in body["v2"]["all_analyses"] if a.get("type") == "segment_forecast"]
+    assert sf, "expected a segment_forecast entry in all_analyses"
+    labels = {s["label"] for s in sf[0]["segments"]}
+    assert "Furniture" in labels and "Technology" in labels
+
+
 def test_analyze_joined_endpoint(client, sales_df):
     customers_df = pd.DataFrame({
         "Customer ID": range(1000, 1100),
