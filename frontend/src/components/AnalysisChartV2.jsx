@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import {
   ComposedChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, ScatterChart, Scatter,
-  Treemap, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
+  Treemap, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts';
 import ReadableLegend from './ReadableLegend';
 
@@ -69,6 +69,8 @@ function LineView({ analysis, isCurrency }) {
     }
   }
 
+  const breakLabel = analysis.changepoint?.label;
+
   return (
     <ResponsiveContainer width="100%" height={260}>
       <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -84,6 +86,15 @@ function LineView({ analysis, isCurrency }) {
           </>
         ) : (
           <Line type="monotone" dataKey="value" stroke="var(--teal)" strokeWidth={2} dot={false} />
+        )}
+        {breakLabel && (
+          <ReferenceLine
+            x={breakLabel}
+            stroke="var(--red)"
+            strokeDasharray="4 4"
+            strokeWidth={1.5}
+            label={{ value: 'Break', position: 'insideTopLeft', fill: 'var(--red)', fontSize: 11, fontFamily: 'var(--font-body)' }}
+          />
         )}
       </ComposedChart>
     </ResponsiveContainer>

@@ -41,6 +41,37 @@ def test_analyze_combined_endpoint(client, sales_df, healthcare_df):
     assert resp.status_code == 200
 
 
+def test_analyze_endpoint_surfaces_a_changepoint(client, rng):
+    """End-to-end: a dataset with an obvious one-time jump in its trend
+    should come back with a `changepoint` field on the trend analysis,
+    not just pass at the detect_changepoint() unit level."""
+    dates, y, m = [], 2021, 1
+    for _ in range(36):
+        dates.append(pd.Timestamp(f"{y}-{m:02d}-15"))
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+    n_per_month = 20
+    rows = []
+    for i, d in enumerate(dates):
+        base = 100 if i < 24 else 180
+        for _ in range(n_per_month):
+            rows.append({"Order Date": d, "Sales": base + float(rng.normal(0, 5))})
+    df = pd.DataFrame(rows)
+
+    resp = client.post("/api/analyze", files={
+        "file": ("sales.csv", df.to_csv(index=False).encode(), "text/csv"),
+    })
+    assert resp.status_code == 200
+    body = resp.json()
+
+    trend_analyses = [a for a in body["v2"]["all_analyses"] if a.get("type") == "trend"]
+    assert trend_analyses
+    cps = [a["changepoint"] for a in trend_analyses if a.get("changepoint")]
+    assert cps, "expected at least one trend analysis to carry a detected changepoint"
+    assert cps[0]["direction"] == "jump"
+
+
 def test_analyze_joined_endpoint(client, sales_df):
     customers_df = pd.DataFrame({
         "Customer ID": range(1000, 1100),

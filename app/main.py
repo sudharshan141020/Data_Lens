@@ -34,6 +34,7 @@ from app.anomaly_detection import detect_anomalies
 from app.seasonality import decompose_trend
 from app.period_comparison import compare_periods
 from app.forecasting import forecast_trend
+from app.changepoint import detect_changepoint
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
 from app.html_report import build_html_report
@@ -349,6 +350,17 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
                 seasonality_report.get("seasonal_by_month")
                 if seasonality_report.get("available") else None
             )
+
+            # Changepoint detection reads the same real historical points,
+            # also before forecast_trend appends its projected tail below.
+            # Attached directly onto the trend analysis itself (like
+            # forecast_note is) rather than as a separate chart entry, so
+            # it annotates the SAME trend chart wherever it's shown
+            # (Key Analyses, the Explorer) instead of living in a
+            # duplicate card the person has to go find.
+            changepoint_report = detect_changepoint(a["data"], seasonal_by_month=seasonal_by_month)
+            a["changepoint"] = changepoint_report.get("break_point")
+
             result = forecast_trend(a["data"], seasonal_by_month=seasonal_by_month)
             if result["forecast_points"]:
                 for point in a["data"]:
