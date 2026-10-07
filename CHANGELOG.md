@@ -895,6 +895,49 @@ one value at a time.
 `tests/test_segment_forecast.py` (new), `tests/test_api_endpoints.py`,
 `frontend/src/components/AnalysisChartV2.jsx`.
 
+## 2026-10-05 — Snapshot / drift comparison across repeat uploads
+Fifth of the "new territory" batch. The backend genuinely stores
+nothing, which is a real privacy guarantee but also meant there was no
+way to answer "how does this month's export compare to last month's"
+without manually re-running everything side by side. This adds that,
+entirely client-side — the "nothing stored" guarantee never gets
+touched, because none of it leaves the browser.
+
+New `frontend/src/snapshotUtils.js`: a "snapshot" is a lightweight
+fingerprint of one analysis — column list, row count, each measure's
+sum/avg, and the weak points found — never the raw rows. Saved to
+`localStorage`, keyed by a hash of the sorted column list, so saving a
+newer version of the "same" dataset shape overwrites the previous
+snapshot for that shape rather than accumulating forever. On a new
+upload, it looks for a saved snapshot whose columns substantially
+overlap (exact match first, else the closest match above a 60%
+Jaccard-overlap threshold, so adding or dropping a column or two
+between exports doesn't break the match) and — if found — computes a
+full diff: which measures moved and by how much, which weak points
+got resolved/newly appeared/got worse/got better (by comparing
+priority level, matched on the weak point's own problem text since
+there's no stable ID), and which columns were added or dropped.
+
+Sanity-checked the whole thing end to end with mocked
+`localStorage` before wiring into React: a synthetic "January" export
+followed by a "February" one with more rows, a grown measure, one
+resolved issue, one new issue, and an added column — every single one
+of those came back correctly in the computed diff, including the
+fuzzy (not exact) column-match case and a separate check that a
+genuinely unrelated dataset correctly matches nothing.
+
+Frontend: "Save snapshot (for next time)" added to the export menu
+(reuses the existing idle/saved/error button-state pattern the other
+export actions already use). On a later matching upload, a dismissible
+banner appears above Key Analyses — collapsed by default to a one-line
+summary, expandable into the full diff (color-coded measure deltas,
+resolved/improved/worsened/new weak points, added/removed columns).
+
+**Files:** `frontend/src/snapshotUtils.js` (new),
+`frontend/src/components/DriftBanner.jsx` (new),
+`frontend/src/components/ExportMenu.jsx`, `frontend/src/App.jsx`,
+`frontend/src/App.css`.
+
 ## 2026-10-01 — Fixed: the old-chat merge had deleted this chat's own "Sophistication round" entry
 The merge above replaced an entire block of the file in one shot,
 which — on top of the intended placeholder content — also wiped out
