@@ -1119,6 +1119,100 @@
   gap: 8px;
 }
 
+/* ---------- Drift Banner ---------- */
+.drift-banner {
+  border-color: var(--teal);
+  margin-bottom: 20px;
+}
+
+.drift-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.drift-banner-text {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text);
+  flex: 1;
+  min-width: 240px;
+}
+
+.drift-banner-icon {
+  font-size: 15px;
+}
+
+.drift-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.drift-banner-btn {
+  background: var(--surface-raised);
+  color: var(--teal);
+  border: 1px solid var(--teal);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.drift-banner-btn:hover {
+  background: var(--teal);
+  color: var(--bg);
+}
+
+.drift-banner-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+}
+
+.drift-banner-dismiss:hover {
+  color: var(--text);
+}
+
+.drift-details {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.drift-section {
+  margin-bottom: 14px;
+}
+
+.drift-section:last-child {
+  margin-bottom: 0;
+}
+
+.drift-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+}
+
+.drift-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  padding: 3px 0;
+}
+
 /* ---------- Query Builder ---------- */
 .query-builder-controls {
   display: flex;

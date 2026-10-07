@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, onCreateShareLink, pdfLoading }) {
+export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, onCreateShareLink, onSaveSnapshot, pdfLoading }) {
   const [open, setOpen] = useState(false);
   const [copyState, setCopyState] = useState('idle'); // idle | copied | error
   const [cleanState, setCleanState] = useState('idle'); // idle | downloading | done | error
   const [htmlState, setHtmlState] = useState('idle'); // idle | downloading | done | error
   const [shareState, setShareState] = useState('idle'); // idle | creating | copied | error
+  const [snapshotState, setSnapshotState] = useState('idle'); // idle | saved | error
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -81,6 +82,15 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
   };
 
   const shareLabel = shareState === 'creating' ? 'Creating link…' : shareState === 'copied' ? 'Link copied!' : shareState === 'error' ? "Couldn't create link" : 'Copy share link';
+
+  const handleSaveSnapshot = () => {
+    const ok = onSaveSnapshot();
+    setSnapshotState(ok ? 'saved' : 'error');
+    setTimeout(() => setSnapshotState('idle'), 1800);
+    setOpen(false);
+  };
+
+  const snapshotLabel = snapshotState === 'saved' ? 'Saved!' : snapshotState === 'error' ? "Couldn't save" : 'Save snapshot (for next time)';
 
   return (
     <div className="export-menu-wrap" ref={wrapRef}>
@@ -165,6 +175,18 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
             >
               <span>{shareLabel}</span>
               <span className="export-menu-ext">24h link</span>
+            </button>
+          )}
+          {onSaveSnapshot && (
+            <button
+              type="button"
+              className="export-menu-item"
+              role="menuitem"
+              onClick={handleSaveSnapshot}
+              title="Save a lightweight snapshot of this analysis in your browser, so a later upload of a newer version of this dataset can show you what changed"
+            >
+              <span>{snapshotLabel}</span>
+              <span className="export-menu-ext">this browser</span>
             </button>
           )}
         </div>

@@ -10,6 +10,8 @@ import FindingsPanel from './components/FindingsPanel';
 import WeakPointsPanel from './components/WeakPointsPanel';
 import DeepDivePanel from './components/DeepDivePanel';
 import QueryBuilderPanel from './components/QueryBuilderPanel';
+import DriftBanner from './components/DriftBanner';
+import { findMatchingSnapshot, computeDrift, saveSnapshot } from './snapshotUtils';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
 import ExportMenu from './components/ExportMenu';
@@ -44,6 +46,7 @@ export default function App() {
   const [compareMode, setCompareMode] = useState(false);
   const [joinMode, setJoinMode] = useState(false);
   const [selectedForJoin, setSelectedForJoin] = useState([]);
+  const [dismissedDriftFor, setDismissedDriftFor] = useState(null);
   const [selectedForCompare, setSelectedForCompare] = useState([]);
   const [sampleLoadingId, setSampleLoadingId] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -390,6 +393,21 @@ export default function App() {
     return applyFilters(filterableData.rows, filters);
   }, [filterableData, filters, hasActiveFilters]);
 
+  // Snapshot/drift: is there a previously-saved snapshot (this browser only)
+  // that looks like an earlier version of the dataset now active? Only for
+  // a genuine single-file upload, ready, with filterable_data available
+  // (same requirement buildSnapshot itself has), and not dismissed already.
+  const isPlainSession = activeSession?.status === 'ready' && activeSession.sourceFile
+    && !activeSession.isCombined && !activeSession.isComparison && !activeSession.isJoined && !isSharedMode;
+  const driftMatch = useMemo(() => {
+    if (!isPlainSession || dismissedDriftFor === activeId) return null;
+    return findMatchingSnapshot(activeSession);
+  }, [isPlainSession, activeSession, activeId, dismissedDriftFor]);
+  const drift = useMemo(() => {
+    if (!driftMatch) return null;
+    return computeDrift(driftMatch.snapshot, activeSession);
+  }, [driftMatch, activeSession]);
+
   const displayedTopAnalyses = useMemo(() => {
     const raw = activeSession?.result?.v2?.top_analyses || [];
     if (!hasActiveFilters) return raw;
@@ -559,6 +577,7 @@ export default function App() {
                 onDownloadCleanedCsv={activeSession.sourceFile ? () => handleDownloadCleanedCsv(activeSession) : null}
                 onExportHtml={() => handleExportHtml(activeSession)}
                 onCreateShareLink={() => handleCreateShareLink(activeSession)}
+                onSaveSnapshot={isPlainSession ? () => saveSnapshot(activeSession) : null}
                 pdfLoading={pdfLoading}
               />
             </div>
@@ -582,6 +601,10 @@ export default function App() {
               filteredCount={filteredRows.length}
               totalCount={filterableData?.rows?.length || 0}
             />
+
+            {driftMatch && (
+              <DriftBanner match={driftMatch} drift={drift} onDismiss={() => setDismissedDriftFor(activeId)} />
+            )}
 
             <IntelligentDashboard topAnalyses={displayedTopAnalyses} tickNum="02" filtersActive={hasActiveFilters} />
 
