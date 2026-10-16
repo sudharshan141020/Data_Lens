@@ -36,6 +36,7 @@ from app.seasonality import decompose_trend
 from app.period_comparison import compare_periods
 from app.forecasting import forecast_trend
 from app.changepoint import detect_changepoint
+from app.drivers import analyze_drivers
 from app.segment_forecast import forecast_top_segments
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
@@ -347,6 +348,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     # the real historical series only, not a synthetic tail.
     seasonality_report = {"available": False, "note": None}
     period_comparison_report = {"available": False, "note": None}
+    drivers_report = {"available": False, "note": None, "comparisons": []}
     for a in all_executed:
         if a.get("type") == "trend" and a.get("data"):
             seasonality_report = decompose_trend(a["data"])
@@ -392,6 +394,19 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
             # duplicate card the person has to go find.
             changepoint_report = detect_changepoint(a["data"], seasonal_by_month=seasonal_by_month)
             a["changepoint"] = changepoint_report.get("break_point")
+
+            # "Why did it change?": split the latest-month move and (when one
+            # was found) the break above by each dimension. Runs here, on the
+            # real historical points, for the same reason the two reports
+            # above do -- and its break windows ARE changepoint.py's windows.
+            if a.get("date_column") and a.get("metric_column"):
+                drivers_report = analyze_drivers(
+                    df_exec, profile, a["date_column"], a["metric_column"], a.get("aggregation") or "sum",
+                    changepoint=a["changepoint"], seasonally_adjusted=bool(seasonal_by_month),
+                )
+                brk = next((c for c in drivers_report.get("comparisons", []) if c["id"] == "break"), None)
+                if a["changepoint"] and brk:
+                    a["changepoint"]["driver_headline"] = brk["headline"]
 
             result = forecast_trend(a["data"], seasonal_by_month=seasonal_by_month)
             if result["forecast_points"]:
@@ -475,6 +490,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "segments": _serialize_segments(segments_report),
         "seasonality": _serialize_seasonality(seasonality_report),
         "period_comparison": period_comparison_report,
+        "drivers": drivers_report,
         "anomalies": _serialize_anomalies(anomaly_report),
         "simpsons_paradox": simpsons_paradox_report,
         "partial_correlations": partial_correlation_report,

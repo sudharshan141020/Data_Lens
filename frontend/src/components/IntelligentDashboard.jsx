@@ -21,6 +21,7 @@ export default function IntelligentDashboard({ topAnalyses, tickNum, filtersActi
             {a.reasoning && <p className="chart-reasoning">{a.reasoning}</p>}
             {a.forecast_note && <p className="forecast-note">↝ {a.forecast_note}</p>}
             {a.changepoint && <p className="forecast-note" style={{ color: 'var(--red)' }}>⚠ {a.changepoint.summary}</p>}
+            {a.changepoint?.driver_headline && <p className="forecast-note">↳ {a.changepoint.driver_headline}</p>}
             {filtersActive && !FILTER_REACTIVE_TYPES.has(a.type) && (
               <p className="filter-inactive-note">Showing the full dataset — this view doesn't update with filters yet.</p>
             )}

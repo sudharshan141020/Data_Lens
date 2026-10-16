@@ -94,4 +94,18 @@ describe('buildFindingsText', () => {
   it('rounds the data quality score', () => {
     expect(buildFindingsText(session({ profile: {}, data_quality: { overall_quality_score: 87.6 } }))).toContain('Data quality: 88/100');
   });
+
+  describe('why it changed', () => {
+    const drivers = (headline) => ({ available: true, comparisons: [{ id: 'latest_month', headline }] });
+
+    it('adds the driver headline for the latest move', () => {
+      const text = buildFindingsText(session({ profile: {}, drivers: drivers('Sales fell 20%: 100% of the drop is Category=Furniture.') }));
+      expect(text).toContain('WHY IT CHANGED: Sales fell 20%: 100% of the drop is Category=Furniture.');
+    });
+
+    it('is left out when drivers are unavailable or missing', () => {
+      expect(buildFindingsText(session({ profile: {}, drivers: { available: false, comparisons: [] } }))).not.toContain('WHY IT CHANGED');
+      expect(buildFindingsText(session({ profile: {} }))).not.toContain('WHY IT CHANGED');
+    });
+  });
 });

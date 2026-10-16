@@ -1095,3 +1095,71 @@ they are the whole string, never inside longer numbers.
 `frontend/src/components/SensitiveDataBanner.jsx` (new),
 `frontend/src/components/SensitiveExportDialog.jsx` (new),
 `frontend/src/App.jsx`, and three new `*.test.js(x)` files.
+
+## 2026-10-16 — "Why did it change?" driver analysis
+
+**Why:** `period_comparison.py` says the total moved and whether that is more
+than chance; `changepoint.py` says when a break happened. Neither says which
+part of the business the movement landed in, which is the first follow-up
+question anyone asks ("sales fell 20%" → "where?").
+
+**Backend (`app/drivers.py`)** — plain groupby arithmetic, no new statistics.
+For each category column it splits a change into per-segment contributions
+that add up *exactly* to the total, and reports where it landed, e.g.
+"100% of the drop is Category=Furniture, mostly Region=West (88% of
+Furniture's change)". Two comparisons are run when the data allows: the latest
+month vs the one before (the same pair `period_comparison.py` tests), and the
+stretch before vs after a detected break (`changepoint.py`'s own windows).
+How the numbers are defined so they match the rest of the app: a summed
+metric's window value is the mean monthly total; an averaged metric uses the
+mean of monthly averages, split by each segment's weighted share of its month
+(the one decomposition of an average that stays additive). Unequal windows
+therefore compare monthly averages, never raw totals (9 months vs 3 months of
+the same level is "no change", not a drop).
+Things it deliberately handles rather than papers over:
+- **Offsetting moves** (West +100, East −90): shares of a near-zero net would
+  read as 2000%, so shares switch to share-of-total-movement and the headline
+  says the segments are cancelling each other out.
+- **A segment bigger than the whole change** (167%): said as "alone accounts
+  for more than all of the drop, partly offset by the others".
+- **A flat period** (under 1% change): says there is nothing to explain.
+- **Drill-down** is one level only, and is skipped when the segment's own
+  sub-moves cancel (found on the healthcare sample: it first printed "975% of
+  Furniture's change", which is arithmetic noise, not a finding).
+- Blank values stay their own "(blank)" segment so totals still add up.
+It describes where a change landed, not why it happened, and the panel says so.
+Wired into `_run_v2_pipeline` next to the changepoint it reuses, as
+`v2.drivers`; when a break exists its headline is also attached as
+`changepoint.driver_headline`.
+
+**Frontend** — new "Why Did It Change?" panel in Deep Dive → Patterns: comparison
+and dimension switchers (best split starred), a waterfall of the segment
+changes, a per-segment list, and the caveats above. The waterfall is drawn from
+zero in change units rather than as before/after totals, because a 40-unit move
+on a 12,000 base would be an invisible sliver. The break's one-line driver
+headline now sits under the red break warning in Key Analyses and the Explorer,
+and the "Copy findings" text gets a WHY IT CHANGED line. Everything is plain
+strings, so the personal-data masking added earlier scrubs it like any other
+text in the result.
+
+**Not done / known limits:** the panel reads the full dataset and, like the
+Period Comparison and changepoint it builds on, does not re-compute under the
+filter bar. Percentages in the break comparison are on raw values while the
+break summary itself is seasonally adjusted when a seasonal pattern exists
+(the panel says so).
+
+**Found, not fixed (not caused by this change):** the project zip I received
+has no `frontend/src/components/StoryPresentation.jsx`, though `App.jsx` imports
+it, and `StoryMode.jsx` has no Present button, so `vite build` fails and 3 test
+files fail (`App.test.jsx`, `StoryPresentation.test.jsx`, `StoryMode.test.jsx`).
+The 2026-10-07 entry above says these were built, so the two files look lost or
+reverted locally.
+
+**Files:** `app/drivers.py` (new), `app/main.py`, `tests/test_drivers.py` (new),
+`frontend/src/driverUtils.js` (new), `frontend/src/components/DriversPanel.jsx`
+(new), `frontend/src/components/DeepDivePanel.jsx`,
+`frontend/src/components/IntelligentDashboard.jsx`,
+`frontend/src/components/AnalysisExplorerV2.jsx`, `frontend/src/findingsText.js`,
+`frontend/src/driverUtils.test.js` (new), `frontend/src/components/DriversPanel.test.jsx`
+(new), `frontend/src/findingsText.test.js`, and the regenerated frontend fixture
+(`frontend/src/test/fixtures/analysis.json`, `analysis.csv`).

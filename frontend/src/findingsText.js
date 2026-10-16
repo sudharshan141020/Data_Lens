@@ -80,6 +80,13 @@ export function buildFindingsText(session) {
     lines.push('');
   }
 
+  // --- Why it changed (the split of the latest move by category) ---
+  const driverHeadline = v2.drivers?.available ? v2.drivers.comparisons?.[0]?.headline : null;
+  if (driverHeadline) {
+    lines.push(`WHY IT CHANGED: ${driverHeadline}`);
+    lines.push('');
+  }
+
   // --- Weak Points (high priority only, keep it lightweight) ---
   const highPriority = (v2.weak_points || []).filter((w) => w.priority === 'high').slice(0, MAX_WEAK_POINTS);
   if (highPriority.length) {

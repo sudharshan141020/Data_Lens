@@ -5,6 +5,7 @@ import PartialCorrelationsPanel from './PartialCorrelationsPanel';
 import SegmentsPanel from './SegmentsPanel';
 import SeasonalityPanel from './SeasonalityPanel';
 import PeriodComparisonPanel from './PeriodComparisonPanel';
+import DriversPanel from './DriversPanel';
 import CohortsPanel from './CohortsPanel';
 import AnomaliesPanel from './AnomaliesPanel';
 import SimpsonsParadoxPanel from './SimpsonsParadoxPanel';
@@ -63,6 +64,7 @@ export default function DeepDivePanel({ v2, tickNum }) {
             <SegmentsPanel segments={v2.segments} tickNum={null} />
             <SeasonalityPanel seasonality={v2.seasonality} tickNum={null} />
             <PeriodComparisonPanel periodComparison={v2.period_comparison} tickNum={null} />
+            <DriversPanel drivers={v2.drivers} tickNum={null} />
             <CohortsPanel cohorts={v2.cohorts} tickNum={null} />
           </>
         )}

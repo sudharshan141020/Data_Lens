@@ -85,6 +85,7 @@ export default function AnalysisExplorerV2({ analyses, tickNum, filtersActive, j
           {active.reasoning && <p className="chart-reasoning">{active.reasoning}</p>}
           {active.forecast_note && <p className="forecast-note">↝ {active.forecast_note}</p>}
           {active.changepoint && <p className="forecast-note" style={{ color: 'var(--red)' }}>⚠ {active.changepoint.summary}</p>}
+          {active.changepoint?.driver_headline && <p className="forecast-note">↳ {active.changepoint.driver_headline}</p>}
           {filtersActive && !FILTER_REACTIVE_TYPES.has(active.type) && (
             <p className="filter-inactive-note">Showing the full dataset — this view doesn't update with filters yet.</p>
           )}
