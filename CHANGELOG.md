@@ -1163,3 +1163,29 @@ reverted locally.
 `frontend/src/driverUtils.test.js` (new), `frontend/src/components/DriversPanel.test.jsx`
 (new), `frontend/src/findingsText.test.js`, and the regenerated frontend fixture
 (`frontend/src/test/fixtures/analysis.json`, `analysis.csv`).
+
+## 2026-10-16 — Restored the Story presentation mode (CI was red)
+
+**What broke:** GitHub CI failed because `frontend/src/components/StoryPresentation.jsx`
+was missing from the repo while `App.jsx` and its own test imported it, and
+`StoryMode.jsx` had no Present button. That aborted `App.test.jsx`,
+`StoryPresentation.test.jsx` and `StoryMode.test.jsx`, and `vite build` failed.
+Neither the component, its styles, nor a compiled copy existed anywhere in the
+checkout, so the 2026-10-07 work had been lost or reverted.
+
+**Fix:** rebuilt both files from the existing tests (the spec that survived),
+not from GitHub's suggested stub, which would have made the import resolve but
+failed the real tests: a modal dialog ("Story presentation"), `n / total`
+counter, Back (disabled on the first beat) / Next, Done on the last beat, dot
+navigation ("Go to slide N"), Right/Space/Enter forward, Left back, Escape and
+the close button to leave, click-to-advance except on the last beat, and a
+keyboard listener that is removed on unmount. Space/Enter are ignored when a
+button has focus so a focused Next does not skip a beat. `StoryMode.jsx` shows
+"▶ Present" only when an `onPresent` handler is passed. Both use literal
+characters (no `\u` escapes) and inline styles, since the original presentation
+CSS is also gone.
+
+**Result:** 22 test files / 298 tests pass and `npm run build` succeeds.
+**Limits:** the look is a clean rebuild, not a pixel match of the original.
+**Files:** `frontend/src/components/StoryPresentation.jsx` (restored),
+`frontend/src/components/StoryMode.jsx`.

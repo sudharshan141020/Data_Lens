@@ -4,17 +4,26 @@ const TONE_COLOR = {
   action: 'var(--amber)',
 };
 
-export default function StoryMode({ story, tickNum }) {
+export default function StoryMode({ story, tickNum, onPresent }) {
   if (!story?.length) return null;
 
   return (
     <div className="panel story-panel">
       <div className="panel-head">
         <span className="tick">{tickNum}</span>
-        <div>
+        <div style={{ flex: 1 }}>
           <h3>The Story</h3>
           <p className="dim-sub">What this dataset is telling you, in order</p>
         </div>
+        {onPresent && (
+          <button
+            type="button"
+            onClick={onPresent}
+            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.25))', background: 'transparent', color: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            ▶ Present
+          </button>
+        )}
       </div>
 
       <div className="story-beats">
