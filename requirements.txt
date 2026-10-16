@@ -9,3 +9,4 @@ scipy>=1.11
 reportlab>=4.0
 pydantic>=2.0
 starlette>=0.35
+pyarrow>=14.0

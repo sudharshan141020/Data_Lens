@@ -5,12 +5,17 @@ import UploadZone from './components/UploadZone';
 import ExecutiveSummary from './components/ExecutiveSummary';
 import IntelligentDashboard from './components/IntelligentDashboard';
 import StoryMode from './components/StoryMode';
+import StoryPresentation from './components/StoryPresentation';
 import AnalysisExplorerV2 from './components/AnalysisExplorerV2';
 import FindingsPanel from './components/FindingsPanel';
 import WeakPointsPanel from './components/WeakPointsPanel';
 import DeepDivePanel from './components/DeepDivePanel';
 import QueryBuilderPanel from './components/QueryBuilderPanel';
 import DriftBanner from './components/DriftBanner';
+import JoinBanner from './components/JoinBanner';
+import SensitiveDataBanner from './components/SensitiveDataBanner';
+import SensitiveExportDialog from './components/SensitiveExportDialog';
+import { needsGuard, getSensitiveReport, maskV2 } from './sensitiveUtils';
 import { findMatchingSnapshot, computeDrift, saveSnapshot } from './snapshotUtils';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
@@ -47,6 +52,8 @@ export default function App() {
   const [joinMode, setJoinMode] = useState(false);
   const [selectedForJoin, setSelectedForJoin] = useState([]);
   const [dismissedDriftFor, setDismissedDriftFor] = useState(null);
+  const [presentingStory, setPresentingStory] = useState(false);
+  const [exportGuard, setExportGuard] = useState(null); // { action, session, resolve, reject } while the personal-data dialog is open
   const [selectedForCompare, setSelectedForCompare] = useState([]);
   const [sampleLoadingId, setSampleLoadingId] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -104,16 +111,20 @@ export default function App() {
   useEffect(() => {
     // Escape goes back to the landing/home view — skipped while typing in
     // a text field so it can still blur/clear that field locally instead
-    // of blowing away the current session.
+    // of blowing away the current session, and skipped entirely while the
+    // Story presentation overlay is open, since that overlay has its own
+    // Escape-to-close behavior and shouldn't also navigate home underneath
+    // itself.
     const handleKeyDown = (e) => {
       if (e.key !== 'Escape') return;
+      if (presentingStory || exportGuard) return;
       const tag = document.activeElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
       setActiveId(null);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [presentingStory, exportGuard]);
 
   const handleFilesSelected = (files, errorMsg) => {
     setUploadError(errorMsg || null);
@@ -188,13 +199,34 @@ export default function App() {
     )));
   };
 
+  // Personal-data guard. Resolves with the v2 that is allowed to leave the
+  // app: untouched when the scan found nothing (or the user chose to continue
+  // as is), a masked copy when they picked columns to mask. Rejects with
+  // { cancelled: true } when they back out. The session's own data is never
+  // changed -- only the copy that is about to be shared or exported.
+  const guardedV2 = (session, action) => new Promise((resolve, reject) => {
+    const v2 = session.result.v2;
+    if (!needsGuard(v2)) { resolve(v2); return; }
+    setExportGuard({ action, session, resolve, reject });
+  });
+
+  const closeExportGuard = (columns) => {
+    const g = exportGuard;
+    if (!g) return;
+    setExportGuard(null);
+    if (columns === null) { g.reject(Object.assign(new Error('cancelled'), { cancelled: true })); return; }
+    const v2 = g.session.result.v2;
+    g.resolve(columns.length ? maskV2(v2, columns).v2 : v2);
+  };
+
   const handleExportPdf = async (session) => {
     setPdfError(null);
-    setPdfLoading(true);
     try {
-      await exportPdf(session.fileName, session.result.v2);
+      const v2 = await guardedV2(session, 'pdf');
+      setPdfLoading(true);
+      await exportPdf(session.fileName, v2);
     } catch (err) {
-      setPdfError(err.message || 'The PDF report could not be generated.');
+      if (!err?.cancelled) setPdfError(err.message || 'The PDF report could not be generated.');
     } finally {
       setPdfLoading(false);
     }
@@ -217,11 +249,22 @@ export default function App() {
   };
 
   const handleExportHtml = async (session) => {
-    await exportHtml(session.fileName, session.result.v2);
+    try {
+      const v2 = await guardedV2(session, 'html');
+      await exportHtml(session.fileName, v2);
+    } catch (err) {
+      if (!err?.cancelled) throw err;
+    }
   };
 
   const handleCreateShareLink = async (session) => {
-    return createShareLink(session.fileName, session.result.kpis, session.result.v2);
+    try {
+      const v2 = await guardedV2(session, 'share');
+      return await createShareLink(session.fileName, session.result.kpis, v2);
+    } catch (err) {
+      if (err?.cancelled) throw new Error('Share cancelled \u2014 nothing was uploaded.');
+      throw err;
+    }
   };
 
   const handleToggleCombineMode = () => {
@@ -553,21 +596,9 @@ export default function App() {
               </p>
             )}
 
-            {activeSession.isJoined && activeSession.result.join_info && (() => {
-              const j = activeSession.result.join_info;
-              return (
-                <p className="dim-sub" style={{ marginBottom: 12 }}>
-                  Joined {j.fact_file} to {j.dimension_file} on
-                  {' '}<span className="mono">{j.key_in_fact_file}</span>
-                  {j.key_in_fact_file !== j.key_in_dimension_file && <> / <span className="mono">{j.key_in_dimension_file}</span></>}
-                  {' — '}{j.matched_rows} of {j.total_rows} rows matched ({j.match_rate_pct}%)
-                  {j.unmatched_rows > 0 && `, ${j.unmatched_rows} kept with blank fields from the unmatched side`}
-                  {j.shared_column_names?.length > 0 && (
-                    <> · shared column name{j.shared_column_names.length > 1 ? 's' : ''} {j.shared_column_names.map((c) => `"${c}"`).join(', ')} kept as separate columns per file</>
-                  )}
-                </p>
-              );
-            })()}
+            {activeSession.isJoined && <JoinBanner info={activeSession.result.join_info} />}
+
+            <SensitiveDataBanner v2={activeSession.result.v2} />
 
             <div className="export-row">
               <ExportMenu
@@ -608,7 +639,10 @@ export default function App() {
 
             <IntelligentDashboard topAnalyses={displayedTopAnalyses} tickNum="02" filtersActive={hasActiveFilters} />
 
-            <StoryMode story={activeSession.result.v2.story} tickNum="03" />
+            <StoryMode story={activeSession.result.v2.story} tickNum="03" onPresent={() => setPresentingStory(true)} />
+            {presentingStory && (
+              <StoryPresentation story={activeSession.result.v2.story} onClose={() => setPresentingStory(false)} />
+            )}
 
             <QueryBuilderPanel filterableData={filterableData} rows={filteredRows} tickNum="04" />
 
@@ -621,6 +655,15 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {exportGuard && (
+        <SensitiveExportDialog
+          action={exportGuard.action}
+          report={getSensitiveReport(exportGuard.session.result.v2)}
+          onConfirm={({ columns }) => closeExportGuard(columns)}
+          onCancel={() => closeExportGuard(null)}
+        />
+      )}
     </div>
   );
 }

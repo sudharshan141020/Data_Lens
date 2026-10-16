@@ -1,0 +1,14 @@
+DataLens - personal-data detection + share/export guard
+Unzip over your project root (Windows: extract into the DataLens folder, overwrite when asked).
+
+New files: app/sensitive_data.py, tests/test_sensitive_data.py,
+  frontend/src/sensitiveUtils.js, components/SensitiveDataBanner.jsx, components/SensitiveExportDialog.jsx, + 3 tests.
+
+Replaced files (they are the copies from datalens_frontend_tests_and_ci.zip plus this change):
+  app/main.py, frontend/src/App.jsx, CHANGELOG.md
+If your main.py / App.jsx changed since that zip, DON'T overwrite them: apply the diffs instead
+  (git apply patches/main.py.diff patches/App.jsx.diff  -- or copy the few marked hunks by hand),
+  and append the new entry from CHANGELOG.md to yours.
+
+Then:  python -m pytest tests/ -q   and   cd frontend && npm test
+Optional: python scripts/regenerate_frontend_fixture.py   (so the captured fixture includes v2.sensitive_data)

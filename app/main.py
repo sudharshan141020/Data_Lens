@@ -1,6 +1,7 @@
 import io
 from typing import Optional
 import pandas as pd
+import os
 from pathlib import Path
 import json
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
@@ -40,6 +41,7 @@ from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
 from app.html_report import build_html_report
 from app.share_cache import create_share, get_share
+from app.sensitive_data import detect_sensitive_data
 
 import math
 import numpy as np
@@ -89,7 +91,10 @@ class SafeJSONResponse(_StarletteJSONResponse):
 
 app = FastAPI(title="DataLens", default_response_class=SafeJSONResponse)
 
-STATIC_DIR = Path(__file__).parent / "static"
+# Where the built frontend is served from. Defaults to app/static (what the
+# deploy steps copy frontend/dist into). DATALENS_STATIC_DIR lets the end-to-end
+# tests serve a fresh frontend/dist directly, without overwriting app/static.
+STATIC_DIR = Path(os.environ.get("DATALENS_STATIC_DIR") or Path(__file__).parent / "static")
 
 ALLOWED_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls", ".json", ".parquet"}
 MAX_FILE_SIZE_MB = 250
@@ -759,6 +764,20 @@ def _load_and_detect(filename: str, raw: bytes):
     return df_prepared, mapping
 
 
+def _attach_sensitive_report(result: dict, df: pd.DataFrame) -> dict:
+    """Scan the dataframe for personal-data columns and store the report in
+    `v2.sensitive_data` (column names + kinds only, never raw values). It
+    lives inside v2 on purpose: the share/export guard in the frontend reads
+    it from the same object that is about to be shared."""
+    try:
+        report = detect_sensitive_data(df)
+    except Exception:
+        report = None  # detection is advisory -- never let it fail an analysis
+    if report is not None and isinstance(result.get("v2"), dict):
+        result["v2"]["sensitive_data"] = report
+    return result
+
+
 def _full_analyze_from_df(df: pd.DataFrame, column_overrides: str = None) -> dict:
     """Shared by /api/analyze and /api/compare -- column detection through
     to the full response dict. Pulled out once so both endpoints run the
@@ -795,9 +814,11 @@ def _full_analyze_from_df(df: pd.DataFrame, column_overrides: str = None) -> dic
     if "revenue" not in mapping:
         # No usable numeric metric anywhere in the file — don't fail, fall
         # back to a categorical/overview-only analysis instead.
-        return _categorical_only_analysis(df, detection, v2_role_overrides=v2_role_overrides)
+        return _attach_sensitive_report(
+            _categorical_only_analysis(df, detection, v2_role_overrides=v2_role_overrides), df)
 
-    return _analyze_df(df, mapping, confidence, unmapped, detection["extra_categoricals"], v2_role_overrides=v2_role_overrides)
+    return _attach_sensitive_report(
+        _analyze_df(df, mapping, confidence, unmapped, detection["extra_categoricals"], v2_role_overrides=v2_role_overrides), df)
 
 
 class AnalyzeResponse(BaseModel):
@@ -895,6 +916,7 @@ async def analyze_combined(files: list[UploadFile] = File(...)):
     }
     result.update(_semantic_layer(combined_df))
     result["v2"] = _run_v2_pipeline(combined_df)
+    _attach_sensitive_report(result, combined_df)
     return SafeJSONResponse(result)
 
 

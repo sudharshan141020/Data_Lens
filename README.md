@@ -198,3 +198,20 @@ port.
 - Auth + persistence — an open product decision, not a default: this app
   is currently pitched as "nothing is stored," and adding accounts
   reverses that. See `HANDOFF.md` for the full reasoning.
+
+
+## Testing
+
+Three layers, from fast to realistic. All run in CI (`.github/workflows/ci.yml`).
+
+| Layer | Command | What it covers |
+|-------|---------|----------------|
+| Backend (pytest) | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
+| Frontend (Vitest) | `cd frontend && npm test` | pure logic (filtering, query builder, snapshots, API client), every panel rendered in jsdom, the whole `<App />` driven from a *real* captured backend response, and a source scan that fails on JS unicode escapes written in JSX text (they render literally and build clean) |
+| End to end (Playwright) | `cd frontend && npm run test:e2e` | a real browser against the real server: upload, dashboard, charts, query builder, Present, Escape/logo navigation |
+
+First run of the browser test: `cd frontend && npx playwright install chromium`.
+If you can't download browsers, point `PLAYWRIGHT_CHROMIUM_EXECUTABLE` at any Chromium/Chrome binary.
+
+After an intentional change to the API response shape, refresh the captured fixture:
+`python scripts/regenerate_frontend_fixture.py`, then re-run `npm test`.

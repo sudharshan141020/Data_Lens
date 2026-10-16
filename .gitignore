@@ -4,3 +4,8 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 .env
+
+# test output
+frontend/playwright-report/
+frontend/test-results/
+frontend/coverage/

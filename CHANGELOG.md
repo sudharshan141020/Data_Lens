@@ -703,6 +703,19 @@ hand rather than trusting a blind find-and-replace.
 
 **Files:** `CHANGELOG.md`.
 
+## 2026-10-01 — Fixed: the old-chat merge had deleted this chat's own "Sophistication round" entry
+The merge above replaced an entire block of the file in one shot,
+which — on top of the intended placeholder content — also wiped out
+the real "Sophistication round" entry documenting the 5-feature round
+from earlier in this same chat (seasonality-adjusted forecasting,
+confidence bands, partial correlations, statistically-gated weak
+points, risk-scored retention). That was never old-chat history to
+begin with, so it should never have been touched. Restored it as its
+own dated entry in the right chronological spot, ahead of "Readable
+chart legends."
+
+**Files:** `CHANGELOG.md`.
+
 ## 2026-10-02 — Custom pivot / ad-hoc query builder ("Ask Your Own Question")
 First of the "new territory" batch (ideas that don't overlap anything
 already in `app/`, as opposed to the earlier round that only
@@ -938,15 +951,147 @@ resolved/improved/worsened/new weak points, added/removed columns).
 `frontend/src/components/ExportMenu.jsx`, `frontend/src/App.jsx`,
 `frontend/src/App.css`.
 
-## 2026-10-01 — Fixed: the old-chat merge had deleted this chat's own "Sophistication round" entry
-The merge above replaced an entire block of the file in one shot,
-which — on top of the intended placeholder content — also wiped out
-the real "Sophistication round" entry documenting the 5-feature round
-from earlier in this same chat (seasonality-adjusted forecasting,
-confidence bands, partial correlations, statistically-gated weak
-points, risk-scored retention). That was never old-chat history to
-begin with, so it should never have been touched. Restored it as its
-own dated entry in the right chronological spot, ahead of "Readable
-chart legends."
+## 2026-10-07 — Story presentation / walkthrough mode
+Sixth and last of the "new territory" batch. The Story panel was
+already a good narrative, but it lives inside a scrolling dashboard —
+fine for reading alone, awkward for handing findings to someone else
+("scroll down to the third panel and look at the second paragraph").
+This adds a "▶ Present" button on the Story panel that opens the exact
+same beats as a fullscreen, click-through slideshow: one beat per
+slide, large type, a progress indicator you can click to jump around,
+Back/Next buttons, and keyboard control (arrow keys / space / enter to
+advance, Escape to close). No new analysis at all — purely a different
+way to deliver the existing `story_engine.py` output.
 
-**Files:** `CHANGELOG.md`.
+One real interaction to get right: the app already has a global
+Escape-to-landing-page handler (added when Escape and the logo were
+wired to go home). Pressing Escape to close the presentation shouldn't
+ALSO navigate home underneath it. Event-ordering tricks
+(`stopPropagation` and friends) don't reliably solve that when two
+listeners sit on the same `window` target and fire in registration
+order, so instead the presentation's open/closed state lives in
+`App.jsx` itself and the global handler simply checks it first and
+steps aside while presenting — one source of truth, no fragile
+ordering. The presentation component handles its own navigation keys
+only while it's mounted, so nothing leaks when it's closed.
+
+Caught a repeat of an earlier mistake mid-build: used a `\u25B6`
+escape directly in JSX text for the play icon, which JSX doesn't
+interpret the way a JS string does (the same issue hit `DriftBanner`
+last time) — swapped to the literal character before building.
+
+**Files:** `frontend/src/components/StoryPresentation.jsx` (new),
+`frontend/src/components/StoryMode.jsx`, `frontend/src/App.jsx`,
+`frontend/src/App.css`.
+
+## 2026-10-14 — Frontend test suite, end-to-end test, and CI
+The backend had 123 tests; the frontend had none, and the recent frontend
+logic (query builder, snapshot diff, join banner, story presentation) had
+only ever been checked with throwaway Node scripts. A JSX unicode-escape bug
+(`\u25B6` written in JSX text, which renders literally and builds clean) had
+shipped twice. This adds three layers of tests and a CI workflow to run them.
+
+**Backend / CI**
+- First correction: I had told you the project already had a CI workflow. It
+  doesn't — there is no `.github/` folder in the uploaded project (the old chat
+  history says one was built; it may live only in your real repo). Wrote
+  `.github/workflows/ci.yml` (pytest, Vitest + build, Playwright). **Check your
+  real repo for an existing workflow before extracting, to avoid running the
+  suite twice.**
+- Building the CI exposed that the repo could not pass its own tests on a clean
+  machine: `requirements-dev.txt` was missing `httpx2` (Starlette's TestClient
+  fails at import without it) and `requirements.txt` was missing `pyarrow`
+  (parquet upload, a shipped feature). Verified in a brand-new virtualenv:
+  fails before, 123 pass after. Both added.
+- `scripts/frontend_fixture.py` + `scripts/regenerate_frontend_fixture.py`
+  capture a REAL `/api/analyze` response from a deterministic dataset, and
+  `tests/test_frontend_fixture_contract.py` fails when the backend removes or
+  retypes a field the frontend relies on (adding fields is allowed). This stops
+  the mocked-frontend-tests-pass-against-a-shape-that-no-longer-exists failure.
+- `app/main.py`: optional `DATALENS_STATIC_DIR` so end-to-end tests serve a fresh
+  `frontend/dist` without overwriting `app/static` (default unchanged).
+
+**Frontend (Vitest + Testing Library + jsdom)** — 233 tests across 17 files:
+pure logic (`filterUtils`, `snapshotUtils` on real jsdom localStorage,
+`searchUtils`, `findingsText`, `api` with mocked fetch), every new panel
+rendered, and the entire `<App />` driven from the real captured response
+(upload, dashboard, Present, Escape ordering, logo, typing guard, snapshot to
+banner, query builder). A static scan fails the build on JS unicode escapes in
+JSX text or attributes.
+- Mutation-checked, not assumed: put the unicode bug back and confirmed the
+  tests fail while `vite build` passes silently.
+
+**Real defects the tests found (all in code from earlier rounds), fixed**
+- Query Builder dropdowns had no accessible names (labels not tied to selects).
+- Query Builder caption read "Count of records **of records**, by Category".
+- Picking the same dimension for both axes produced a meaningless Region x
+  Region heatmap (stale second selection).
+- Query Builder kept stale selections when a dataset with different columns was
+  loaded, showing "No rows match" on good data, and flashed an empty state on
+  first paint. Selections are now derived rather than synced with an effect.
+  (A first-paint test that passed on the buggy code was replaced with a
+  server-render one that fails on it.)
+- Extracted the inline join banner from `App.jsx` into `JoinBanner.jsx` so it
+  can be tested.
+
+**End to end (Playwright)** — one test: real Chromium against the real FastAPI
+server serving the real build. Upload, charts actually draw, query builder,
+Present, Escape closes only the walkthrough then goes home, logo, and no
+console errors. Hermetic against third-party requests (the Google Fonts
+stylesheet is the only external resource).
+
+**Found, not fixed:** segment-level forecasting only tries the first-ranked
+dimension; on the sales fixture that is Region (noisy), so it returns nothing
+even though Category would have shown Furniture -15.6% / Technology +10.6%.
+
+**Files:** `.github/workflows/ci.yml` (new), `requirements.txt`,
+`requirements-dev.txt`, `.gitignore`, `README.md`, `app/main.py`,
+`scripts/` (new, 3 files), `tests/test_frontend_fixture_contract.py` (new),
+`frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.js`,
+`frontend/playwright.config.js` (new), `frontend/e2e/smoke.spec.js` (new),
+`frontend/src/App.jsx`, `frontend/src/components/JoinBanner.jsx` (new),
+`frontend/src/components/QueryBuilderPanel.jsx`, `frontend/src/test/` (new:
+setup, helpers, fixtures, lint, captured response), and 17 `*.test.js(x)` files.
+Also moved the 2026-10-01 "Fixed" entry back into chronological order.
+
+## 2026-10-16 — Personal-data detection and a share/export guard
+
+**Why:** the share link carries the full `v2` result, including the row-level
+`filterable_data` and free-text top words, and the app is meant to be deployed
+publicly. Nothing looked for personal data, so an email or Customer ID column
+left the user's machine the moment they clicked "Copy share link".
+
+**Detection (backend, `app/sensitive_data.py`)** — rule-based, no new
+dependencies. Two independent signals per column: the header looks like a
+personal field, and/or the values match a pattern (email, phone, Luhn-valid
+card number, SSN / PAN / Aadhaar shapes, IPv4, name-shaped text). Agreement
+between the two is "high" confidence; one signal alone is "medium" or "low".
+Deliberate false-positive guards: value patterns run on text columns only (a
+Sales column is never read as phone numbers), headers like "Phone Model" or
+"Address Type" are ignored, and "Order ID" / "Row ID" / "Product ID" are not
+personal while "Customer ID" / "Patient ID" are. The report holds column names,
+kinds and rates, never a raw value, because it lives inside `v2`, which is
+exactly what gets shared. It is attached as `v2.sensitive_data` for single,
+combined and joined analyses; detection failing never fails an analysis.
+
+**Guard (frontend)** — a collapsed banner on the dashboard, and a dialog on
+Share link / Export HTML / Export PDF when unmasked findings exist. Three
+outcomes: mask the ticked columns, continue as is, or cancel (nothing is
+uploaded). Masking (`sensitiveUtils.js`) swaps real values for stable
+placeholders ("Customer ID 7") in a *copy* of the result, in the row data and
+in every other string (chart labels, findings text), so charts and filters
+still work; masked numeric ID columns are removed from the row data. The
+session's own data is never changed. Masking is client-side on purpose: all
+three paths already go through `api.js` with a `v2` object, so one
+implementation covers them with no backend change.
+
+**Known limits:** heuristic, so it can miss things or flag harmless columns,
+and the dialog says so. The guard is a UI check, not server enforcement: a
+direct call to `/api/share` bypasses it. Numeric IDs are only replaced when
+they are the whole string, never inside longer numbers.
+
+**Files:** `app/sensitive_data.py` (new), `app/main.py`,
+`tests/test_sensitive_data.py` (new), `frontend/src/sensitiveUtils.js` (new),
+`frontend/src/components/SensitiveDataBanner.jsx` (new),
+`frontend/src/components/SensitiveExportDialog.jsx` (new),
+`frontend/src/App.jsx`, and three new `*.test.js(x)` files.
