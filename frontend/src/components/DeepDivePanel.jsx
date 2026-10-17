@@ -11,6 +11,7 @@ import AnomaliesPanel from './AnomaliesPanel';
 import SimpsonsParadoxPanel from './SimpsonsParadoxPanel';
 import BenfordPanel from './BenfordPanel';
 import ConfidenceIntervalsPanel from './ConfidenceIntervalsPanel';
+import RobustnessPanel from './RobustnessPanel';
 import TextAnalysisPanel from './TextAnalysisPanel';
 
 // Groups the panels that piled up one-per-feature over the course of
@@ -78,6 +79,7 @@ export default function DeepDivePanel({ v2, tickNum }) {
         {active === 'precision' && (
           <>
             <ConfidenceIntervalsPanel confidenceIntervals={v2.confidence_intervals} tickNum={null} />
+            <RobustnessPanel robustness={v2.robustness} tickNum={null} />
             <TextAnalysisPanel textAnalysis={v2.text_analysis} tickNum={null} />
           </>
         )}

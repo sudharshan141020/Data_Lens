@@ -108,4 +108,19 @@ describe('buildFindingsText', () => {
       expect(buildFindingsText(session({ profile: {} }))).not.toContain('WHY IT CHANGED');
     });
   });
+
+  describe('robustness', () => {
+    const rob = (verdict, headline) => ({ available: true, overall: { verdict, headline } });
+
+    it('adds a line only when the result depends on a few rows', () => {
+      const text = buildFindingsText(session({ profile: {}, robustness: rob('sensitive', 'Sensitive to extreme rows: 1 of 4 headline numbers move materially without them.') }));
+      expect(text).toContain('ROBUSTNESS: Sensitive to extreme rows: 1 of 4 headline numbers move materially without them.');
+    });
+
+    it('stays quiet for a robust result, an unavailable one, or none at all', () => {
+      expect(buildFindingsText(session({ profile: {}, robustness: rob('robust', 'All hold.') }))).not.toContain('ROBUSTNESS');
+      expect(buildFindingsText(session({ profile: {}, robustness: { available: false } }))).not.toContain('ROBUSTNESS');
+      expect(buildFindingsText(session({ profile: {} }))).not.toContain('ROBUSTNESS');
+    });
+  });
 });

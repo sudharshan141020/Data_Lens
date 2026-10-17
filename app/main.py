@@ -37,6 +37,7 @@ from app.period_comparison import compare_periods
 from app.forecasting import forecast_trend
 from app.changepoint import detect_changepoint
 from app.drivers import analyze_drivers
+from app.robustness import analyze_robustness
 from app.segment_forecast import forecast_top_segments
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
@@ -430,6 +431,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
     multicollinearity_report = analyze_multicollinearity(df_exec, profile)
     simpsons_paradox_report = check_simpsons_paradox(df_exec, profile, correlation_report["pairs"])
     partial_correlation_report = analyze_partial_correlations(df_exec, profile, correlation_report["pairs"])
+    robustness_report = analyze_robustness(df_exec, profile, correlation_report["pairs"])
     benford_report = check_benfords_law(df_exec, profile)
     filterable_data = build_filterable_data(df_exec, profile)
 
@@ -497,6 +499,7 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
         "benford": benford_report,
         "cohorts": _serialize_cohorts(cohort_report, retention_risk_report),
         "confidence_intervals": confidence_interval_report,
+        "robustness": robustness_report,
         "text_analysis": text_analysis_report,
     }
 

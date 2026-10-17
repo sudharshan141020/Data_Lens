@@ -87,6 +87,12 @@ export function buildFindingsText(session) {
     lines.push('');
   }
 
+  // --- Robustness: only worth a line when the story depends on a few rows ---
+  if (v2.robustness?.available && v2.robustness.overall?.verdict === 'sensitive') {
+    lines.push(`ROBUSTNESS: ${v2.robustness.overall.headline}`);
+    lines.push('');
+  }
+
   // --- Weak Points (high priority only, keep it lightweight) ---
   const highPriority = (v2.weak_points || []).filter((w) => w.priority === 'high').slice(0, MAX_WEAK_POINTS);
   if (highPriority.length) {

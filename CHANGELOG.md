@@ -1189,3 +1189,62 @@ CSS is also gone.
 **Limits:** the look is a clean rebuild, not a pixel match of the original.
 **Files:** `frontend/src/components/StoryPresentation.jsx` (restored),
 `frontend/src/components/StoryMode.jsx`.
+
+## 2026-10-16 — Robustness check: "does this hold without the outliers?"
+
+**Why:** the bootstrap confidence intervals and gated weak points test sampling
+noise. This tests a different failure mode: a result that is real for the data
+in hand but is really about a handful of extreme rows (an average dragged by
+three giant orders, a correlation that is one point in the corner of the
+scatter). Resampling the same rows reproduces that every time, so an interval
+cannot warn about it.
+
+**Backend (`app/robustness.py`)** — re-runs the headline numbers (the same six
+measures the KPI intervals cover) and the top eight correlations with extreme
+rows set aside, and flags what moves materially or flips. "Extreme" is the
+textbook Tukey fence (Q1 − 1.5×IQR to Q3 + 1.5×IQR), computed once per measure;
+for a correlation a row is set aside if it is extreme in either column.
+Correlations are recomputed with the Correlation Center's own `_correlate_pair`,
+so the "full" side matches what is already on screen. Nothing new statistically.
+Decisions worth knowing:
+- **A summed KPI is judged by how much the extremes carry, not by the drop.**
+  Removing rows from a total always lowers it, which proves nothing; "the 3
+  extreme rows carry 38% of the total" does. An averaged KPI is compared
+  directly (full mean vs trimmed mean). Material = average moves ≥10%, or
+  extremes carry ≥20% of a total.
+- **Correlation verdicts:** holds / weakens / strengthens (the extremes were
+  hiding it) / loses significance / flips / unclear. Material = |Δr| ≥ 0.15,
+  lost significance, or a sign reversal where both sides have |r| ≥ 0.1, so a
+  wobble between +0.03 and −0.04 is not a "flip".
+- **No strength-label rule.** First version also called a change material when
+  r crossed a label boundary; clean synthetic data then raised a false alarm
+  (r 0.702 → 0.687, "strong" → "moderate"). Removed: size of change only.
+- **Skewed is not outlier-driven.** If more than 5% of rows fall outside the
+  fences the measure is reported as "skewed" and never makes the overall verdict
+  "sensitive". Found on the demo sales data: Discount flagged 63 rows (10.5%)
+  and the average "moved 29%", but discount has real tiers (0 / 0.1 / 0.2 / 0.7),
+  so those are legitimate values, not outliers. A sign flip or lost significance
+  still counts however many rows were set aside.
+- Columns with no spread (IQR 0, e.g. mostly zeros) are reported as such, not
+  crashed on; too few rows left after trimming says "unclear" rather than guessing.
+It sets rows aside to test sensitivity only; no other number in the app changes,
+and the panel says extreme rows are not errors. Wired into `_run_v2_pipeline`
+after the correlation analysis as `v2.robustness`.
+
+**Frontend** — "Does This Hold Without the Outliers?" panel in Deep Dive →
+Precision & Text, right after the confidence intervals. Overall verdict and
+headline, then each number (full → trimmed, rows set aside) and each correlation
+(r before → after), with material findings sorted first. "Copy findings" gets a
+ROBUSTNESS line, but only when the result is sensitive.
+
+**Limits:** like Period Comparison and Drivers it reads the full dataset and does
+not re-compute under the filter bar. A fixed 1.5×IQR rule is a convention, not a
+law: on very heavy-tailed data it flags many rows (hence the "skewed" outcome).
+
+**Files:** `app/robustness.py` (new), `app/main.py`, `tests/test_robustness.py`
+(new), `frontend/src/robustnessUtils.js` (new),
+`frontend/src/components/RobustnessPanel.jsx` (new),
+`frontend/src/components/DeepDivePanel.jsx`, `frontend/src/findingsText.js`,
+`frontend/src/robustnessUtils.test.js` (new),
+`frontend/src/components/RobustnessPanel.test.jsx` (new),
+`frontend/src/findingsText.test.js`, and the regenerated frontend fixture.
