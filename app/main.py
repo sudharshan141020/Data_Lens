@@ -39,6 +39,8 @@ from app.changepoint import detect_changepoint
 from app.drivers import analyze_drivers
 from app.robustness import analyze_robustness
 from app.code_export import generate_script
+from app.hypothesis import run_hypothesis_test
+from app.filtering import MAX_ROWS_FOR_FILTERING
 from app.segment_forecast import forecast_top_segments
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
@@ -999,6 +1001,17 @@ class CodeExportRequest(BaseModel):
     filters: Optional[dict] = None   # {dateColumn, dateFrom, dateTo, dimensionFilters: {col: [values]}}
 
 
+class HypothesisTestRequest(BaseModel):
+    group_column: str
+    outcome_column: str
+    group_a: str
+    group_b: str
+    groups: list           # one entry per row, parallel to `outcomes`
+    outcomes: list
+    outcome_kind: str = "auto"            # auto | numeric | categorical
+    positive_level: Optional[str] = None  # which outcome value to measure the rate of (categorical)
+
+
 class ShareRequest(BaseModel):
     file_name: str
     kpis: dict = {}
@@ -1110,6 +1123,21 @@ def export_html(payload: PdfExportRequest):
         media_type="text/html",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}_report.html"'},
     )
+
+
+@app.post("/api/hypothesis-test")
+def hypothesis_test(payload: HypothesisTestRequest):
+    """A directed A-vs-B question on rows the browser already holds (the same
+    filtered rows the dashboard shows). Stateless like the exports: nothing is
+    stored, and an unusable question comes back as available=false with a
+    plain-language note rather than as an error."""
+    if len(payload.groups) > MAX_ROWS_FOR_FILTERING:
+        raise HTTPException(413, "Too many rows for an interactive test.")
+    result = run_hypothesis_test(
+        payload.groups, payload.outcomes, payload.group_a, payload.group_b,
+        payload.group_column, payload.outcome_column, payload.outcome_kind, payload.positive_level,
+    )
+    return SafeJSONResponse(result)
 
 
 @app.post(

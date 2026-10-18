@@ -1311,3 +1311,69 @@ New endpoint `POST /api/export/code`; `api.js` gets `exportCode` and
 `frontend/src/App.jsx`, `frontend/src/api.test.js`,
 `frontend/src/components/ExportMenu.test.jsx`, `frontend/src/App.test.jsx`, and
 the regenerated frontend fixture.
+
+## 2026-10-18 — A/B and hypothesis-test mode ("Test a Hypothesis")
+
+**Why:** everything else in DataLens is discovery: it looks at the data and says
+what stands out. This answers the question people actually walk in with: *is
+group B different from group A on this outcome?* Pick a group column, the two
+groups, and an outcome. The test is chosen for you and the answer comes back as
+an effect size, an interval and a plain-language verdict, not a bare p-value.
+
+**Backend (`app/hypothesis.py`, `POST /api/hypothesis-test`)** — stateless; it
+receives the two groups' values (the rows the dashboard is showing, so the filter
+bar applies) and returns a result. An unusable question comes back as
+`available: false` with a plain-language note, not as an error.
+Which test, and why (the reason is returned and shown, never hidden):
+- *Numeric outcome:* **Welch's t-test** (the p-value comes from the existing
+  `period_comparison._welch_t_test`) when each group has ≥30 rows, or smaller
+  groups that look normal; **Mann-Whitney U** when a group has <30 rows and fails
+  a Shapiro-Wilk normality check. Effect size: Hedges-corrected Cohen's d, or the
+  rank-biserial correlation plus the chance a random B row beats a random A row.
+  Interval: Welch-Satterthwaite 95% interval for the mean difference, or a seeded
+  bootstrap interval for the median difference. The *other* test is always run as
+  a cross-check, and the verdict says when they disagree (usually outliers or
+  skew deciding it, which ties in with the robustness check).
+- *Categorical outcome (or a 0/1 flag):* **chi-square** when every expected count
+  is ≥5; **Fisher's exact** for a 2×2 table with a smaller expected count.
+  Effect size: Cramér's V. For a 2×2: the rate in each group, the difference with
+  a Newcombe-Wilson interval (sound near 0% and 100%), and the relative risk.
+  More than two outcome values: a mix comparison with the biggest gap named.
+Deliberate limits: two groups at a time ("A vs B" is the question; a multi-group
+test answers "is there any difference anywhere?"); rows are assumed independent
+(said in every result: repeated customers make the p-value too optimistic); no
+multiple-testing correction, since it is one question the person chose, and the
+result warns that testing many pairs and reporting the best one inflates false
+positives. Effect size and interval lead the verdict; the p-value does not.
+
+**How it was checked** (`tests/test_hypothesis.py`, 50 tests): every number against
+scipy or a hand calculation (the Welch interval equals scipy's exactly; Newcombe
+built independently from scipy's Wilson intervals); **calibration**, which catches
+a miswired p-value even when each unit test passes: with no real difference about
+5% of 600 simulated tests come out significant (accepted 2.5–8.5%), with a real
+effect >90% do and none point the wrong way, and the proportion test is calibrated
+too; and a run over all three sample datasets. Edge cases: a tiny effect with a
+huge sample is called "negligible", not important; a sign flip is surfaced; an
+outlier that hides a real shift from the t-test produces a cross-check
+disagreement warning; unusable inputs are explained, not guessed.
+
+**Frontend** — new "Test a Hypothesis" panel under "Ask Your Own Question":
+group column, A, B (each hides the other's pick), outcome, and a "rate of" picker
+when the outcome is a category or 0/1 flag. It runs only when asked (never as a
+dropdown changes) and shows an answer only while it still matches the question and
+rows on screen; a slow earlier request cannot overwrite a newer one. The result
+shows the verdict first, an interval graphic that always includes zero, the group
+statistics, the p-value, effect size, cross-check, why this test, and collapsed
+"things to keep in mind". Only the two groups' values are sent to the server.
+
+**Wording fix found by reading real output:** a non-significant result first said
+"a real difference of up to about 47 cannot be ruled out", which is lopsided for an
+asymmetric interval (−47 to +5) and wrong for a very precise one. It now states the
+whole range the data are consistent with.
+
+**Files:** `app/hypothesis.py` (new), `app/main.py`, `tests/test_hypothesis.py`
+(new), `frontend/src/hypothesisUtils.js` (new),
+`frontend/src/components/HypothesisTestPanel.jsx` (new), `frontend/src/api.js`,
+`frontend/src/App.jsx`, `frontend/src/hypothesisUtils.test.js` (new),
+`frontend/src/components/HypothesisTestPanel.test.jsx` (new),
+`frontend/src/api.test.js`, `frontend/src/App.test.jsx`.

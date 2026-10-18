@@ -152,4 +152,37 @@ describe('App (integration, real backend response)', () => {
     expect(sent.v2.top_analyses.length).toBeGreaterThan(0);
     await vi.waitFor(() => expect(click.lastDownload).toBe('sales_datalens.py'));
   });
+
+  it('Test a Hypothesis sends only the two chosen groups\' rows and shows the verdict', async () => {
+    const result = {
+      available: true, kind: 'numeric', group_a: 'West', group_b: 'East', group_column: 'Region', outcome_column: 'Sales',
+      test: { id: 'welch_t', name: "Welch's t-test", why: 'Both groups have at least 30 rows.' },
+      statistic_label: 'Difference in means (B \u2212 A)', difference: 1, interval: [-1, 3], interval_method: '95% interval',
+      p_value: 0.4, significant: false, effect_size: { name: "Cohen's d", value: 0.1, label: 'negligible' },
+      stats: { West: { n: 3, mean: 1, median: 1, std: 1 }, East: { n: 3, mean: 2, median: 2, std: 1 } },
+      cross_check: { test: 'Mann-Whitney U', p_value: 0.5, agrees: true },
+      headline: 'No clear difference in Sales between West and East.', caveats: ['Assumes independent rows.'],
+    };
+    const fetchFn = vi.fn(async (url) => {
+      if (url === '/api/analyze') return { ok: true, status: 200, json: async () => analysis };
+      if (url === '/api/hypothesis-test') return { ok: true, status: 200, json: async () => result };
+      return { ok: false, status: 404, json: async () => ({ detail: `unexpected request in test: ${url}` }) };
+    });
+    vi.stubGlobal('fetch', fetchFn);
+
+    render(<App />);
+    await uploadSalesCsv();
+
+    expect(await screen.findByRole('heading', { name: 'Test a Hypothesis' })).toBeInTheDocument();
+    expect(fetchFn).not.toHaveBeenCalledWith('/api/hypothesis-test', expect.anything());   // never runs by itself
+    fireEvent.click(screen.getByRole('button', { name: /run test/i }));
+    expect(await screen.findByText('No clear difference in Sales between West and East.')).toBeInTheDocument();
+
+    const call = fetchFn.mock.calls.find((c) => c[0] === '/api/hypothesis-test');
+    const sent = JSON.parse(call[1].body);
+    expect(sent.groups.length).toBeGreaterThan(0);
+    expect(new Set(sent.groups)).toEqual(new Set([sent.group_a, sent.group_b]));
+    expect(sent.groups).toHaveLength(sent.outcomes.length);
+    expect(Object.keys(sent)).not.toContain('rows');
+  });
 });

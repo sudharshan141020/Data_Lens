@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   analyzeFile, analyzeCombined, analyzeJoined, compareFiles, loadSampleFile, SAMPLE_DATASETS,
-  createShareLink, fetchSharedAnalysis, exportPdf, exportHtml, exportCode, serializeFilters, downloadCleanedCsv,
+  createShareLink, fetchSharedAnalysis, exportPdf, exportHtml, exportCode, serializeFilters, runHypothesisTest, downloadCleanedCsv,
 } from './api';
 
 function reply({ ok = true, status = 200, body = {}, blob = new Blob(['x']), headers = {} } = {}) {
@@ -250,5 +250,30 @@ describe('exportCode', () => {
     await expect(exportCode('x', V2, null)).rejects.toThrow('Could not generate the script.');
     stubFetch(reply({ ok: false, status: 500, body: {} }));
     await expect(exportCode('x', V2, null)).rejects.toThrow('The script could not be generated.');
+  });
+});
+
+describe('runHypothesisTest', () => {
+  const PAYLOAD = { group_column: 'Region', outcome_column: 'Sales', group_a: 'West', group_b: 'East', groups: ['West', 'East'], outcomes: [1, 2], outcome_kind: 'auto', positive_level: null };
+
+  it('posts the payload as JSON to the hypothesis endpoint and returns the result', async () => {
+    const fetchFn = stubFetch(reply({ body: { available: true, significant: false } }));
+    const out = await runHypothesisTest(PAYLOAD);
+    expect(fetchFn.mock.calls[0][0]).toBe('/api/hypothesis-test');
+    expect(fetchFn.mock.calls[0][1].method).toBe('POST');
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body)).toEqual(PAYLOAD);
+    expect(out).toEqual({ available: true, significant: false });
+  });
+
+  it('passes an "unusable question" answer through untouched (available:false is not an error)', async () => {
+    stubFetch(reply({ body: { available: false, note: 'Needs at least 5 rows with a value in each group; East has 3.' } }));
+    expect(await runHypothesisTest(PAYLOAD)).toEqual({ available: false, note: 'Needs at least 5 rows with a value in each group; East has 3.' });
+  });
+
+  it('turns a failed request into an Error with the server message, or a default', async () => {
+    stubFetch(reply({ ok: false, status: 413, body: { detail: 'Too many rows for an interactive test.' } }));
+    await expect(runHypothesisTest(PAYLOAD)).rejects.toThrow('Too many rows for an interactive test.');
+    stubFetch(reply({ ok: false, status: 500, body: {} }));
+    await expect(runHypothesisTest(PAYLOAD)).rejects.toThrow('The test could not be run.');
   });
 });

@@ -11,6 +11,7 @@ import FindingsPanel from './components/FindingsPanel';
 import WeakPointsPanel from './components/WeakPointsPanel';
 import DeepDivePanel from './components/DeepDivePanel';
 import QueryBuilderPanel from './components/QueryBuilderPanel';
+import HypothesisTestPanel from './components/HypothesisTestPanel';
 import DriftBanner from './components/DriftBanner';
 import JoinBanner from './components/JoinBanner';
 import SensitiveDataBanner from './components/SensitiveDataBanner';
@@ -646,6 +647,8 @@ export default function App() {
             )}
 
             <QueryBuilderPanel filterableData={filterableData} rows={filteredRows} tickNum="04" />
+
+            <HypothesisTestPanel filterableData={filterableData} rows={filteredRows} tickNum={null} />
 
             <div className="dashboard-grid">
               <AnalysisExplorerV2 analyses={displayedAllAnalyses} tickNum="05" filtersActive={hasActiveFilters} jumpTarget={jumpTarget} />

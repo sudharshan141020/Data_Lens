@@ -247,6 +247,26 @@ export function serializeFilters(filters) {
   return out;
 }
 
+// A directed A-vs-B question. The server only gets the two groups' values (the
+// rows the dashboard is showing); an unusable question comes back as
+// { available: false, note } rather than an error, so the panel can say why.
+export async function runHypothesisTest(payload) {
+  const res = await fetch(`${API_BASE}/api/hypothesis-test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let message = 'The test could not be run.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
 // "Show the code": a pandas script that reproduces this analysis. The server
 // only needs column names and the analysis definitions, never the row data, so
 // the rows are dropped here (they can be the largest part of the result).
