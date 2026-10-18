@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, onCreateShareLink, onSaveSnapshot, pdfLoading }) {
+export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, onExportCode, onCreateShareLink, onSaveSnapshot, pdfLoading }) {
   const [open, setOpen] = useState(false);
   const [copyState, setCopyState] = useState('idle'); // idle | copied | error
   const [cleanState, setCleanState] = useState('idle'); // idle | downloading | done | error
   const [htmlState, setHtmlState] = useState('idle'); // idle | downloading | done | error
+  const [codeState, setCodeState] = useState('idle'); // idle | downloading | done | error
   const [shareState, setShareState] = useState('idle'); // idle | creating | copied | error
   const [snapshotState, setSnapshotState] = useState('idle'); // idle | saved | error
   const wrapRef = useRef(null);
@@ -67,6 +68,20 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
   };
 
   const htmlLabel = htmlState === 'downloading' ? 'Preparing…' : htmlState === 'done' ? 'Downloaded!' : htmlState === 'error' ? "Couldn't download" : 'HTML report (self-contained)';
+
+  const handleExportCode = async () => {
+    setCodeState('downloading');
+    try {
+      await onExportCode();
+      setCodeState('done');
+    } catch {
+      setCodeState('error');
+    }
+    setTimeout(() => setCodeState('idle'), 1800);
+    setOpen(false);
+  };
+
+  const codeLabel = codeState === 'downloading' ? 'Preparing…' : codeState === 'done' ? 'Downloaded!' : codeState === 'error' ? "Couldn't download" : 'Python script (pandas)';
 
   const handleCreateShareLink = async () => {
     setShareState('creating');
@@ -163,6 +178,19 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
             >
               <span>{htmlLabel}</span>
               <span className="export-menu-ext">.html</span>
+            </button>
+          )}
+          {onExportCode && (
+            <button
+              type="button"
+              className="export-menu-item"
+              role="menuitem"
+              disabled={codeState === 'downloading'}
+              onClick={handleExportCode}
+              title="A plain pandas script that reproduces the cleaning, the headline numbers, the groupbys behind each analysis and your active filters"
+            >
+              <span>{codeLabel}</span>
+              <span className="export-menu-ext">.py</span>
             </button>
           )}
           {onCreateShareLink && (

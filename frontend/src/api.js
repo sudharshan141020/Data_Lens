@@ -225,6 +225,61 @@ export async function exportPdf(fileName, v2) {
   URL.revokeObjectURL(url);
 }
 
+// The dashboard keeps its filters as { dateColumn, dateFrom, dateTo,
+// dimensionFilters: { column: Set } }. Sets don't survive JSON, and "no filters"
+// should be sent as null so the generated script says so instead of listing
+// empty conditions.
+export function serializeFilters(filters) {
+  if (!filters) return null;
+  const dimensionFilters = {};
+  for (const [col, allowed] of Object.entries(filters.dimensionFilters || {})) {
+    const values = allowed ? Array.from(allowed) : [];
+    if (values.length) dimensionFilters[col] = values;
+  }
+  const hasDate = !!(filters.dateFrom || filters.dateTo);
+  if (!hasDate && Object.keys(dimensionFilters).length === 0) return null;
+  const out = { dimensionFilters };
+  if (hasDate) {
+    out.dateColumn = filters.dateColumn;
+    if (filters.dateFrom) out.dateFrom = filters.dateFrom;
+    if (filters.dateTo) out.dateTo = filters.dateTo;
+  }
+  return out;
+}
+
+// "Show the code": a pandas script that reproduces this analysis. The server
+// only needs column names and the analysis definitions, never the row data, so
+// the rows are dropped here (they can be the largest part of the result).
+export async function exportCode(fileName, v2, filters) {
+  const v2ForExport = v2.filterable_data ? { ...v2, filterable_data: { ...v2.filterable_data, rows: [] } } : v2;
+
+  const res = await fetch(`${API_BASE}/api/export/code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_name: fileName, v2: v2ForExport, filters: serializeFilters(filters) }),
+  });
+
+  if (!res.ok) {
+    let message = 'The script could not be generated.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const safeName = (fileName || 'datalens').replace(/\.[^/.]+$/, '').replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '') || 'datalens';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${safeName}_datalens.py`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function exportHtml(fileName, v2) {
   const { filterable_data, ...v2ForExport } = v2;
 

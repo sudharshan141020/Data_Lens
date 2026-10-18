@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   analyzeFile, analyzeCombined, analyzeJoined, compareFiles, loadSampleFile, SAMPLE_DATASETS,
-  createShareLink, fetchSharedAnalysis, exportPdf, exportHtml, downloadCleanedCsv,
+  createShareLink, fetchSharedAnalysis, exportPdf, exportHtml, exportCode, serializeFilters, downloadCleanedCsv,
 } from './api';
 
 function reply({ ok = true, status = 200, body = {}, blob = new Blob(['x']), headers = {} } = {}) {
@@ -186,5 +186,69 @@ describe('exports', () => {
   it('a malformed summary header does not fail the download', async () => {
     stubFetch(reply({ headers: { 'x-clean-summary': '{not json' } }));
     await expect(downloadCleanedCsv(csv('raw.csv'), 'd.csv')).resolves.toBeNull();
+  });
+});
+
+describe('serializeFilters', () => {
+  it('turns the dashboard\'s Sets into arrays and keeps the date range', () => {
+    expect(serializeFilters({ dateColumn: 'Order Date', dateFrom: '2024-01-01', dateTo: '2024-03-31', dimensionFilters: { Region: new Set(['West', 'East']) } }))
+      .toEqual({ dateColumn: 'Order Date', dateFrom: '2024-01-01', dateTo: '2024-03-31', dimensionFilters: { Region: ['West', 'East'] } });
+  });
+  it('sends null when nothing is actually filtered (empty sets, blank dates, no filters at all)', () => {
+    expect(serializeFilters(null)).toBeNull();
+    expect(serializeFilters(undefined)).toBeNull();
+    expect(serializeFilters({ dateFrom: '', dateTo: '', dimensionFilters: { Region: new Set(), Category: undefined } })).toBeNull();
+  });
+  it('drops empty dimension filters but keeps the ones with values, and a one-sided date range', () => {
+    expect(serializeFilters({ dateColumn: 'D', dateFrom: '2024-05-01', dimensionFilters: { Region: new Set(), Category: new Set(['Tech']) } }))
+      .toEqual({ dateColumn: 'D', dateFrom: '2024-05-01', dimensionFilters: { Category: ['Tech'] } });
+  });
+});
+
+describe('exportCode', () => {
+  let click;
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake');
+    URL.revokeObjectURL = vi.fn();
+    click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () { click.lastDownload = this.download; });
+  });
+  const V2 = { findings: [1], filterable_data: { available: true, date_column: 'D', dimension_columns: ['Region'], rows: new Array(1000).fill({ Region: 'West' }) } };
+
+  it('posts the result without the row data, plus the serialised filters', async () => {
+    const fetchFn = stubFetch(reply());
+    await exportCode('Q3 Sales.csv', V2, { dimensionFilters: { Region: new Set(['West']) } });
+    expect(fetchFn.mock.calls[0][0]).toBe('/api/export/code');
+    const sent = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(sent.file_name).toBe('Q3 Sales.csv');
+    expect(sent.filters).toEqual({ dimensionFilters: { Region: ['West'] } });
+    expect(sent.v2.findings).toEqual([1]);
+    expect(sent.v2.filterable_data.rows).toEqual([]);           // rows are not uploaded...
+    expect(sent.v2.filterable_data.dimension_columns).toEqual(['Region']);   // ...but the column names the script needs are
+  });
+
+  it('does not mutate the live result (the session keeps its rows)', async () => {
+    stubFetch(reply());
+    await exportCode('x.csv', V2, null);
+    expect(V2.filterable_data.rows).toHaveLength(1000);
+  });
+
+  it('works when the result has no filterable_data at all', async () => {
+    const fetchFn = stubFetch(reply());
+    await exportCode('x.csv', { findings: [] }, null);
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body)).toEqual({ file_name: 'x.csv', v2: { findings: [] }, filters: null });
+  });
+
+  it('names the file from a sanitised dataset name, ending in .py', async () => {
+    stubFetch(reply());
+    await exportCode('Q3 Sales (final).csv', V2, null);
+    expect(click.lastDownload).toBe('Q3_Sales_final_datalens.py');
+    expect(URL.revokeObjectURL).toHaveBeenCalled();
+  });
+
+  it('shows the server message when it fails, with a sensible default', async () => {
+    stubFetch(reply({ ok: false, status: 500, body: { detail: 'Could not generate the script.' } }));
+    await expect(exportCode('x', V2, null)).rejects.toThrow('Could not generate the script.');
+    stubFetch(reply({ ok: false, status: 500, body: {} }));
+    await expect(exportCode('x', V2, null)).rejects.toThrow('The script could not be generated.');
   });
 });

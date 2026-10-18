@@ -38,6 +38,7 @@ from app.forecasting import forecast_trend
 from app.changepoint import detect_changepoint
 from app.drivers import analyze_drivers
 from app.robustness import analyze_robustness
+from app.code_export import generate_script
 from app.segment_forecast import forecast_top_segments
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
@@ -444,6 +445,10 @@ def _run_v2_pipeline(df: pd.DataFrame, role_overrides: dict = None) -> dict:
             "column_count": profile.column_count,
             "data_completeness_pct": profile.data_completeness_pct,
             "key_kpis": analyzer.key_kpis,
+            # Names only, used by the "show the code" export to know which
+            # columns exist and which were parsed as dates -- no values.
+            "columns": [str(c) for c in df.columns],
+            "date_columns": [str(c) for c, role in profile.semantic_roles.items() if role == "DATE"],
         },
         "filterable_data": filterable_data,
         "top_analyses": top_executed,
@@ -988,6 +993,12 @@ class PdfExportRequest(BaseModel):
     v2: dict
 
 
+class CodeExportRequest(BaseModel):
+    file_name: str
+    v2: dict
+    filters: Optional[dict] = None   # {dateColumn, dateFrom, dateTo, dimensionFilters: {col: [values]}}
+
+
 class ShareRequest(BaseModel):
     file_name: str
     kpis: dict = {}
@@ -1098,6 +1109,29 @@ def export_html(payload: PdfExportRequest):
         content=html_str.encode("utf-8"),
         media_type="text/html",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}_report.html"'},
+    )
+
+
+@app.post(
+    "/api/export/code",
+    responses={200: {"content": {"text/x-python": {}}, "description": "A pandas script that reproduces the analysis, as a direct download."}},
+)
+def export_code(payload: CodeExportRequest):
+    """Template-based (no LLM) pandas script for the analysis the user is
+    looking at. Stateless like the other exports: it needs only the result the
+    frontend already holds plus the active filters, and never sees the data."""
+    if not payload.v2:
+        raise HTTPException(400, "No analysis data provided.")
+    try:
+        script = generate_script(payload.file_name, payload.v2, payload.filters)
+    except Exception:
+        raise HTTPException(500, "Could not generate the script.")
+
+    safe_name = "".join(c for c in payload.file_name.rsplit(".", 1)[0] if c.isalnum() or c in ("-", "_")) or "datalens"
+    return Response(
+        content=script.encode("utf-8"),
+        media_type="text/x-python",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}_datalens.py"'},
     )
 
 

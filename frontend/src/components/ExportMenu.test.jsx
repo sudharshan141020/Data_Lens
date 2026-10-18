@@ -60,4 +60,38 @@ describe('ExportMenu', () => {
     openMenu();
     expect(screen.getByRole('menuitem', { name: /couldn't save/i })).toBeInTheDocument();
   });
+
+  describe('Python script item', () => {
+    it('only appears when the app can generate one', () => {
+      const { rerender } = render(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} />);
+      openMenu();
+      expect(screen.queryByRole('menuitem', { name: /python script/i })).not.toBeInTheDocument();
+      rerender(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} onExportCode={async () => {}} />);
+      const item = screen.getByRole('menuitem', { name: /python script/i });
+      expect(item).toHaveTextContent('.py');
+      expect(item).toHaveAttribute('title', expect.stringMatching(/pandas script/));
+    });
+
+    it('runs the handler, closes the menu, confirms briefly, then resets', async () => {
+      vi.useFakeTimers();
+      const onExportCode = vi.fn().mockResolvedValue(undefined);
+      render(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} onExportCode={onExportCode} />);
+      openMenu();
+      await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /python script/i })); });
+      expect(onExportCode).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(2000); });
+      openMenu();
+      expect(screen.getByRole('menuitem', { name: /python script/i })).toBeInTheDocument();
+    });
+
+    it('a failed download shows "Couldn\'t download" instead of failing silently', async () => {
+      vi.useFakeTimers();
+      render(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} onExportCode={vi.fn().mockRejectedValue(new Error('x'))} />);
+      openMenu();
+      await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /python script/i })); });
+      openMenu();
+      expect(screen.getByRole('menuitem', { name: /couldn't download/i })).toBeInTheDocument();
+    });
+  });
 });

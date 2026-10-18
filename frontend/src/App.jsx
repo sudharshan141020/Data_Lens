@@ -23,7 +23,7 @@ import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
-import { analyzeFile, analyzeCombined, analyzeJoined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis } from './api';
+import { analyzeFile, analyzeCombined, analyzeJoined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis, exportCode } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { buildFindingsText } from './findingsText';
 import CompareView from './components/CompareView';
@@ -607,6 +607,7 @@ export default function App() {
                 onCopyFindings={() => handleCopyFindings(activeSession)}
                 onDownloadCleanedCsv={activeSession.sourceFile ? () => handleDownloadCleanedCsv(activeSession) : null}
                 onExportHtml={() => handleExportHtml(activeSession)}
+                onExportCode={isPlainSession ? () => exportCode(activeSession.fileName, activeSession.result.v2, filters) : null}
                 onCreateShareLink={() => handleCreateShareLink(activeSession)}
                 onSaveSnapshot={isPlainSession ? () => saveSnapshot(activeSession) : null}
                 pdfLoading={pdfLoading}

@@ -126,4 +126,30 @@ describe('App (integration, real backend response)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View what changed' }));
     expect(screen.getByText('Measures')).toBeInTheDocument();
   });
+
+  it('Export > Python script downloads a script for the uploaded file, sending no row data', async () => {
+    const fetchFn = vi.fn(async (url) => {
+      if (url === '/api/analyze') return { ok: true, status: 200, json: async () => analysis };
+      if (url === '/api/export/code') return { ok: true, status: 200, blob: async () => new Blob(['print(1)']) };
+      return { ok: false, status: 404, json: async () => ({ detail: `unexpected request in test: ${url}` }) };
+    });
+    vi.stubGlobal('fetch', fetchFn);
+    URL.createObjectURL = vi.fn(() => 'blob:fake');
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () { click.lastDownload = this.download; });
+
+    render(<App />);
+    await uploadSalesCsv();
+
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /python script/i }));
+    await vi.waitFor(() => expect(fetchFn).toHaveBeenCalledWith('/api/export/code', expect.anything()));
+
+    const sent = JSON.parse(fetchFn.mock.calls.find((c) => c[0] === '/api/export/code')[1].body);
+    expect(sent.file_name).toBe('sales.csv');
+    expect(sent.filters).toBeNull();
+    expect(sent.v2.filterable_data.rows).toEqual([]);
+    expect(sent.v2.top_analyses.length).toBeGreaterThan(0);
+    await vi.waitFor(() => expect(click.lastDownload).toBe('sales_datalens.py'));
+  });
 });

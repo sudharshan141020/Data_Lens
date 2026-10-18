@@ -1248,3 +1248,66 @@ law: on very heavy-tailed data it flags many rows (hence the "skewed" outcome).
 `frontend/src/robustnessUtils.test.js` (new),
 `frontend/src/components/RobustnessPanel.test.jsx` (new),
 `frontend/src/findingsText.test.js`, and the regenerated frontend fixture.
+
+## 2026-10-17 — "Show the code" export (pandas script)
+
+**Why:** the app is rule-based, but from the outside it still looks like a
+black box: an analyst sees "Sales by Region" and has no way to check how it was
+made or carry on from it. Export → *Python script (pandas)* downloads a plain
+script that reproduces what the dashboard did, so it can be read, verified and
+continued in a notebook.
+
+**What the script contains** (`app/code_export.py`, a fixed template per
+analysis type, no LLM): loading the file the way the app does (encodings, JSON
+flattening, the ≥90%-numeric coercion of columns with stray "N/A"s, and the
+app's float32 precision); parsing the same date columns; the headline numbers;
+then one groupby snippet per analysis (trend, by-category totals and counts,
+cross-tabs, histograms, correlations, correlation matrix, outlier fences),
+Key Analyses first, each mirroring `executor_v2.py`; and the filters that were
+active at export time. Cells are marked `# %%` for VS Code / Jupyter, and a
+`RESULTS` dict at the end is keyed by the same analysis ids the app uses.
+Two switches at the top: `MATCH_APP_PRECISION` (default on, so totals match the
+app to the last digit; the cost is float32-looking digits) and
+`REMOVE_EXACT_DUPLICATES` (default off, because the app analyses every row as
+loaded; only its separate "cleaned CSV" export drops duplicates).
+
+**Filters reproduce the app's actual behaviour, not an idealised one:** the
+dashboard only re-computes the trend and the by-category charts under the
+filter bar, so the script applies filters to exactly those (`df_filtered`) and
+leaves the other charts and headline numbers on the full data, with each
+snippet labelled `(filtered)` or `(full data)`.
+
+**Verified by running it.** `tests/test_code_export.py` executes the generated
+script on the three sample datasets plus the frontend fixture and compares every
+reproduced analysis and every headline number to what the app computed. That
+caught two real differences while building it: the app's trend data includes
+appended forecast months (the script is history only), and the app rounds its
+headline estimates to 2 decimals. If the generator and `executor_v2.py` ever
+drift apart, that test fails. Also tested: filters against an independent
+re-implementation of `applyFilters`, the precision and duplicate switches,
+coercion of messy numeric columns, and the endpoint.
+
+**Safety:** column names, the file name, filter values, ids and titles all come
+from the user's data, and a column called `a'); import os; ...` must not become
+code. Names and values enter the script only through `repr()`, titles only as
+single-line comments, and a test parses the output with `ast` and asserts the
+only imports are json, pathlib, numpy and pandas.
+
+**Not reproduced, and the header says so:** forecasts, k-means segments, anomaly
+scoring, cohorts and the statistical tests (p-values, bootstrap intervals).
+Analyses built from derived columns (e.g. cohort retention) are skipped and
+counted. Not offered for combined, joined or comparison sessions, since those
+merge several files and a one-file script would be wrong. The script covers
+loading, cleaning and the groupbys, not the personal-data masking (it never
+contains row data, so it needs no guard).
+
+**Also:** `v2.profile` now carries `columns` and `date_columns` (names only, no
+values) so the script knows what exists and what was parsed as a date.
+New endpoint `POST /api/export/code`; `api.js` gets `exportCode` and
+`serializeFilters` (Sets to arrays; null when nothing is filtered).
+
+**Files:** `app/code_export.py` (new), `app/main.py`, `tests/test_code_export.py`
+(new), `frontend/src/api.js`, `frontend/src/components/ExportMenu.jsx`,
+`frontend/src/App.jsx`, `frontend/src/api.test.js`,
+`frontend/src/components/ExportMenu.test.jsx`, `frontend/src/App.test.jsx`, and
+the regenerated frontend fixture.
