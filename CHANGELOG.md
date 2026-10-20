@@ -1377,3 +1377,58 @@ whole range the data are consistent with.
 `frontend/src/App.jsx`, `frontend/src/hypothesisUtils.test.js` (new),
 `frontend/src/components/HypothesisTestPanel.test.jsx` (new),
 `frontend/src/api.test.js`, `frontend/src/App.test.jsx`.
+
+## 2026-10-19 — Real-browser verification found a privacy leak and a legibility bug; docs and screenshots
+
+I got a real Chromium running against the real server (an npm-packaged binary,
+since Playwright's own download was blocked where I was working), ran the e2e
+suite for the first time, and extended it. It found problems that passing unit
+tests had hidden.
+
+**Privacy leak in the share-link masking (fixed).** A browser test inspected the
+request the "Mask" button actually sends and found real customer IDs still in it:
+in the at-risk customer list (`cohorts.at_risk[].entity`, raw numbers) and as `y`
+values of the scatter charts that plot the ID column. The first masking only
+matched *string* values learned from the row data, so numbers were never touched,
+and the unit tests built their own rows and never saw it. `maskV2` now also works
+by structure: at-risk entities become stable placeholders; any chart that touches
+a masked column is left out of the copy (unless it is a chart *by* a text column
+whose values are known, where labels are pseudonymized); and aggregates that would
+reveal an ID's range (cluster averages, intervals, robustness fences, outlier
+summary, driver splits by the masked column) are dropped. Regression tests run
+against the real captured analysis, including the case where the identifier is not
+in the row data at all (the common case).
+
+**Personal-data warning unreadable in the light theme (fixed).** A screenshot showed
+the banner and dialog as dark text on a dark box. The components used CSS variables
+the app does not define (`--panel-bg`, `--accent`, `--bg`), so dark fallbacks applied
+while the text followed the light theme. Fixed in the banner, dialog, Story
+presentation, hypothesis button and Story button to use the app's real variables
+(`--surface`, `--border`, `--teal`, `--on-accent`, `--ink`). New e2e test computes
+the real WCAG contrast ratio of the painted text in both themes. Checked by
+reintroducing the bug: contrast 1.1 vs the required 4.5, test fails.
+
+**Two more visual flaws only a screenshot shows (fixed).** The hypothesis interval
+graphic stretched its point estimate into an ellipse (non-uniformly scaled SVG) and
+barely showed zero; it is now positioned elements with a clear dashed zero line.
+The driver panel's value column wrapped each segment onto four lines.
+
+**New end-to-end tests (`e2e/features.spec.js`, 6 tests + the existing smoke):**
+the hypothesis test (never runs on its own, only the two groups' values are sent, a
+stale answer is dropped when the question changes); Export → Python script
+(downloads the file, **runs it** with Python and checks its output); the
+personal-data flow (banner, cancel uploads nothing and Escape closes only the
+dialog, masking removes real ids from the actual request); the driver and
+robustness panels; and contrast in both themes. Like the smoke test, any uncaught
+exception or console error fails them.
+
+**Docs:** README extended (feature list, screenshots, project structure, testing
+section with counts and what the e2e suite covers) and `docs/CASE_STUDY.md` added.
+Screenshots in `docs/screenshots/feature-*.png` are generated from the running app by
+`e2e/screenshots.spec.js`, which is skipped unless `DATALENS_SCREENSHOTS=1`.
+
+**Totals:** 257 backend tests, 391 frontend tests (26 files), 7 e2e tests.
+**Files:** `frontend/src/sensitiveUtils.js` (+ test), the banner, dialog, Story
+presentation, Story mode, hypothesis and drivers components, `frontend/src/App.test.jsx`,
+`frontend/e2e/features.spec.js` (new), `frontend/e2e/screenshots.spec.js` (new),
+`README.md`, `docs/CASE_STUDY.md` (new), `docs/screenshots/feature-*.png` (new).

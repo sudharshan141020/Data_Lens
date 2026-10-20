@@ -19,7 +19,7 @@ export default function StoryMode({ story, tickNum, onPresent }) {
           <button
             type="button"
             onClick={onPresent}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.25))', background: 'transparent', color: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             ▶ Present
           </button>

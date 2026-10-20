@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import App from './App';
 import analysis from './test/fixtures/analysis.json';
 import { expectNoRawEscapes } from './test/helpers';
@@ -142,7 +142,8 @@ describe('App (integration, real backend response)', () => {
     await uploadSalesCsv();
 
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /python script/i }));
+    // the click starts an async chain (request, blob, download, state change); act() waits for all of it
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /python script/i })); });
     await vi.waitFor(() => expect(fetchFn).toHaveBeenCalledWith('/api/export/code', expect.anything()));
 
     const sent = JSON.parse(fetchFn.mock.calls.find((c) => c[0] === '/api/export/code')[1].body);

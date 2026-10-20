@@ -41,10 +41,10 @@ export default function SensitiveExportDialog({ action, report, onConfirm, onCan
         role="dialog"
         aria-modal="true"
         aria-labelledby="sensitive-dialog-title"
-        style={{ background: 'var(--panel-bg, var(--card, #161a23))', border: '1px solid var(--border, rgba(255,255,255,0.15))', borderRadius: 10, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 20, color: 'var(--text)' }}
+        style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)', boxShadow: 'var(--shadow-raised)', maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 20, }}
       >
-        <h2 id="sensitive-dialog-title" style={{ marginTop: 0 }}>Personal data may be included</h2>
-        <p>
+        <h2 id="sensitive-dialog-title" style={{ margin: '0 0 12px', fontSize: 20 }}>Personal data may be included</h2>
+        <p style={{ fontSize: 14, lineHeight: 1.5, margin: '0 0 8px' }}>
           You're about to create {copy.what}. {copy.risk} These columns look like personal information:
         </p>
         <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0' }}>
@@ -60,15 +60,15 @@ export default function SensitiveExportDialog({ action, report, onConfirm, onCan
             </li>
           ))}
         </ul>
-        <p className="dim-sub">
+        <p className="dim-sub" style={{ lineHeight: 1.5 }}>
           Masking swaps the real values for stable placeholders like "Customer ID 7" everywhere in the copy that
           leaves the app, so charts and filters still work. Your own session is not changed. This check is
           pattern-based: it can miss things, so look through the result yourself before sharing publicly.
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: 16 }}>
-          <button type="button" onClick={onCancel} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.25))', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>Cancel</button>
-          <button type="button" onClick={() => onConfirm({ columns: [] })} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.25))', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>Continue without masking</button>
-          <button type="button" ref={firstBtn} disabled={selected.size === 0} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border, rgba(255,255,255,0.25))', background: 'transparent', color: 'inherit', cursor: 'pointer', background: 'var(--accent, #4f8cff)', color: '#fff', border: 'none', opacity: selected.size === 0 ? 0.5 : 1 }} onClick={() => onConfirm({ columns: [...selected] })}>
+          <button type="button" onClick={onCancel} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>Cancel</button>
+          <button type="button" onClick={() => onConfirm({ columns: [] })} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>Continue without masking</button>
+          <button type="button" ref={firstBtn} disabled={selected.size === 0} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'inherit', cursor: 'pointer', background: 'var(--teal)', color: 'var(--on-accent)', border: 'none', opacity: selected.size === 0 ? 0.5 : 1 }} onClick={() => onConfirm({ columns: [...selected] })}>
             Mask {selected.size} selected &amp; continue
           </button>
         </div>

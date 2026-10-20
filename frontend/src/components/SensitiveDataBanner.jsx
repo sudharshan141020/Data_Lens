@@ -12,7 +12,7 @@ export default function SensitiveDataBanner({ v2 }) {
   const cols = report.columns.filter((c) => !c.masked);
 
   return (
-    <div role="note" aria-label="Personal data warning" style={{ background: 'var(--panel-bg, var(--card, #161a23))', border: '1px solid var(--border, rgba(255,255,255,0.15))', borderRadius: 10, marginBottom: 12, padding: '10px 14px' }}>
+    <div role="note" aria-label="Personal data warning" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text)', marginBottom: 12, padding: '10px 14px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span aria-hidden="true">🔒</span>
         <span style={{ flex: 1, minWidth: 200 }}>

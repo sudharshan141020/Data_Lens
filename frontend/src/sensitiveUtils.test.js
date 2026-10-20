@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getSensitiveReport, needsGuard, defaultMaskSelection, maskV2 } from './sensitiveUtils';
+import fixture from './test/fixtures/analysis.json';
 
 const report = (columns) => ({ has_sensitive: columns.length > 0, risk: 'high', columns });
 const email = { column: 'Email', label: 'email address', kind: 'email', confidence: 'high', numeric: false, reason: 'x' };
@@ -135,5 +136,130 @@ describe('maskV2', () => {
     const out = maskV2(v2, ['Email']).v2;
     expect(out.filterable_data).toBeUndefined();
     expect(out.sensitive_data.columns[0].masked).toBe(true);
+  });
+});
+
+
+// Regression for a leak the end-to-end test found: an identifier column like
+// "Customer ID" is usually NOT in the row-level data, so masking by value did
+// nothing, yet its real values were in the at-risk list and in scatter charts.
+// These run against the real captured analysis, not a hand-built one.
+describe('maskV2 on the real analysis: identifier columns that are not in the row data', () => {
+  const v2 = fixture.v2;
+  const masked = () => maskV2(v2, ['Customer ID']).v2;
+  const realIds = new Set(v2.cohorts.at_risk.at_risk.map((r) => r.entity));
+
+  it('the premise holds: real ids appear as raw NUMBERS in places the old string-matching never touched', () => {
+    expect(v2.sensitive_data.columns.some((c) => c.column === 'Customer ID' && c.numeric)).toBe(true);
+    expect(realIds.size).toBeGreaterThan(0);
+    expect(typeof v2.cohorts.at_risk.at_risk[0].entity).toBe('number');                       // not a string: never matched
+    const scatter = v2.all_analyses.find((a) => a.id === 'corr_sales_customer_id');
+    expect(scatter.data.some((p) => realIds.has(p.y) || (p.y >= 1000 && p.y <= 1039))).toBe(true);   // plotted as raw y values
+  });
+
+  it('no real id survives in the at-risk list: each is replaced by a stable placeholder', () => {
+    const list = masked().cohorts.at_risk.at_risk;
+    expect(list).toHaveLength(v2.cohorts.at_risk.at_risk.length);
+    expect(list.every((r) => /^Customer ID \d+$/.test(r.entity))).toBe(true);
+    expect(new Set(list.map((r) => r.entity)).size).toBe(realIds.size);       // distinct stays distinct
+    expect(list[0].days_since_last_seen).toBe(v2.cohorts.at_risk.at_risk[0].days_since_last_seen);   // the useful fields are kept
+  });
+
+  it('charts that plot the identifier (scatter points, histogram) are left out of the copy', () => {
+    const out = masked();
+    for (const list of [out.top_analyses, out.all_analyses]) {
+      expect(list.some((a) => [a.metric_column, a.column, a.column2, a.x_label, a.y_label].includes('Customer ID'))).toBe(false);
+    }
+    expect(out.all_analyses.find((a) => a.id === 'hist_customer_id')).toBeUndefined();
+    expect(out.all_analyses.find((a) => a.id === 'corr_sales_customer_id')).toBeUndefined();
+  });
+
+  it('aggregates that would reveal the id range are dropped too (cluster averages, interval, robustness fences)', () => {
+    const out = masked();
+    expect(out.segments.clusters.every((c) => !('Customer ID' in c.averages))).toBe(true);
+    expect(out.confidence_intervals.intervals.some((i) => i.measure === 'Customer ID')).toBe(false);
+    expect(out.robustness.kpis.some((k) => k.measure === 'Customer ID')).toBe(false);
+  });
+
+  it('nothing in the whole copy looks like a customer id value any more', () => {
+    const body = JSON.stringify(masked());
+    expect(body).not.toMatch(/"(entity|x|y)":10[0-3]\d(?=[,}])/);
+    for (const id of realIds) expect(body).not.toContain(`"entity":${id}`);
+  });
+
+  it('leaves everything unrelated to the masked column exactly as it was', () => {
+    const out = masked();
+    const same = (id) => JSON.stringify(out.all_analyses.find((a) => a.id === id)) === JSON.stringify(v2.all_analyses.find((a) => a.id === id));
+    expect(same('sum_region')).toBe(true);
+    expect(same('trend_sales')).toBe(true);
+    expect(same('pivot_region_category')).toBe(true);
+    expect(out.findings).toEqual(v2.findings);
+    const withoutId = v2.filterable_data.rows.map(({ ['Customer ID']: _id, ...rest }) => rest);   // the masked numeric column is removed from the rows, nothing else
+    expect(out.filterable_data.rows).toEqual(withoutId);
+  });
+
+  it('the same holds when the identifier is NOT in the row data at all (the common case for real files)', () => {
+    const noRows = JSON.parse(JSON.stringify(v2));
+    noRows.filterable_data.rows = noRows.filterable_data.rows.map(({ ['Customer ID']: _id, ...rest }) => rest);
+    noRows.filterable_data.measure_columns = noRows.filterable_data.measure_columns.filter((c) => c !== 'Customer ID');
+    const out = maskV2(noRows, ['Customer ID']).v2;
+    expect(JSON.stringify(out)).not.toMatch(/"(entity|x|y)":10[0-3]\d(?=[,}])/);
+    expect(out.cohorts.at_risk.at_risk.every((r) => /^Customer ID \d+$/.test(r.entity))).toBe(true);
+    expect(out.all_analyses.some((a) => a.id === 'corr_sales_customer_id')).toBe(false);
+  });
+
+  it('does not mutate the live result', () => {
+    const before = JSON.stringify(v2);
+    masked();
+    expect(JSON.stringify(v2)).toBe(before);
+  });
+
+  it('a driver split BY a masked column is dropped rather than shown with its real values', () => {
+    const synthetic = {
+      sensitive_data: { columns: [{ column: 'Region', label: 'x', confidence: 'high', numeric: false }] },
+      filterable_data: { rows: [{ Region: 'West' }, { Region: 'East' }], dimension_columns: ['Region'], measure_columns: [] },
+      drivers: { available: true, comparisons: [
+        { id: 'a', best_dimension: 'Region', headline: 'Sales fell: 80% of the drop is Region=West.', dimensions: [{ dimension: 'Region' }] },
+        { id: 'b', best_dimension: 'Category', headline: 'ok', dimensions: [{ dimension: 'Category' }, { dimension: 'Region', segments: [{ segment: 'West' }] }] },
+      ] },
+    };
+    const out = maskV2(synthetic, ['Region']).v2;
+    expect(out.drivers.comparisons.map((c) => c.id)).toEqual(['b']);
+    expect(out.drivers.comparisons[0].dimensions.map((d) => d.dimension)).toEqual(['Category']);
+    expect(JSON.stringify(out)).not.toContain('West');
+  });
+
+  it('when nothing is left of the drivers, says why instead of showing an empty panel', () => {
+    const synthetic = {
+      sensitive_data: { columns: [{ column: 'Region', label: 'x', confidence: 'high', numeric: false }] },
+      drivers: { available: true, comparisons: [{ id: 'a', best_dimension: 'Region', headline: 'x', dimensions: [{ dimension: 'Region' }] }] },
+    };
+    const out = maskV2(synthetic, ['Region']).v2;
+    expect(out.drivers.available).toBe(false);
+    expect(out.drivers.note).toMatch(/masked column/);
+  });
+
+  it('a text column whose values ARE known keeps its charts, with pseudonymized labels', () => {
+    const synthetic = {
+      sensitive_data: { columns: [{ column: 'Email', label: 'email address', confidence: 'high', numeric: false }] },
+      filterable_data: { rows: [{ Email: 'ann.lee@corp.com', Sales: 1 }], dimension_columns: ['Email'], measure_columns: ['Sales'] },
+      top_analyses: [{ id: 'sum_email', column: 'Email', metric_column: 'Sales', data: [{ label: 'ann.lee@corp.com', value: 1 }] }],
+      all_analyses: [{ id: 'sum_email', column: 'Email', metric_column: 'Sales', data: [{ label: 'ann.lee@corp.com', value: 1 }] }],
+    };
+    const out = maskV2(synthetic, ['Email']).v2;
+    expect(out.all_analyses).toHaveLength(1);
+    expect(out.all_analyses[0].data[0].label).toMatch(/^Email \d+$/);
+    expect(JSON.stringify(out)).not.toContain('ann.lee');
+  });
+
+  it('a chart by a text column whose values are NOT in the rows cannot be pseudonymized, so it is left out', () => {
+    const synthetic = {
+      sensitive_data: { columns: [{ column: 'Full Name', label: 'person name', confidence: 'medium', numeric: false }] },
+      filterable_data: { rows: [{ Region: 'West' }], dimension_columns: ['Region'], measure_columns: [] },
+      all_analyses: [{ id: 'count_name', column: 'Full Name', data: [{ label: 'Asha Rao', value: 3 }] }, { id: 'count_region', column: 'Region', data: [] }],
+    };
+    const out = maskV2(synthetic, ['Full Name']).v2;
+    expect(out.all_analyses.map((a) => a.id)).toEqual(['count_region']);
+    expect(JSON.stringify(out)).not.toContain('Asha');
   });
 });

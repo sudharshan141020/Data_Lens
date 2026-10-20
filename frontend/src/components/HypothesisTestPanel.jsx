@@ -8,15 +8,18 @@ import {
 function IntervalBar({ interval, estimate, label, fmt }) {
   const g = intervalGeometry(interval[0], interval[1], estimate);
   const color = g.crossesZero ? 'var(--text-muted)' : 'var(--teal)';
+  const aria = `${label}: ${signed(estimate, fmt)}, interval ${signed(interval[0], fmt)} to ${signed(interval[1], fmt)}${g.crossesZero ? ', includes zero' : ', does not include zero'}`;
+  // Plain positioned elements rather than an SVG: a non-uniformly scaled SVG
+  // turns the point estimate into an ellipse, and zero has to stay clearly visible.
   return (
-    <figure style={{ margin: '8px 0 0' }}>
-      <svg viewBox="0 0 100 18" width="100%" height="40" role="img" preserveAspectRatio="none"
-        aria-label={`${label}: ${signed(estimate, fmt)}, interval ${signed(interval[0], fmt)} to ${signed(interval[1], fmt)}${g.crossesZero ? ', includes zero' : ', does not include zero'}`}>
-        <line x1={g.zero} x2={g.zero} y1="1" y2="17" stroke="var(--text-faint)" strokeWidth="0.4" strokeDasharray="1.2 1.2" vectorEffect="non-scaling-stroke" />
-        <line x1={g.low} x2={g.high} y1="9" y2="9" stroke={color} strokeWidth="2.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <circle cx={g.estimate} cy="9" r="1.6" fill={color} />
-      </svg>
-      <figcaption className="dim-sub" style={{ marginTop: 2 }}>
+    <figure style={{ margin: '14px 0 0' }}>
+      <div role="img" aria-label={aria} style={{ position: 'relative', height: 34, margin: '0 10px' }}>
+        <div aria-hidden="true" style={{ position: 'absolute', left: `${g.zero}%`, top: 0, bottom: 14, borderLeft: '2px dashed var(--text-muted)' }} />
+        <span aria-hidden="true" className="mono" style={{ position: 'absolute', left: `${g.zero}%`, bottom: 0, transform: 'translateX(-50%)', fontSize: 11, color: 'var(--text-muted)' }}>0</span>
+        <div aria-hidden="true" style={{ position: 'absolute', left: `${g.low}%`, width: `${Math.max(g.high - g.low, 0.5)}%`, top: 8, height: 6, borderRadius: 3, background: color }} />
+        <div aria-hidden="true" style={{ position: 'absolute', left: `${g.estimate}%`, top: 4, width: 14, height: 14, borderRadius: '50%', background: color, border: '2px solid var(--surface)', transform: 'translateX(-50%)' }} />
+      </div>
+      <figcaption className="dim-sub" style={{ marginTop: 6 }}>
         {label}: <span className="mono">{signed(estimate, fmt)}</span> (95% interval <span className="mono">{signed(interval[0], fmt)}</span> to <span className="mono">{signed(interval[1], fmt)}</span>).
         {' '}{g.crossesZero ? 'The interval includes zero.' : 'The interval does not include zero.'}
       </figcaption>
@@ -199,7 +202,7 @@ export default function HypothesisTestPanel({ filterableData, rows, tickNum }) {
           type="button"
           onClick={run}
           disabled={state.status === 'running' && isCurrent}
-          style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--accent, #4f8cff)', color: '#fff', cursor: 'pointer' }}
+          style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: 'var(--on-accent)', cursor: 'pointer' }}
         >
           {state.status === 'running' && isCurrent ? 'Testing…' : 'Run test'}
         </button>

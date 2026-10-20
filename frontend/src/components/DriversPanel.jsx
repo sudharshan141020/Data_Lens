@@ -114,14 +114,14 @@ export default function DriversPanel({ drivers, tickNum }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ marginTop: 8 }}>
+      <div style={{ marginTop: 10, display: 'grid', rowGap: 8 }}>
         {dim.segments.map((s) => (
-          <div key={s.segment} className="dq-bar-row">
+          <div key={s.segment} className="dq-bar-row" style={{ gridTemplateColumns: '120px 1fr max-content' }}>
             <span className="dq-bar-label mono" title={s.segment}>{s.segment}</span>
             <div className="dq-bar-track">
               <div className="dq-bar-fill" style={{ width: `${Math.min(100, s.share_of_movement_pct)}%`, background: s.change >= 0 ? 'var(--teal)' : 'var(--red)' }} />
             </div>
-            <span className="dq-bar-value mono">{formatChange(s.change)} · {shareText(s)}</span>
+            <span className="dq-bar-value mono" style={{ whiteSpace: 'nowrap' }}>{formatChange(s.change)} · {shareText(s)}</span>
           </div>
         ))}
         {dim.other && (

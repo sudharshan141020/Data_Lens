@@ -39,6 +39,31 @@ to do about it."
 
 ![Findings panel and prioritized Weak Points with suggested actions](docs/screenshots/04-findings-and-weak-points.png)
 
+### Trust, depth and engineering quality
+
+**"Why did it change?"** The movement split by category as a waterfall
+that adds up exactly to the net change. It says where the change landed,
+and states plainly that it can't say why.
+
+![Waterfall showing which categories drove a 2.7% sales drop](docs/screenshots/feature-why-did-it-change.png)
+
+**Test a Hypothesis.** The test is chosen and justified, the verdict leads
+with the effect and the interval rather than the p-value, and the interval
+graphic always shows zero so "no clear difference" is visible at a glance.
+
+![Hypothesis test result with interval graphic, effect size and cross-check](docs/screenshots/feature-hypothesis-test.png)
+
+**Does this hold without the outliers?** Resampling can't see a result
+that is really about a handful of extreme rows; this can.
+
+![Robustness panel comparing headline numbers with and without extreme rows](docs/screenshots/feature-robustness.png)
+
+**Personal-data guard.** Sharing stops and asks first. Masking swaps real
+values for stable placeholders in a copy of the result, so charts and
+filters still work. Legible in both themes (a contrast test enforces it).
+
+![Dialog asking whether to mask a Customer ID column before creating a share link](docs/screenshots/feature-personal-data-guard.png)
+
 ---
 
 ## Why this project is interesting
@@ -67,6 +92,13 @@ specifically, and flags when a finding shouldn't be trusted.
 - **Extensible by design.** Adding a new domain is one small analyzer
   file plus one registry line — the plugin architecture means domain
   logic never leaks into the shared pipeline.
+- **Built to be checked, not just trusted.** The newer features are
+  verified the hard way: the exported pandas script is *executed* and its
+  numbers compared to the dashboard's, the hypothesis tests are
+  calibration-tested (about 5% false positives when nothing is going on),
+  and a real browser checks that masked share links really contain no
+  personal data. See [`docs/CASE_STUDY.md`](docs/CASE_STUDY.md) for what
+  that testing caught.
 
 ## Features
 
@@ -90,6 +122,23 @@ specifically, and flags when a finding shouldn't be trusted.
   correlations, with click-to-jump navigation
 - One-click Excel or PDF export of the full report
 - Multi-file sessions with pinning and dataset combining
+- **"Why did it change?"** — splits any move (latest month, or a detected
+  break) by each category, so "sales fell 2.7%" becomes "68% of the drop
+  is Category=Furniture". Plain groupby arithmetic; the pieces add up
+  exactly to the total, and offsetting moves are called out instead of
+  producing silly percentages
+- **Personal-data detection and a share/export guard** — scans for emails,
+  phone numbers, card numbers, government IDs and person identifiers, and
+  stops a share link, HTML or PDF export to offer masking
+- **Robustness check** — re-runs the headline numbers and top correlations
+  with extreme rows set aside, and flags what moves materially or flips
+  (a different failure mode from sampling noise)
+- **Test a Hypothesis (A/B mode)** — pick a group column, two groups and an
+  outcome; it chooses Welch's t, Mann-Whitney, chi-square or Fisher's exact,
+  and answers with an effect size, an interval and a plain-language verdict
+- **Show the code** — exports a pandas script that reproduces the loading,
+  cleaning, headline numbers, the groupby behind each analysis and the
+  active filters; template-based, no LLM
 
 ## Tech stack
 
@@ -147,6 +196,11 @@ Data_Lens/
     story_engine.py          — narrative arc over findings/weak points
     data_quality.py          — missing values, duplicates, outliers, quality score
     correlation_center.py    — correlation significance testing + multicollinearity (VIF)
+    drivers.py               — "Why did it change?": splits a change by each dimension
+    robustness.py            — re-runs headline numbers/correlations without extreme rows
+    sensitive_data.py        — personal-data detection (column names and kinds, never values)
+    hypothesis.py            — A/B mode: test selection, effect size, interval, verdict
+    code_export.py           — template-based pandas script that reproduces the analysis
     kpi.py, insights.py, column_detector.py, planner.py, executor.py
                               — original sales-specific pipeline, kept running
                                 alongside the domain-aware one (legacy fields in the API response)
@@ -206,12 +260,23 @@ Three layers, from fast to realistic. All run in CI (`.github/workflows/ci.yml`)
 
 | Layer | Command | What it covers |
 |-------|---------|----------------|
-| Backend (pytest) | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
-| Frontend (Vitest) | `cd frontend && npm test` | pure logic (filtering, query builder, snapshots, API client), every panel rendered in jsdom, the whole `<App />` driven from a *real* captured backend response, and a source scan that fails on JS unicode escapes written in JSX text (they render literally and build clean) |
-| End to end (Playwright) | `cd frontend && npm run test:e2e` | a real browser against the real server: upload, dashboard, charts, query builder, Present, Escape/logo navigation |
+| Backend (pytest) — 257 tests | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
+| Frontend (Vitest) — 391 tests | `cd frontend && npm test` | pure logic (filtering, query builder, snapshots, masking, API client), every panel rendered in jsdom, the whole `<App />` driven from a *real* captured backend response, and a source scan that fails on JS unicode escapes written in JSX text (they render literally and build clean) |
+| End to end (Playwright) — 7 tests | `cd frontend && npm run test:e2e` | a real browser against the real server: upload, dashboard, query builder, Present, navigation; the hypothesis test; **downloading the exported Python script and running it**; the personal-data guard, including that a masked share request contains no real customer ids; the driver and robustness panels; and a WCAG contrast check of the warning in both themes. Any uncaught exception or console error fails a test |
+
+A few tests are worth singling out because they check the *answer*, not just that code runs:
+
+- **Round trip:** the generated pandas script is executed on the sample datasets and every analysis and headline number is compared to what the dashboard computed.
+- **Calibration:** with no real difference between groups, about 5% of 600 simulated hypothesis tests must come out significant; with a real effect, over 90% must, and none may point the wrong way. A miswired p-value fails this even when every unit test passes.
+- **Independent cross-checks:** the Welch interval equals SciPy's exactly, and the Newcombe interval is rebuilt from SciPy's own Wilson intervals.
 
 First run of the browser test: `cd frontend && npx playwright install chromium`.
 If you can't download browsers, point `PLAYWRIGHT_CHROMIUM_EXECUTABLE` at any Chromium/Chrome binary.
+The exported-script test needs `python` (or `python3`, or `$PYTHON`) on the PATH.
 
 After an intentional change to the API response shape, refresh the captured fixture:
 `python scripts/regenerate_frontend_fixture.py`, then re-run `npm test`.
+
+To regenerate the screenshots in this README from the running app:
+`cd frontend && DATALENS_SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.js`
+(skipped otherwise, so CI never runs it).

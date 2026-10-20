@@ -154,7 +154,79 @@ export function maskV2(v2, columns) {
     };
   }
 
-  // 5) record what was masked (names only) so the copy is honest about itself
+  // 5) Places that carry real values of a masked column but that the row data
+  //    can't help with. Learned the hard way: an identifier column such as
+  //    "Customer ID" usually is NOT in the row-level data at all, so the
+  //    pseudonym map above is empty for it -- yet its real values appear in
+  //    the at-risk customer list, in scatter charts that plot it, in histogram
+  //    labels, and in aggregates that reveal its range. These are handled by
+  //    structure, not by matching values.
+  const analysisTouches = (a) => [a?.metric_column, a?.column, a?.column2, a?.x_label, a?.y_label, a?.color_by]
+    .some((c) => c && wanted.has(c));
+  const keepAnalysis = (a) => {
+    if (!analysisTouches(a)) return true;
+    // A chart BY a text column whose real values we know stays (its labels were
+    // pseudonymized above). Anything else that touches a masked column would
+    // show raw values or ranges, so it is left out of the copy.
+    const dims = [a.column, a.column2].filter((c) => c && wanted.has(c));
+    const onlyKnownTextDims = dims.length > 0
+      && ![a.metric_column, a.x_label, a.y_label, a.color_by].some((c) => c && wanted.has(c))
+      && dims.every((c) => !numericMasked.has(c) && distinctValues(rows, c).length > 0);
+    return onlyKnownTextDims;
+  };
+  for (const key of ['top_analyses', 'all_analyses']) {
+    if (Array.isArray(out[key])) out[key] = out[key].filter(keepAnalysis);
+  }
+
+  const atRisk = out.cohorts?.at_risk;
+  if (atRisk?.entity_column && wanted.has(atRisk.entity_column) && Array.isArray(atRisk.at_risk)) {
+    const names = new Map();
+    out.cohorts = {
+      ...out.cohorts,
+      at_risk: {
+        ...atRisk,
+        at_risk: atRisk.at_risk.map((r) => {
+          const k = String(r.entity);
+          if (!names.has(k)) names.set(k, `${atRisk.entity_column} ${names.size + 1}`);
+          return { ...r, entity: names.get(k) };
+        }),
+      },
+    };
+  }
+
+  if (Array.isArray(out.segments?.clusters)) {
+    out.segments = {
+      ...out.segments,
+      clusters: out.segments.clusters.map((c) => ({
+        ...c,
+        averages: Object.fromEntries(Object.entries(c.averages || {}).filter(([k]) => !wanted.has(k))),
+      })),
+    };
+  }
+  if (Array.isArray(out.confidence_intervals?.intervals)) {
+    out.confidence_intervals = {
+      ...out.confidence_intervals,
+      intervals: out.confidence_intervals.intervals.filter((i) => !wanted.has(i.measure)),
+    };
+  }
+  if (Array.isArray(out.robustness?.kpis)) {
+    out.robustness = { ...out.robustness, kpis: out.robustness.kpis.filter((k) => !wanted.has(k.measure)) };
+  }
+  if (Array.isArray(out.drivers?.comparisons)) {
+    out.drivers = {
+      ...out.drivers,
+      comparisons: out.drivers.comparisons
+        .filter((c) => !wanted.has(c.best_dimension))   // its headline would name real values
+        .map((c) => ({ ...c, dimensions: c.dimensions.filter((d) => !wanted.has(d.dimension)) }))
+        .filter((c) => c.dimensions.length > 0),
+    };
+    if (out.drivers.comparisons.length === 0) out.drivers = { available: false, note: 'Hidden because the result was split by a masked column.', comparisons: [] };
+  }
+  if (Array.isArray(out.data_quality?.outlier_summary)) {
+    out.data_quality = { ...out.data_quality, outlier_summary: out.data_quality.outlier_summary.filter((o) => !wanted.has(o.column)) };
+  }
+
+  // 6) record what was masked (names only) so the copy is honest about itself
   out.sensitive_data = report
     ? { ...report, columns: report.columns.map((c) => (wanted.has(c.column) ? { ...c, masked: true } : c)) }
     : undefined;

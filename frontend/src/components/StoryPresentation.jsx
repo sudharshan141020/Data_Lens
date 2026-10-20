@@ -9,7 +9,7 @@ const TONE_COLOR = {
 const btn = {
   padding: '10px 18px',
   borderRadius: 8,
-  border: '1px solid var(--border, rgba(255,255,255,0.25))',
+  border: '1px solid var(--border)',
   background: 'transparent',
   color: 'inherit',
   cursor: 'pointer',
@@ -67,7 +67,7 @@ export default function StoryPresentation({ story, onClose }) {
       tabIndex={-1}
       style={{
         position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', flexDirection: 'column',
-        background: 'var(--bg, #0b0e14)', color: 'var(--text)', outline: 'none',
+        background: 'var(--ink)', color: 'var(--text)', outline: 'none',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
@@ -101,7 +101,7 @@ export default function StoryPresentation({ story, onClose }) {
             onClick={() => setIndex(i)}
             style={{
               width: 12, height: 12, borderRadius: '50%', padding: 0, cursor: 'pointer',
-              border: 'none', background: i === index ? color : 'var(--border, rgba(255,255,255,0.25))',
+              border: 'none', background: i === index ? color : 'var(--border)',
             }}
           />
         ))}
@@ -112,11 +112,11 @@ export default function StoryPresentation({ story, onClose }) {
           ← Back
         </button>
         {isLast ? (
-          <button type="button" onClick={() => closeRef.current?.()} style={{ ...btn, background: 'var(--accent, #4f8cff)', color: '#fff', border: 'none' }}>
+          <button type="button" onClick={() => closeRef.current?.()} style={{ ...btn, background: 'var(--teal)', color: 'var(--on-accent)', border: 'none' }}>
             Done
           </button>
         ) : (
-          <button type="button" onClick={next} style={{ ...btn, background: 'var(--accent, #4f8cff)', color: '#fff', border: 'none' }}>
+          <button type="button" onClick={next} style={{ ...btn, background: 'var(--teal)', color: 'var(--on-accent)', border: 'none' }}>
             Next →
           </button>
         )}
