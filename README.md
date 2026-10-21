@@ -1,3 +1,4 @@
+[![CI](https://github.com/sudharshan141020/Data_Lens/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sudharshan141020/Data_Lens/actions/workflows/ci.yml)
 # DataLens — Universal Data Intelligence
 
 Upload any structured dataset — CSV, TSV, or Excel — and get back a full
