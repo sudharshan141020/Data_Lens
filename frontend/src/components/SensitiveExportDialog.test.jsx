@@ -84,4 +84,37 @@ describe('SensitiveExportDialog', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onCancel).not.toHaveBeenCalled();
   });
+
+  describe('when the server found the data', () => {
+    const serverReport = {
+      from_server: true,
+      columns: [
+        { column: 'Contact', confidence: 'high', maskable: true, reason: 'the values look like an email address' },
+        { column: 'email address in the result text', confidence: 'high', maskable: false, reason: 'email address found in the text of the result' },
+      ],
+    };
+
+    it('says the server found it and the first check did not', () => {
+      setup({ report: serverReport, variant: 'server' });
+      expect(screen.getByRole('dialog')).toHaveTextContent('The server checked what is about to be shared and found personal data that the first check did not');
+      expect(screen.getByRole('dialog')).not.toHaveTextContent("You're about to create");
+    });
+
+    it('offers masking only for what can be masked, and explains the rest', () => {
+      setup({ report: serverReport, variant: 'server' });
+      expect(screen.getByRole('checkbox', { name: 'Mask Contact' })).toBeChecked();
+      expect(screen.getAllByRole('checkbox')).toHaveLength(1);                     // the text finding has no checkbox
+      expect(screen.getByRole('dialog')).toHaveTextContent("can't be masked automatically");
+    });
+
+    it('with nothing maskable, masking is unavailable and the choice is to continue or cancel', () => {
+      const { onConfirm, onCancel } = setup({ report: { columns: [serverReport.columns[1]] }, variant: 'server' });
+      expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+      expect(screen.getByRole('button', { name: /mask 0 selected/i })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: /continue without masking/i }));
+      expect(onConfirm).toHaveBeenCalledWith({ columns: [] });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onCancel).toHaveBeenCalled();
+    });
+  });
 });

@@ -40,12 +40,36 @@ export function needsGuard(v2) {
   return !!r && r.columns.some((c) => !c.masked);
 }
 
+// What the SERVER's own check found in the payload, shaped like the upload-time report so the
+// same dialog can show it. Findings with no column (an email address sitting in the text of the
+// result) cannot be masked by column; they are listed, and the choice is to continue or cancel.
+export function reportFromServerFindings(findings) {
+  const reasonFor = (f) => {
+    if (f.source === 'text') return `${f.label} found in the text of the result`;
+    if (f.source === 'values') return `the values look like a ${f.label}`;
+    return `column name looks like a ${f.label}`;
+  };
+  return {
+    has_sensitive: (findings || []).length > 0,
+    from_server: true,
+    columns: (findings || []).map((f) => ({
+      column: f.column || `${f.label} in the result text`,
+      kind: f.kind,
+      label: f.label,
+      confidence: f.confidence,
+      numeric: false,
+      maskable: Boolean(f.column) && f.maskable !== false,
+      reason: reasonFor(f),
+    })),
+  };
+}
+
 // Columns pre-ticked in the dialog: medium and high confidence. "low"
 // findings (a bare "Address" header, say) are listed but not pre-ticked,
 // so the default doesn't wreck charts over a maybe.
 export function defaultMaskSelection(report) {
   return (report?.columns || [])
-    .filter((c) => !c.masked && CONFIDENCE_RANK[c.confidence] >= CONFIDENCE_RANK.medium)
+    .filter((c) => !c.masked && c.maskable !== false && CONFIDENCE_RANK[c.confidence] >= CONFIDENCE_RANK.medium)
     .map((c) => c.column);
 }
 
@@ -227,9 +251,15 @@ export function maskV2(v2, columns) {
   }
 
   // 6) record what was masked (names only) so the copy is honest about itself
-  out.sensitive_data = report
-    ? { ...report, columns: report.columns.map((c) => (wanted.has(c.column) ? { ...c, masked: true } : c)) }
-    : undefined;
+  // A column the first scan never reported (the server found it) is recorded too, so the copy
+  // declares everything that was masked.
+  const known = new Set((report?.columns || []).map((c) => c.column));
+  const extra = maskedNow.filter((c) => !known.has(c)).map((column) => (
+    { column, label: column, kind: 'unknown', confidence: 'medium', numeric: false, masked: true, reason: 'reported by the server' }));
+  out.sensitive_data = {
+    ...(report || { has_sensitive: true }),
+    columns: [...(report?.columns || []).map((c) => (wanted.has(c.column) ? { ...c, masked: true } : c)), ...extra],
+  };
 
   return { v2: out, summary: { masked: maskedNow, pseudonyms: counter } };
 }

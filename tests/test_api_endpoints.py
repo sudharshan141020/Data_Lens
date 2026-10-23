@@ -187,6 +187,9 @@ def test_export_html_escapes_special_characters(client):
 
 
 def test_share_create_and_retrieve(client, sales_df):
+    # (no Customer ID column: a result with personal-looking data is refused unless acknowledged,
+    # which tests/test_share_guard.py covers)
+    sales_df = sales_df.drop(columns=["Customer ID"])
     analyze_resp = client.post("/api/analyze", files={"file": ("d.csv", sales_df.to_csv(index=False).encode(), "text/csv")})
     data = analyze_resp.json()
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getSensitiveReport, needsGuard, defaultMaskSelection, maskV2 } from './sensitiveUtils';
+import { getSensitiveReport, needsGuard, defaultMaskSelection, maskV2, reportFromServerFindings } from './sensitiveUtils';
 import fixture from './test/fixtures/analysis.json';
 
 const report = (columns) => ({ has_sensitive: columns.length > 0, risk: 'high', columns });
@@ -261,5 +261,53 @@ describe('maskV2 on the real analysis: identifier columns that are not in the ro
     const out = maskV2(synthetic, ['Full Name']).v2;
     expect(out.all_analyses.map((a) => a.id)).toEqual(['count_region']);
     expect(JSON.stringify(out)).not.toContain('Asha');
+  });
+});
+
+
+describe('findings reported by the server', () => {
+  const FINDINGS = [
+    { column: 'Contact', kind: 'email', label: 'email address', confidence: 'high', source: 'values', maskable: true },
+    { column: 'Patient ID', kind: 'person_id', label: 'person identifier', confidence: 'medium', source: 'header', maskable: true },
+    { column: null, kind: 'email', label: 'email address', confidence: 'high', source: 'text', maskable: false },
+  ];
+
+  it('become a report the same dialog can show, with a plain reason for each source of evidence', () => {
+    const r = reportFromServerFindings(FINDINGS);
+    expect(r.from_server).toBe(true);
+    expect(r.columns.map((c) => c.reason)).toEqual([
+      'the values look like a email address', 'column name looks like a person identifier', 'email address found in the text of the result',
+    ]);
+  });
+
+  it('a finding with no column cannot be masked and is labelled by what it is', () => {
+    const [, , text] = reportFromServerFindings(FINDINGS).columns;
+    expect(text.column).toBe('email address in the result text');
+    expect(text.maskable).toBe(false);
+  });
+
+  it('only maskable, medium-or-high findings are pre-ticked', () => {
+    expect(defaultMaskSelection(reportFromServerFindings(FINDINGS))).toEqual(['Contact', 'Patient ID']);
+  });
+
+  it('copes with nothing at all', () => {
+    expect(reportFromServerFindings(undefined)).toMatchObject({ has_sensitive: false, columns: [] });
+  });
+
+  it('masking a column the first scan never reported records it as masked in the copy', () => {
+    const v2 = { sensitive_data: { columns: [{ column: 'Customer ID', label: 'x', confidence: 'medium', numeric: true }] },
+      filterable_data: { rows: [{ Contact: 'ann@x.org' }, { Contact: 'bo@y.org' }], dimension_columns: ['Contact'], measure_columns: [] } };
+    const out = maskV2(v2, ['Contact']).v2;
+    const entry = out.sensitive_data.columns.find((c) => c.column === 'Contact');
+    expect(entry).toMatchObject({ masked: true, reason: 'reported by the server' });
+    expect(out.sensitive_data.columns.find((c) => c.column === 'Customer ID').masked).toBeUndefined();   // untouched
+    expect(JSON.stringify(out)).not.toContain('ann@x.org');
+  });
+
+  it('masking works even when the result had no report at all', () => {
+    const v2 = { filterable_data: { rows: [{ Contact: 'ann@x.org' }], dimension_columns: ['Contact'], measure_columns: [] } };
+    const out = maskV2(v2, ['Contact']).v2;
+    expect(out.sensitive_data.columns).toHaveLength(1);
+    expect(needsGuard(out)).toBe(false);                      // everything reported is masked, so no second warning
   });
 });

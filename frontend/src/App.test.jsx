@@ -186,4 +186,76 @@ describe('App (integration, real backend response)', () => {
     expect(sent.groups).toHaveLength(sent.outcomes.length);
     expect(Object.keys(sent)).not.toContain('rows');
   });
+
+  it('Share link: when the server refuses with personal data the first scan missed, it asks again and then shares with an acknowledgement', async () => {
+    const shareBodies = [];
+    const fetchFn = vi.fn(async (url, init) => {
+      if (url === '/api/analyze') return { ok: true, status: 200, json: async () => analysis };
+      if (url === '/api/share') {
+        const body = JSON.parse(init.body);
+        shareBodies.push(body);
+        if (!body.acknowledge_personal_data) {
+          return { ok: false, status: 409, json: async () => ({
+            detail: 'This result appears to contain personal data.', code: 'personal_data',
+            findings: [{ column: null, kind: 'email', label: 'email address', confidence: 'high', source: 'text', maskable: false }],
+          }) };
+        }
+        return { ok: true, status: 200, json: async () => ({ token: 't', expires_at: 1, share_path: '/share/t' }) };
+      }
+      return { ok: false, status: 404, json: async () => ({ detail: `unexpected request in test: ${url}` }) };
+    });
+    vi.stubGlobal('fetch', fetchFn);
+    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+
+    render(<App />);
+    await uploadSalesCsv();
+
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /share link/i })); });
+
+    // 1) the upload-time scan flags Customer ID: the person masks it
+    const first = await screen.findByRole('dialog', { name: 'Personal data may be included' });
+    expect(first).toHaveTextContent("You're about to create");
+    await act(async () => { fireEvent.click(within(first).getByRole('button', { name: /mask 1 selected/i })); });
+
+    // the masked copy went to the server WITHOUT an acknowledgement, and the server refused it
+    await vi.waitFor(() => expect(shareBodies).toHaveLength(1));
+    expect(shareBodies[0]).not.toHaveProperty('acknowledge_personal_data');
+    expect(shareBodies[0].v2.sensitive_data.columns.find((c) => c.column === 'Customer ID').masked).toBe(true);
+
+    // 2) the dialog opens again, this time with what the SERVER found
+    const second = await screen.findByRole('dialog', { name: 'Personal data may be included' });
+    expect(second).toHaveTextContent('The server checked what is about to be shared');
+    expect(second).toHaveTextContent('email address in the result text');
+    await act(async () => { fireEvent.click(within(second).getByRole('button', { name: /continue without masking/i })); });
+
+    // 3) a deliberate "share as is" is sent as an acknowledgement, and the link is created
+    await vi.waitFor(() => expect(shareBodies).toHaveLength(2));
+    expect(shareBodies[1].acknowledge_personal_data).toBe(true);
+    expect(shareBodies[1].v2.sensitive_data.columns.find((c) => c.column === 'Customer ID').masked).toBe(true);   // earlier masking is kept
+    await vi.waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/share/t')));
+  });
+
+  it('Share link: cancelling the server\'s second question uploads nothing further', async () => {
+    const shareBodies = [];
+    vi.stubGlobal('fetch', vi.fn(async (url, init) => {
+      if (url === '/api/analyze') return { ok: true, status: 200, json: async () => analysis };
+      if (url === '/api/share') {
+        shareBodies.push(JSON.parse(init.body));
+        return { ok: false, status: 409, json: async () => ({ detail: 'x', code: 'personal_data', findings: [{ column: null, kind: 'email', label: 'email address', confidence: 'high', source: 'text', maskable: false }] }) };
+      }
+      return { ok: false, status: 404, json: async () => ({ detail: 'unexpected' }) };
+    }));
+    render(<App />);
+    await uploadSalesCsv();
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /share link/i })); });
+    await act(async () => { fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /mask 1 selected/i })); });
+    await vi.waitFor(() => expect(shareBodies).toHaveLength(1));
+    const second = await screen.findByText(/The server checked what is about to be shared/);
+    await act(async () => { fireEvent.click(within(second.closest('[role="dialog"]')).getByRole('button', { name: 'Cancel' })); });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(shareBodies).toHaveLength(1);                                    // nothing further was sent
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });

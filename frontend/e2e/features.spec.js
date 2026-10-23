@@ -93,7 +93,8 @@ test('Export > Python script: the downloaded file really runs and reproduces the
   noProblems(problems);
 });
 
-test('Personal data: a banner on the dashboard, a stop-and-ask before sharing, and masking that really removes the values', async ({ page }) => {
+test('Personal data: a banner on the dashboard, a stop-and-ask before sharing, and masking that really removes the values', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const problems = await openDashboard(page);
   await expect(page.getByRole('note', { name: 'Personal data warning' })).toBeVisible();
 
@@ -135,6 +136,11 @@ test('Personal data: a banner on the dashboard, a stop-and-ask before sharing, a
 
     // and the unrelated analysis is still there, so masking did not just gut the result
     expect(v2.all_analyses.some((a) => a.id === 'sum_region')).toBe(true);
+
+    // the server accepted the masked copy (it re-checks the payload itself), so no second question
+    await expect(page.getByRole('dialog')).toBeHidden();
+    // (the menu closes as soon as the link is made, so the clipboard is the evidence it was created)
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/share\/[\w-]+$/);
   });
   noProblems(problems);
 });
@@ -213,3 +219,86 @@ for (const theme of ['light', 'dark']) {
     noProblems(problems);
   });
 }
+
+
+// ---------------------------------------------------------------------------------------------
+// Server-side enforcement. The dialog is a UI step; the share API is what makes data public, so
+// it has to hold when a caller skips the UI entirely.
+// ---------------------------------------------------------------------------------------------
+const SECRET = 'zebra.unique@secret-corp.example';
+const cleanResult = () => ({ profile: { columns: ['Region', 'Sales'] }, findings: [{ text: 'Sales fell 3%.' }] });
+
+test('Share API: a caller that skips the UI is refused when the result carries personal data', async ({ request }) => {
+  const leaky = { ...cleanResult(), findings: [{ text: `Top buyer ${SECRET} spent 40` }] };
+
+  const refused = await request.post('/api/share', { data: { file_name: 'd.csv', kpis: {}, v2: leaky } });
+  expect(refused.status()).toBe(409);
+  const body = await refused.json();
+  expect(body.code).toBe('personal_data');
+  expect(body.findings.map((f) => f.kind)).toContain('email');
+  expect(await refused.text()).not.toContain(SECRET);                       // the refusal never echoes the value
+
+  const accepted = await request.post('/api/share', { data: { file_name: 'd.csv', kpis: {}, v2: leaky, acknowledge_personal_data: true } });
+  expect(accepted.status()).toBe(200);
+  const { token } = await accepted.json();
+  expect((await request.get(`/api/share/${token}`)).status()).toBe(200);
+});
+
+test('Share API: stripping the sensitive-data report does not get a leaky result through, and a clean one needs no flag', async ({ request }) => {
+  const rows = Array.from({ length: 30 }, (_, i) => ({ Region: 'West', Contact: `user${i}@example.org` }));
+  const stripped = { profile: { columns: ['Region', 'Contact'] }, filterable_data: { available: true, rows, dimension_columns: ['Region', 'Contact'], measure_columns: [] } };
+  expect((await request.post('/api/share', { data: { file_name: 'd.csv', kpis: {}, v2: stripped } })).status()).toBe(409);
+
+  // claiming "masked" does not hide values that are still there
+  const lying = { ...stripped, sensitive_data: { columns: [{ column: 'Contact', kind: 'email', confidence: 'high', masked: true }] } };
+  expect((await request.post('/api/share', { data: { file_name: 'd.csv', kpis: {}, v2: lying } })).status()).toBe(409);
+
+  expect((await request.post('/api/share', { data: { file_name: 'd.csv', kpis: {}, v2: cleanResult() } })).status()).toBe(200);
+});
+
+test('Share API: a hostile payload is refused quickly rather than freezing the server', async ({ request }) => {
+  const started = Date.now();
+  const resp = await request.post('/api/share', { data: { file_name: 'd.csv', kpis: {}, v2: { findings: [{ text: 'x'.repeat(8_000_000) }] } } });
+  expect([200, 409]).toContain(resp.status());
+  expect(Date.now() - started).toBeLessThan(10_000);
+  // and the server is still answering
+  expect((await request.get('/api/health')).status()).toBe(200);
+});
+
+test('Personal data: if the server finds more, the UI asks again, and "continue" shares with an acknowledgement', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const problems = await openDashboard(page);
+
+  const bodies = [];
+  let refusedOnce = false;
+  await page.route('**/api/share', async (route) => {
+    bodies.push(route.request().postDataJSON());
+    if (!refusedOnce) {                       // force the server's refusal once; every later call reaches the REAL server
+      refusedOnce = true;
+      return route.fulfill({
+        status: 409, contentType: 'application/json',
+        body: JSON.stringify({ detail: 'This result appears to contain personal data.', code: 'personal_data',
+          findings: [{ column: null, kind: 'email', label: 'email address', confidence: 'high', source: 'text', maskable: false }] }),
+      });
+    }
+    return route.continue();
+  });
+
+  await page.getByRole('button', { name: /export/i }).click();
+  await page.getByRole('menuitem', { name: /share link/i }).click();
+  await page.getByRole('button', { name: /mask 1 selected/i }).click();
+
+  const second = page.getByRole('dialog', { name: 'Personal data may be included' });
+  await expect(second).toContainText('The server checked what is about to be shared');
+  await expect(second).toContainText('email address in the result text');
+  await expect(second.getByRole('checkbox')).toHaveCount(0);                  // nothing here can be masked by column
+  await second.getByRole('button', { name: /continue without masking/i }).click();
+
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/share\/[\w-]+$/);   // the REAL server accepted the acknowledged share
+  expect(bodies).toHaveLength(2);
+  expect(bodies[0]).not.toHaveProperty('acknowledge_personal_data');
+  expect(bodies[1].acknowledge_personal_data).toBe(true);
+  // Chrome logs any 409 response as a console error. This test forces one on purpose, so that single
+  // message is expected; anything else is still a failure.
+  noProblems(problems.filter((p) => !/Failed to load resource.*status of 409/.test(p)));
+});

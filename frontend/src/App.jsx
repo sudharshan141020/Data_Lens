@@ -16,7 +16,7 @@ import DriftBanner from './components/DriftBanner';
 import JoinBanner from './components/JoinBanner';
 import SensitiveDataBanner from './components/SensitiveDataBanner';
 import SensitiveExportDialog from './components/SensitiveExportDialog';
-import { needsGuard, getSensitiveReport, maskV2 } from './sensitiveUtils';
+import { needsGuard, getSensitiveReport, maskV2, reportFromServerFindings } from './sensitiveUtils';
 import { findMatchingSnapshot, computeDrift, saveSnapshot } from './snapshotUtils';
 import WorkflowSteps from './components/WorkflowSteps';
 import TopBar from './components/TopBar';
@@ -24,7 +24,7 @@ import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
-import { analyzeFile, analyzeCombined, analyzeJoined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis, exportCode } from './api';
+import { analyzeFile, analyzeCombined, analyzeJoined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis, exportCode, PersonalDataError } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { buildFindingsText } from './findingsText';
 import CompareView from './components/CompareView';
@@ -54,7 +54,7 @@ export default function App() {
   const [selectedForJoin, setSelectedForJoin] = useState([]);
   const [dismissedDriftFor, setDismissedDriftFor] = useState(null);
   const [presentingStory, setPresentingStory] = useState(false);
-  const [exportGuard, setExportGuard] = useState(null); // { action, session, resolve, reject } while the personal-data dialog is open
+  const [exportGuard, setExportGuard] = useState(null); // { action, baseV2, report, variant, resolve, reject } while the personal-data dialog is open
   const [selectedForCompare, setSelectedForCompare] = useState([]);
   const [sampleLoadingId, setSampleLoadingId] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -200,15 +200,19 @@ export default function App() {
     )));
   };
 
-  // Personal-data guard. Resolves with the v2 that is allowed to leave the
-  // app: untouched when the scan found nothing (or the user chose to continue
-  // as is), a masked copy when they picked columns to mask. Rejects with
-  // { cancelled: true } when they back out. The session's own data is never
+  // Personal-data guard. Resolves with { v2, acknowledged }: the v2 that is allowed to leave the
+  // app (untouched, or a masked copy) and whether the person deliberately chose to share it as
+  // is. `acknowledged` is what the server needs to accept a share it would otherwise refuse.
+  // Rejects with { cancelled: true } when they back out. The session's own data is never
   // changed -- only the copy that is about to be shared or exported.
-  const guardedV2 = (session, action) => new Promise((resolve, reject) => {
-    const v2 = session.result.v2;
-    if (!needsGuard(v2)) { resolve(v2); return; }
-    setExportGuard({ action, session, resolve, reject });
+  //
+  // Normally the dialog opens only when the upload-time scan found something. It also opens
+  // when the SERVER refused a share (`report` given): it checks what is actually about to be
+  // published and can find what the first scan did not.
+  const guardedChoice = (session, action, { baseV2, report, variant } = {}) => new Promise((resolve, reject) => {
+    const v2 = baseV2 || session.result.v2;
+    if (!report && !needsGuard(v2)) { resolve({ v2, acknowledged: false }); return; }
+    setExportGuard({ action, baseV2: v2, report: report || getSensitiveReport(v2), variant, resolve, reject });
   });
 
   const closeExportGuard = (columns) => {
@@ -216,14 +220,14 @@ export default function App() {
     if (!g) return;
     setExportGuard(null);
     if (columns === null) { g.reject(Object.assign(new Error('cancelled'), { cancelled: true })); return; }
-    const v2 = g.session.result.v2;
-    g.resolve(columns.length ? maskV2(v2, columns).v2 : v2);
+    if (columns.length) g.resolve({ v2: maskV2(g.baseV2, columns).v2, acknowledged: false });
+    else g.resolve({ v2: g.baseV2, acknowledged: true });   // "continue without masking" is a deliberate decision
   };
 
   const handleExportPdf = async (session) => {
     setPdfError(null);
     try {
-      const v2 = await guardedV2(session, 'pdf');
+      const { v2 } = await guardedChoice(session, 'pdf');
       setPdfLoading(true);
       await exportPdf(session.fileName, v2);
     } catch (err) {
@@ -251,7 +255,7 @@ export default function App() {
 
   const handleExportHtml = async (session) => {
     try {
-      const v2 = await guardedV2(session, 'html');
+      const { v2 } = await guardedChoice(session, 'html');
       await exportHtml(session.fileName, v2);
     } catch (err) {
       if (!err?.cancelled) throw err;
@@ -260,8 +264,18 @@ export default function App() {
 
   const handleCreateShareLink = async (session) => {
     try {
-      const v2 = await guardedV2(session, 'share');
-      return await createShareLink(session.fileName, session.result.kpis, v2);
+      let attempt = {};
+      for (;;) {
+        const choice = await guardedChoice(session, 'share', attempt);
+        try {
+          return await createShareLink(session.fileName, session.result.kpis, choice.v2, { acknowledge: choice.acknowledged });
+        } catch (err) {
+          if (!(err instanceof PersonalDataError)) throw err;
+          // The server checked the payload itself and found personal data the scan did not.
+          // Ask again with what it found, keeping any masking already applied.
+          attempt = { baseV2: choice.v2, report: reportFromServerFindings(err.findings), variant: 'server' };
+        }
+      }
     } catch (err) {
       if (err?.cancelled) throw new Error('Share cancelled \u2014 nothing was uploaded.');
       throw err;
@@ -663,7 +677,8 @@ export default function App() {
       {exportGuard && (
         <SensitiveExportDialog
           action={exportGuard.action}
-          report={getSensitiveReport(exportGuard.session.result.v2)}
+          report={exportGuard.report}
+          variant={exportGuard.variant}
           onConfirm={({ columns }) => closeExportGuard(columns)}
           onCancel={() => closeExportGuard(null)}
         />

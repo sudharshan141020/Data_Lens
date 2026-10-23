@@ -40,12 +40,13 @@ from app.drivers import analyze_drivers
 from app.robustness import analyze_robustness
 from app.code_export import generate_script
 from app.hypothesis import run_hypothesis_test
+from app.share_guard import scan_share_payload, blocking_findings, refusal_message
 from app.filtering import MAX_ROWS_FOR_FILTERING
 from app.segment_forecast import forecast_top_segments
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
 from app.html_report import build_html_report
-from app.share_cache import create_share, get_share
+from app.share_cache import create_share, get_share, check_size as check_share_size
 from app.sensitive_data import detect_sensitive_data
 
 import math
@@ -1016,6 +1017,9 @@ class ShareRequest(BaseModel):
     file_name: str
     kpis: dict = {}
     v2: dict
+    # The explicit, deliberate "share it as is" decision (the UI's "Continue without
+    # masking"). Without it, a payload that appears to contain personal data is refused.
+    acknowledge_personal_data: bool = False
 
 
 class ShareCreateResponse(BaseModel):
@@ -1030,7 +1034,24 @@ def create_share_link(payload: ShareRequest):
     filterable_data included so the recipient gets the same interactive
     filtering the original session has, not a stripped static view) and
     returns a token -- share_cache.py explains why this is in-memory and
-    ephemeral rather than a database."""
+    ephemeral rather than a database.
+
+    A share link is the one place this app makes data public, so it is also
+    where personal data is refused unless the caller says otherwise
+    (share_guard.py explains what is checked and what is deliberately not
+    trusted). The refusal lists column names and kinds, never values."""
+    # Refuse an oversized request before inspecting it, not after.
+    try:
+        check_share_size({"file_name": payload.file_name, "kpis": payload.kpis, "v2": payload.v2})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if not payload.acknowledge_personal_data:
+        findings = blocking_findings(scan_share_payload(payload.v2))
+        if findings:
+            return SafeJSONResponse(
+                status_code=409,
+                content={"detail": refusal_message(findings), "code": "personal_data", "findings": findings},
+            )
     try:
         token, expires_at = create_share({"file_name": payload.file_name, "kpis": payload.kpis, "v2": payload.v2})
     except ValueError as e:

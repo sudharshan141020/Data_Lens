@@ -38,13 +38,20 @@ def _prune_expired_locked():
         del _store[k]
 
 
+def check_size(payload: dict) -> None:
+    """Raises ValueError if the payload is too large. Cheap enough to run
+    BEFORE anything scans the payload, so an oversized request is refused
+    without being inspected."""
+    size = len(json.dumps(payload))
+    if size > MAX_ENTRY_BYTES:
+        raise ValueError(f"This analysis is too large to share ({size / 1024 / 1024:.1f}MB, limit {MAX_ENTRY_BYTES / 1024 / 1024:.0f}MB).")
+
+
 def create_share(payload: dict) -> tuple:
     """Returns (token, expires_at_unix_ts). Raises ValueError if the
     payload is too large -- caller is expected to turn that into a 400,
     not a 500."""
-    size = len(json.dumps(payload))
-    if size > MAX_ENTRY_BYTES:
-        raise ValueError(f"This analysis is too large to share ({size / 1024 / 1024:.1f}MB, limit {MAX_ENTRY_BYTES / 1024 / 1024:.0f}MB).")
+    check_size(payload)
 
     with _lock:
         _prune_expired_locked()

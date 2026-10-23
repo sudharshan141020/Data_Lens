@@ -116,6 +116,21 @@ def _header_kind(header: str) -> Optional[str]:
     return None
 
 
+def _header_only_confidence(kind: str) -> str:
+    """A header hint with no value evidence: medium for fields that are almost
+    always personal, low for words that often are not ("address", "zip", "ip")."""
+    return "medium" if kind in {"email", "phone", "gov_id", "card", "person_id", "dob", "person_name"} else "low"
+
+
+def classify_header(name: str) -> Optional[dict]:
+    """What a column NAME alone suggests, for callers that have names but no
+    values (the share guard sees a result's column list, not the file)."""
+    kind = _header_kind(name)
+    if kind is None:
+        return None
+    return {"kind": kind, "label": _LABELS[kind], "confidence": _header_only_confidence(kind)}
+
+
 def _luhn_ok(digits: str) -> bool:
     total, alt = 0, False
     for ch in reversed(digits):
@@ -210,14 +225,7 @@ def _classify_column(name: str, series: pd.Series) -> Optional[dict]:
         reason = f"{value_rate * 100:.0f}% of values match the pattern of {_article(_LABELS[kind])} {_LABELS[kind]}"
     else:
         kind = header_kind
-        # Header alone: strong for unambiguous identifiers, weaker for words
-        # that are often not personal ("address", "zip", "ip").
-        if kind in {"email", "phone", "gov_id", "card"}:
-            conf = "medium"
-        elif kind in {"person_id", "dob", "person_name"}:
-            conf = "medium"
-        else:
-            conf = "low"
+        conf = _header_only_confidence(kind)
         if sample is None and kind in {"email", "phone", "card"} and not pd.api.types.is_numeric_dtype(series):
             return None  # an empty/odd column that only has a header hint -> nothing to share
         reason = f"column name looks like {_article(_LABELS[kind])} {_LABELS[kind]}"

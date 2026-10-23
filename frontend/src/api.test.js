@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   analyzeFile, analyzeCombined, analyzeJoined, compareFiles, loadSampleFile, SAMPLE_DATASETS,
-  createShareLink, fetchSharedAnalysis, exportPdf, exportHtml, exportCode, serializeFilters, runHypothesisTest, downloadCleanedCsv,
+  createShareLink, fetchSharedAnalysis, exportPdf, exportHtml, exportCode, serializeFilters, runHypothesisTest, PersonalDataError, downloadCleanedCsv,
 } from './api';
 
 function reply({ ok = true, status = 200, body = {}, blob = new Blob(['x']), headers = {} } = {}) {
@@ -275,5 +275,44 @@ describe('runHypothesisTest', () => {
     await expect(runHypothesisTest(PAYLOAD)).rejects.toThrow('Too many rows for an interactive test.');
     stubFetch(reply({ ok: false, status: 500, body: {} }));
     await expect(runHypothesisTest(PAYLOAD)).rejects.toThrow('The test could not be run.');
+  });
+});
+
+describe('createShareLink and the server-side personal-data check', () => {
+  it('sends exactly what it always did when nothing is acknowledged (no extra key)', async () => {
+    const fetchFn = stubFetch(reply({ body: { share_path: '/share/abc' } }));
+    await createShareLink('d.csv', { a: 1 }, { x: 1 });
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body)).toEqual({ file_name: 'd.csv', kpis: { a: 1 }, v2: { x: 1 } });
+  });
+
+  it('sends acknowledge_personal_data only when the person deliberately chose to share as is', async () => {
+    const fetchFn = stubFetch(reply({ body: { share_path: '/share/abc' } }));
+    await createShareLink('d.csv', {}, { x: 1 }, { acknowledge: true });
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body).acknowledge_personal_data).toBe(true);
+    await createShareLink('d.csv', {}, { x: 1 }, { acknowledge: false });
+    expect(JSON.parse(fetchFn.mock.calls[1][1].body)).not.toHaveProperty('acknowledge_personal_data');
+  });
+
+  it('turns the server\'s 409 into a PersonalDataError carrying the findings', async () => {
+    const findings = [{ column: 'Customer ID', kind: 'person_id', label: 'person identifier', confidence: 'medium', source: 'header', maskable: true }];
+    stubFetch(reply({ ok: false, status: 409, body: { detail: 'This result appears to contain personal data.', code: 'personal_data', findings } }));
+    const err = await createShareLink('d.csv', {}, { x: 1 }).catch((e) => e);
+    expect(err).toBeInstanceOf(PersonalDataError);
+    expect(err.message).toBe('This result appears to contain personal data.');
+    expect(err.findings).toEqual(findings);
+  });
+
+  it('any other failure, including a 409 that is not about personal data, stays an ordinary Error', async () => {
+    stubFetch(reply({ ok: false, status: 409, body: { detail: 'Conflict of some other kind', code: 'other' } }));
+    const err = await createShareLink('d.csv', {}, { x: 1 }).catch((e) => e);
+    expect(err).not.toBeInstanceOf(PersonalDataError);
+    expect(err.message).toBe('Conflict of some other kind');
+    stubFetch(reply({ ok: false, status: 400, body: { detail: 'This analysis is too large to share (20.0MB, limit 15MB).' } }));
+    await expect(createShareLink('d.csv', {}, { x: 1 })).rejects.toThrow('too large to share');
+  });
+
+  it('a malformed findings field does not break the error', () => {
+    expect(new PersonalDataError('x', 'nope').findings).toEqual([]);
+    expect(new PersonalDataError('x', undefined).findings).toEqual([]);
   });
 });

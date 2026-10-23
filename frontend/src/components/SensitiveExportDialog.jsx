@@ -9,7 +9,7 @@ const ACTION_COPY = {
 
 // Modal that stops a share/export when the scan found personal-data columns.
 // The user picks one of three outcomes; nothing leaves the app until they do.
-export default function SensitiveExportDialog({ action, report, onConfirm, onCancel }) {
+export default function SensitiveExportDialog({ action, report, variant = 'upload', onConfirm, onCancel }) {
   const copy = ACTION_COPY[action] || ACTION_COPY.share;
   const columns = (report?.columns || []).filter((c) => !c.masked);
   const [selected, setSelected] = useState(() => new Set(defaultMaskSelection(report)));
@@ -45,16 +45,21 @@ export default function SensitiveExportDialog({ action, report, onConfirm, onCan
       >
         <h2 id="sensitive-dialog-title" style={{ margin: '0 0 12px', fontSize: 20 }}>Personal data may be included</h2>
         <p style={{ fontSize: 14, lineHeight: 1.5, margin: '0 0 8px' }}>
-          You're about to create {copy.what}. {copy.risk} These columns look like personal information:
+          {variant === 'server'
+            ? <>The server checked what is about to be shared and found personal data that the first check did not. {copy.risk} It found:</>
+            : <>You're about to create {copy.what}. {copy.risk} These columns look like personal information:</>}
         </p>
         <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0' }}>
           {columns.map((c) => (
             <li key={c.column} style={{ marginBottom: 8 }}>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', cursor: 'pointer' }}>
-                <input type="checkbox" checked={selected.has(c.column)} onChange={() => toggle(c.column)} aria-label={`Mask ${c.column}`} />
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', cursor: c.maskable === false ? 'default' : 'pointer' }}>
+                {c.maskable === false
+                  ? <span aria-hidden="true" style={{ width: 13, flex: 'none' }} />
+                  : <input type="checkbox" checked={selected.has(c.column)} onChange={() => toggle(c.column)} aria-label={`Mask ${c.column}`} />}
                 <span>
                   <span className="mono">{c.column}</span>
                   <span className="dim-sub"> — {c.reason} ({c.confidence} confidence)</span>
+                  {c.maskable === false && <span className="dim-sub"> It can't be masked automatically: continue to share it as is, or cancel and remove it.</span>}
                 </span>
               </label>
             </li>

@@ -34,6 +34,27 @@ never saw it. The fix handles those places structurally, and the regression
 tests now run against the real captured analysis, including the case where the
 identifier isn't in the row data at all.
 
+**A security check that could freeze the server.** To enforce the guard on the
+server I wrote an email scan with the obvious regex, and the existing
+"oversized payload" test hung for five minutes. The pattern is quadratic on a
+long run of letters with no `@`, so a single hostile request could have stalled
+the server: a worse property than having no check. The scan now finds each `@`
+in linear time and examines only a bounded window around it, the size limit is
+checked before anything is scanned, and there are timing tests on seven
+pathological inputs (8 MB of `x`, 5 MB of `@`, and so on). A malformed-payload
+test found a second crash: a string where an object was expected raised an
+error instead of being ignored.
+
+**A guard that checks the right thing.** The server cannot trust a caller's
+report of what is sensitive, because it can simply be omitted, so it re-derives
+what it can from the payload itself: real values in the rows (which a false
+"masked" claim cannot hide), column names that suggest personal data, and
+emails, SSNs and card numbers in the text. Testing it also clarified what it
+should protect: a file with 300 unique email addresses shares fine, because
+they are too many to become a chart category or a row-level column and so never
+reach the payload. The guard looks at what is being *published*, not at what was
+uploaded.
+
 **A warning nobody could read.** A screenshot showed the personal-data dialog
 as dark text on a dark box in the light theme. I had used CSS variables the
 app doesn't define, so the fallbacks applied. No unit test can see that, so I
@@ -80,8 +101,13 @@ with a real effect, over 90% must, and none may point the wrong way.
 ## What it does not do
 
 - The personal-data check is heuristic. It can miss things or flag harmless
-  columns, and says so in the interface. The guard is a UI step, not server
-  enforcement: a direct call to the share API bypasses it.
+  columns, and says so in the interface. Share links are enforced on the server
+  (a caller can only proceed by explicitly acknowledging), but that protects
+  against accidents, not someone determined to publish data they already hold.
+  It cannot verify a claim that an identifier column was masked when that
+  column's values appear only as numbers; it can verify that real values in the
+  rows are gone. PDF and HTML exports are downloads to the same person, so they
+  are guarded by the dialog only.
 - The exported script reproduces loading, cleaning and the groupbys. It does
   not reproduce forecasts, k-means segments, anomaly scores, cohorts or
   p-values and bootstrap intervals.
@@ -97,7 +123,7 @@ with a real effect, over 90% must, and none may point the wrong way.
 
 ## By the numbers
 
-257 backend tests, 391 frontend tests, 7 end-to-end tests in a real browser,
+312 backend tests, 407 frontend tests, 11 end-to-end tests in a real browser,
 all in CI. Six additions, each with a changelog entry explaining the
 decisions and the bugs found along the way (`CHANGELOG.md`).
 
@@ -106,12 +132,13 @@ decisions and the bugs found along the way (`CHANGELOG.md`).
 Accurate one-liners, in case they help:
 
 - Extended a rule-based analytics app (FastAPI, pandas, React) with driver
-  analysis, a personal-data share guard, an outlier-robustness check, A/B
-  hypothesis testing and a pandas-script export, backed by 257 backend, 391
-  frontend and 7 real-browser tests.
+  analysis, a personal-data share guard enforced on the server, an
+  outlier-robustness check, A/B hypothesis testing and a pandas-script export,
+  backed by 312 backend, 407 frontend and 11 real-browser tests.
 - Verified the statistics rather than just exercising them: calibration tests
   for false-positive rate, cross-checks against SciPy, and executing the
   exported script to compare it with the dashboard.
 - Found and fixed a privacy leak in my own data-masking feature with a
-  browser-level test, and added a contrast test (checked by reintroducing the
+  browser-level test, and a denial-of-service in my own validation code (a
+  quadratic regex) with timing tests on hostile input, and added a contrast test (checked by reintroducing the
   bug) after a screenshot showed the warning was unreadable in the light theme.

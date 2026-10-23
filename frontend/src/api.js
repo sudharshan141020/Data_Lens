@@ -121,19 +121,35 @@ export async function loadSampleFile(filename) {
   return new File([blob], filename, { type: 'text/csv' });
 }
 
-export async function createShareLink(fileName, kpis, v2) {
+// The server looked at what is about to be PUBLISHED and found personal data. `findings`
+// are column names and kinds only (never values) -- see app/share_guard.py.
+export class PersonalDataError extends Error {
+  constructor(message, findings) {
+    super(message);
+    this.name = 'PersonalDataError';
+    this.findings = Array.isArray(findings) ? findings : [];
+  }
+}
+
+// `acknowledge` is the deliberate "share it as is" decision (the dialog's "Continue without
+// masking"). It is sent only when true, so an ordinary request is byte-for-byte what it was.
+export async function createShareLink(fileName, kpis, v2, { acknowledge = false } = {}) {
+  const body = { file_name: fileName, kpis: kpis || {}, v2 };
+  if (acknowledge) body.acknowledge_personal_data = true;
   const res = await fetch(`${API_BASE}/api/share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_name: fileName, kpis: kpis || {}, v2 }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     let message = 'The share link could not be created.';
+    let detail = null;
     try {
-      const body = await res.json();
-      if (typeof body.detail === 'string') message = body.detail;
+      detail = await res.json();
+      if (typeof detail.detail === 'string') message = detail.detail;
     } catch (e) { /* non-JSON error body -- keep the default message */ }
+    if (res.status === 409 && detail?.code === 'personal_data') throw new PersonalDataError(message, detail.findings);
     throw new Error(message);
   }
 

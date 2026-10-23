@@ -1432,3 +1432,76 @@ Screenshots in `docs/screenshots/feature-*.png` are generated from the running a
 presentation, Story mode, hypothesis and drivers components, `frontend/src/App.test.jsx`,
 `frontend/e2e/features.spec.js` (new), `frontend/e2e/screenshots.spec.js` (new),
 `README.md`, `docs/CASE_STUDY.md` (new), `docs/screenshots/feature-*.png` (new).
+
+## 2026-10-21 — Personal-data guard enforced on the server for share links
+
+**Why:** the dialog that stops and asks before a share link is a UI step. Anyone
+calling `POST /api/share` directly (a script, an integration, a future client that
+forgets the dialog) skipped it, and a share link is the one place this app makes
+data public: whoever holds the link can read the full result, including the
+row-level data behind the filters. The case study listed this as the biggest gap.
+
+**How it works (`app/share_guard.py`, wired into `/api/share`).** The server cannot
+trust a caller's report of what is sensitive (it can simply be omitted), so it
+re-derives what it can from the payload it actually receives:
+1. *Values:* the row-level data is scanned with the same detector used at upload. A
+   raw email in a row is found whatever the caller claims, and a claim of "masked"
+   never suppresses a value-based finding.
+2. *Column names:* names that suggest personal data (person identifiers, dates of
+   birth, a person's name), including the at-risk customer list's entity column, are
+   flagged unless the payload declares that column masked. This is the one place a
+   caller's word is accepted: an identifier column is often absent from the rows and
+   appears only as numbers elsewhere, where no pattern can be checked.
+3. *Text:* every other string is searched for emails, US-style SSNs and card numbers
+   (whole-string and Luhn-valid).
+If anything medium or high confidence remains, the share is refused with **409** and
+column names and kinds only. The response never contains a value, because an error
+that echoed an email would itself be a leak. A caller proceeds by sending
+`acknowledge_personal_data: true`, which is what the dialog's "Continue without
+masking" now records. PDF and HTML exports are downloads to the same person, so only
+share links are enforced.
+
+**The guard checks what is being published, not what was uploaded.** A file with 300
+unique email addresses shares fine: that is too many to become a chart category or a
+row-level column, so the analysis never carries them (there is a test that pins
+this). The upload-time banner is deliberately more cautious than the payload check.
+
+**Bugs found while building it:**
+- **A denial-of-service in my own scan.** The obvious email regex
+  (`[A-Za-z0-9._%+-]+@...`) is quadratic on a long run of letters with no `@`. The
+  existing "oversized payload" test hung for five minutes, which is how it was
+  noticed. The scan now finds each `@` in linear time and examines a bounded window
+  around it; the size limit is checked before anything is scanned; seven timing tests
+  cover hostile inputs (8 MB of `x`, 5 MB of `@`, half-emails, long digit runs...).
+- **A crash on malformed input.** A `filterable_data` that was a string instead of an
+  object raised an `AttributeError`. Every nested access is now type-safe.
+
+**Frontend.** `createShareLink` takes `{ acknowledge }` and sends the flag only when
+true (an ordinary request is byte-for-byte unchanged); a 409 becomes a
+`PersonalDataError` carrying the findings. When the server refuses, the app opens the
+dialog again with what the *server* found, keeps any masking already applied, and
+retries; findings with no column (an email in the text of the result) cannot be
+masked, so the choice there is to continue or cancel. `maskV2` records masking of
+columns the first scan never reported. Cancelling the second question uploads
+nothing further.
+
+**Verified:** 55 guard tests (including the timing and malformed-input cases) and a
+real-server API test suite in the browser project (a caller that skips the UI is
+refused; stripping the report or lying that a column is masked does not help; a
+hostile 8 MB payload is refused in well under a second and the server keeps
+answering). The UI loop is tested at the App level and in a real browser with the
+server's first reply forced to a refusal. **Mutation-checked:** with the enforcement
+switched off, the pytest and browser tests fail with "expected 409, received 200".
+Totals: 312 backend, 407 frontend, 11 e2e tests.
+
+**Limits:** it protects against accidents, not against someone determined to publish
+data they already hold. It cannot verify a claim that an identifier column was masked
+when its values appear only as numbers (it can verify that real values in the rows are
+gone). Detection is heuristic. Chrome logs any 409 as a console error, so the one e2e
+test that forces a refusal allows exactly that message.
+
+**Files:** `app/share_guard.py` (new), `app/sensitive_data.py` (`classify_header`),
+`app/share_cache.py` (`check_size`), `app/main.py`, `tests/test_share_guard.py` (new),
+`tests/test_api_endpoints.py`, `frontend/src/api.js`, `frontend/src/sensitiveUtils.js`,
+`frontend/src/App.jsx`, `frontend/src/components/SensitiveExportDialog.jsx`, their
+tests, `frontend/e2e/features.spec.js`, `README.md`, `docs/CASE_STUDY.md`.
