@@ -7,6 +7,7 @@ const PORT = Number(process.env.E2E_PORT || 8000);
 // browser against the real FastAPI backend serving that build).
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: /live\.spec\.js/,   // runs against a deployed URL only: see playwright.live.config.js
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

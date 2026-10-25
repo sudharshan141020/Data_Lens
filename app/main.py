@@ -103,8 +103,25 @@ app = FastAPI(title="DataLens", default_response_class=SafeJSONResponse)
 STATIC_DIR = Path(os.environ.get("DATALENS_STATIC_DIR") or Path(__file__).parent / "static")
 
 ALLOWED_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls", ".json", ".parquet"}
-MAX_FILE_SIZE_MB = 250
+DEFAULT_MAX_FILE_SIZE_MB = 250
+
+
+def _max_file_size_mb(raw: Optional[str] = None) -> float:
+    """The upload cap, in MB. Overridable with DATALENS_MAX_FILE_MB because the right number
+    depends on the machine: running locally 250 MB is fine, but a hosted instance with 512 MB
+    of RAM is killed by a ~30 MB CSV (measured: 500,000 rows peaked at ~620 MB). A bad value
+    falls back to the default instead of stopping the app from starting."""
+    raw = os.environ.get("DATALENS_MAX_FILE_MB") if raw is None else raw
+    try:
+        value = float(raw) if raw not in (None, "") else DEFAULT_MAX_FILE_SIZE_MB
+    except ValueError:
+        return float(DEFAULT_MAX_FILE_SIZE_MB)
+    return value if value > 0 else float(DEFAULT_MAX_FILE_SIZE_MB)
+
+
+MAX_FILE_SIZE_MB = _max_file_size_mb()
 CSV_CHUNK_ROWS = 100_000
+UPLOAD_READ_CHUNK = 1024 * 1024
 
 
 def _serialize_correlation_pair(pair) -> Optional[dict]:
@@ -641,16 +658,36 @@ def _read_csv_chunked(raw: bytes, sep: str, encoding: str) -> pd.DataFrame:
     return pd.concat(chunks, ignore_index=True)
 
 
+def _too_big_message(size_mb: float) -> str:
+    return (f"This file is {size_mb:.0f} MB, which is over the {MAX_FILE_SIZE_MB:g} MB limit. "
+            f"Try trimming it down or splitting it into smaller files.")
+
+
+async def _read_upload(upload) -> bytes:
+    """Read an upload in chunks and STOP once it passes the size cap. `await upload.read()`
+    pulls the whole file into memory first and checks afterwards, so on a small hosted
+    instance a huge upload used the RAM before being refused."""
+    limit = int(MAX_FILE_SIZE_MB * 1024 * 1024)
+    parts, total = [], 0
+    while True:
+        chunk = await upload.read(UPLOAD_READ_CHUNK)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            # the true size is unknown (we stopped reading), so say "over the limit", not a number
+            raise HTTPException(400, f"This file is over the {MAX_FILE_SIZE_MB:g} MB limit. "
+                                     f"Try trimming it down or splitting it into smaller files.")
+        parts.append(chunk)
+    return b"".join(parts)
+
+
 def _load_dataframe(filename: str, raw: bytes) -> pd.DataFrame:
     ext = Path(filename).suffix.lower()
 
     size_mb = len(raw) / (1024 * 1024)
     if size_mb > MAX_FILE_SIZE_MB:
-        raise HTTPException(
-            400,
-            f"This file is {size_mb:.0f} MB, which is over the {MAX_FILE_SIZE_MB} MB limit. "
-            f"Try trimming it down or splitting it into smaller files.",
-        )
+        raise HTTPException(400, _too_big_message(size_mb))
 
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -882,11 +919,14 @@ class CompareResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+    # The upload cap in force. Lets a deployment check confirm that the host's configuration
+    # (DATALENS_MAX_FILE_MB) was actually applied, without uploading a large file to find out.
+    max_file_mb: float
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze(file: UploadFile = File(...), column_overrides: str = Form(None)):
-    raw = await file.read()
+    raw = await _read_upload(file)
     df = _load_dataframe(file.filename, raw)
     return SafeJSONResponse(_full_analyze_from_df(df, column_overrides=column_overrides))
 
@@ -898,7 +938,7 @@ async def compare(file_a: UploadFile = File(...), file_b: UploadFile = File(...)
     files' rows into one dataset. Each file runs through the exact same
     pipeline as a normal single-file upload, independently; comparison.py
     then diffs the two already-computed results."""
-    raw_a, raw_b = await file_a.read(), await file_b.read()
+    raw_a, raw_b = await _read_upload(file_a), await _read_upload(file_b)
     df_a = _load_dataframe(file_a.filename, raw_a)
     df_b = _load_dataframe(file_b.filename, raw_b)
 
@@ -920,7 +960,7 @@ async def analyze_combined(files: list[UploadFile] = File(...)):
     prepared_with_mappings = []
     source_names = []
     for f in files:
-        raw = await f.read()
+        raw = await _read_upload(f)
         df_prepared, mapping = _load_and_detect(f.filename, raw)
         prepared_with_mappings.append((df_prepared, mapping))
         source_names.append(f.filename)
@@ -960,7 +1000,7 @@ async def analyze_joined(files: list[UploadFile] = File(...)):
     if len(files) != 2:
         raise HTTPException(400, "Select exactly two files to join.")
 
-    raw_a, raw_b = await files[0].read(), await files[1].read()
+    raw_a, raw_b = await _read_upload(files[0]), await _read_upload(files[1])
     df_a = _load_dataframe(files[0].filename, raw_a)
     df_b = _load_dataframe(files[1].filename, raw_b)
 
@@ -988,7 +1028,7 @@ async def analyze_joined(files: list[UploadFile] = File(...)):
 
 @app.get("/api/health", response_model=HealthResponse)
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "max_file_mb": MAX_FILE_SIZE_MB}
 
 
 class PdfExportRequest(BaseModel):
@@ -1078,7 +1118,7 @@ async def export_cleaned_csv(file: UploadFile = File(...)):
     and a `flagged_as_unusual` column added rather than removing
     anything else -- see data_cleaning.py for why deletion isn't the
     default here."""
-    raw = await file.read()
+    raw = await _read_upload(file)
     df = _load_dataframe(file.filename, raw)
     if df.empty:
         raise HTTPException(400, "The uploaded file has no rows.")

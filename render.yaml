@@ -5,3 +5,15 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Render restarts the service if this stops answering, and waits for it before switching traffic.
+    healthCheckPath: /api/health
+    envVars:
+      # Same minor version CI tests on (.github/workflows/ci.yml); without it Render picks its own default.
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      # The free plan has 512 MB of RAM and the app needs ~200 MB just to start. Measured peak memory:
+      # 50,000 rows ~355 MB, 200,000 rows (12.7 MB CSV) ~397 MB, 500,000 rows (31.8 MB) ~620 MB, which
+      # crashes the instance and wipes every in-memory share link. 10 MB keeps a safe margin; raise it
+      # on a bigger plan. (The app's own default is 250 MB, which suits running it locally.)
+      - key: DATALENS_MAX_FILE_MB
+        value: "10"

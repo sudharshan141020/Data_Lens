@@ -1536,3 +1536,49 @@ script gains one import, `sys`.
 
 **Files:** `tests/test_share_guard.py`, `tests/conftest.py`, `app/code_export.py`,
 `tests/test_code_export.py`, `docs/CASE_STUDY.md`, `CHANGELOG.md`.
+
+## 2026-10-24 — Deployment readiness: memory-safe upload cap, config, and a live-deployment check
+
+**Why.** The app is meant to run publicly, and nothing had checked what a small hosted
+instance can bear. Measured (single process, 9-column CSV): ~200 MB just to start; peak
+memory 355 MB at 50,000 rows, 397 MB at 200,000 (13 MB), **619 MB at 500,000 (32 MB)**.
+A free Render instance has 512 MB, so one ordinary-looking upload would kill it, and a
+restart wipes every in-memory share link. The app's upload cap was 250 MB.
+
+**Two problems, both fixed.**
+1. *The cap was fixed at 250 MB.* It is now `DATALENS_MAX_FILE_MB` (default unchanged for
+   local use; a bad value falls back to the default instead of stopping the app), and
+   `render.yaml` sets 10 MB with the measurements as a comment.
+2. *The cap was checked after the whole file had been read into memory.* A refused 250 MB
+   upload still used the RAM first. All five upload endpoints now read in 1 MB chunks and stop
+   at the cap (a test counts the bytes actually read: a 500 MB upload against a 2 MB cap is
+   abandoned after ~3 MB). The error names the limit in force.
+`/api/health` now also reports `max_file_mb`, so a deployment can confirm the setting was
+applied without uploading a large file to find out.
+
+**`render.yaml`:** `healthCheckPath: /api/health`, `PYTHON_VERSION: 3.12.7` (the minor version
+CI tests on), and the cap.
+
+**`npm run test:live` (`frontend/e2e/live.spec.js`, `playwright.live.config.js`).** Runs
+against a deployed address (`LIVE_URL`); starts and builds nothing; waits up to 3 minutes for a
+sleeping instance; changes nothing except one tiny share link that expires in 24 hours.
+Three checks: *the deployed frontend is the current build* (fetches the JavaScript the server
+is actually serving and looks for text from each feature added since the first deploy, so
+the easy mistake of rebuilding into `frontend/dist` but not refreshing `app/static` is caught
+with the exact repair commands), *the deployment is configured safely* (the cap), and *the
+features work against the real server* (hypothesis test, script download, the share API
+refusing personal data). Verified three ways against a local server: a stale frontend fails
+in ~80 ms listing all five missing features; a correct deployment passes; a forgotten cap
+setting fails with a clear message. The normal e2e config ignores this spec, so CI never runs it.
+
+**Docs:** a "Deploying (Render)" section in the README with the measurements, what the free
+plan does (spins down when idle; share links are lost on spin-down or redeploy; no login or
+rate limiting), and how to run the live check.
+
+**Limits:** memory scales with rows × columns, not just file size, so 10 MB is a measured
+rule of thumb for this kind of data, not a guarantee. The live check needs a browser installed
+(`npx playwright install chromium`) wherever you run it.
+
+**Files:** `app/main.py`, `render.yaml`, `tests/test_upload_limit.py` (new),
+`frontend/e2e/live.spec.js` (new), `frontend/playwright.live.config.js` (new),
+`frontend/playwright.config.js`, `frontend/package.json`, `README.md`, `CHANGELOG.md`.

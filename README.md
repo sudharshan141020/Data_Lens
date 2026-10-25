@@ -237,9 +237,58 @@ inside `frontend/` — set `VITE_API_BASE=http://127.0.0.1:8000` in a
 `frontend/.env` file so the dev server talks to your backend on a different
 port.
 
+## Deploying (Render)
+
+`render.yaml` already describes the service. What it sets, and why:
+
+| Setting | Value | Why |
+|---|---|---|
+| `healthCheckPath` | `/api/health` | Render restarts the service if it stops answering and waits for it before switching traffic |
+| `PYTHON_VERSION` | `3.12.7` | the minor version CI tests on, instead of whatever Render defaults to |
+| `DATALENS_MAX_FILE_MB` | `10` | the app's own default (250 MB) suits your own machine, not a 512 MB host (below) |
+
+**Why the upload cap is 10 MB on the free plan.** Measured on this app (single process, 9-column
+sales-style CSV): it uses about 200 MB just to start, and peaks at roughly
+
+| Upload | Peak memory |
+|---|---|
+| 600 rows | 246 MB |
+| 50,000 rows (3 MB) | 355 MB |
+| 200,000 rows (13 MB) | 397 MB |
+| 500,000 rows (32 MB) | **619 MB** (over a 512 MB instance, which is killed and restarts) |
+
+The cap is enforced while the file is being read, so an oversized upload is refused without being
+loaded into memory first. On a larger plan, raise `DATALENS_MAX_FILE_MB`; wider files use more memory per MB,
+so measure your own.
+
+**What to expect on the free plan.**
+- An idle service is spun down (after about 15 minutes) and the next visit waits roughly a minute for it to start.
+- Share links are held in the server's memory for 24 hours, so a spin-down, restart or redeploy ends them.
+  This is by design (no database; see `app/share_cache.py`), and worth knowing before sending a link to someone.
+- There is no login and no rate limiting: anyone with the address can upload. Nothing is stored beyond share
+  links, but the server does the work for every request.
+
+**Before you deploy, refresh the frontend.** `npm run build` writes to `frontend/dist`; the server serves
+`app/static`, which is refreshed by the copy step in the section above. Forgetting it deploys the new
+backend with the old frontend.
+
+**Check a deployment.** This runs against the live address; it builds and starts nothing, waits for a sleeping
+instance to wake, and changes nothing except one tiny share link that expires in 24 hours:
+
+```powershell
+$env:LIVE_URL = "https://your-app.onrender.com"
+cd frontend
+npm run test:live
+```
+
+It checks that the deployed frontend is the current build (and tells you the exact commands if it is
+stale), that the upload cap is set to a safe value, and that the main features work against the real server,
+including that the share API refuses personal data.
+
 ## Notes
 - Nothing is persisted or sent anywhere beyond your own machine — each
-  upload is processed in memory and discarded after the response is sent.
+  upload is processed in memory and discarded after the response is sent
+  (the one exception is a share link, which a deployed server keeps in memory for 24 hours).
 - If you ever move or rename this folder, delete `venv` and let `start.bat`
   recreate it — virtual environments hard-code absolute paths and break if
   the folder moves.
@@ -262,7 +311,7 @@ Three layers, from fast to realistic. All run in CI (`.github/workflows/ci.yml`)
 
 | Layer | Command | What it covers |
 |-------|---------|----------------|
-| Backend (pytest) — 313 tests | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
+| Backend (pytest) — 335 tests | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
 | Frontend (Vitest) — 407 tests | `cd frontend && npm test` | pure logic (filtering, query builder, snapshots, masking, API client), every panel rendered in jsdom, the whole `<App />` driven from a *real* captured backend response, and a source scan that fails on JS unicode escapes written in JSX text (they render literally and build clean) |
 | End to end (Playwright) — 11 tests | `cd frontend && npm run test:e2e` | a real browser against the real server: upload, dashboard, query builder, Present, navigation; the hypothesis test; **downloading the exported Python script and running it**; the personal-data guard, including that a masked share request contains no real customer ids, and that the share API itself refuses personal data from a caller that skips the UI; the driver and robustness panels; and a WCAG contrast check of the warning in both themes. Any uncaught exception or console error fails a test |
 

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "vite build && playwright test"
+    "test:e2e": "vite build && playwright test",
+    "test:live": "playwright test -c playwright.live.config.js"
   },
   "dependencies": {
     "lucide-react": "^1.28.0",
