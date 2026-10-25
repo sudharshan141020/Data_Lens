@@ -231,7 +231,7 @@ def test_hostile_column_names_titles_ids_and_filter_values_cannot_become_code():
 
     imported = {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
     imported |= {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
-    assert imported == {"json", "pathlib", "numpy", "pandas"}
+    assert imported == {"json", "sys", "pathlib", "numpy", "pandas"}
     names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
     assert "os" not in names
     assert not any(isinstance(n, ast.Attribute) and n.attr == "system" for n in ast.walk(tree))
@@ -287,3 +287,20 @@ def test_endpoint_returns_a_downloadable_python_file(client, sales_df):
 def test_endpoint_rejects_an_empty_payload_cleanly(client):
     assert client.post("/api/export/code", json={"file_name": "x.csv", "v2": {}}).status_code == 400
     assert client.post("/api/export/code", json={"file_name": "x.csv"}).status_code == 422
+
+
+def test_the_script_survives_a_console_that_cannot_show_the_characters_in_the_data(tmp_path):
+    """On Windows, output sent to a pipe or file uses the legacy code page (cp1252), which cannot encode
+    most non-Latin scripts. A column called 売上 must not stop the script with UnicodeEncodeError."""
+    import subprocess, sys
+    csv = tmp_path / "売上.csv"
+    # a category column NAMED and VALUED in Japanese, so the script prints non-Latin text (its title and its values)
+    csv.write_text("地域,Sales\n" + "\n".join(f"{'東京' if i % 2 else '大阪'},{i * 10}" for i in range(1, 60)), encoding="utf-8")
+    v2 = _analyze(csv)
+    script = tmp_path / "s.py"
+    script.write_text(generate_script(csv.name, v2), encoding="utf-8")
+    env = {**__import__("os").environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    out = subprocess.run([sys.executable, str(script)], cwd=tmp_path, capture_output=True, env=env)
+    assert out.returncode == 0, out.stderr.decode("utf-8", "replace")[-600:]
+    assert b"rows x" in out.stdout
+    assert b"?" in out.stdout and "東京".encode("utf-8") not in out.stdout   # shown as ? on a console that cannot display it

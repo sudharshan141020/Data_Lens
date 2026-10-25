@@ -93,7 +93,7 @@ with a real effect, over 90% must, and none may point the wrong way.
 - **Untrusted text never becomes code.** Column names and filter values come
   from the user's file. They enter the exported script only as quoted
   literals, and a test parses the output and asserts the only imports are
-  json, pathlib, numpy and pandas.
+  json, sys, pathlib, numpy and pandas.
 - **Fails loudly in the browser.** The end-to-end tests fail on any uncaught
   exception or console error, so a feature that "works" but logs a React
   warning cannot pass.
@@ -123,7 +123,7 @@ with a real effect, over 90% must, and none may point the wrong way.
 
 ## By the numbers
 
-312 backend tests, 407 frontend tests, 11 end-to-end tests in a real browser,
+313 backend tests, 407 frontend tests, 11 end-to-end tests in a real browser,
 all in CI. Six additions, each with a changelog entry explaining the
 decisions and the bugs found along the way (`CHANGELOG.md`).
 
@@ -134,7 +134,7 @@ Accurate one-liners, in case they help:
 - Extended a rule-based analytics app (FastAPI, pandas, React) with driver
   analysis, a personal-data share guard enforced on the server, an
   outlier-robustness check, A/B hypothesis testing and a pandas-script export,
-  backed by 312 backend, 407 frontend and 11 real-browser tests.
+  backed by 313 backend, 407 frontend and 11 real-browser tests.
 - Verified the statistics rather than just exercising them: calibration tests
   for false-positive rate, cross-checks against SciPy, and executing the
   exported script to compare it with the dashboard.

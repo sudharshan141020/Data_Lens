@@ -155,19 +155,28 @@ def test_contains_email(text, expected):
 # ---------------------------------------------------------------------------
 # a security check must not be a denial-of-service
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("name,payload", [
-    ("long run with no @ (the case that froze the first version)", "x" * 14_000_000),
-    ("long run ending in @", "x" * 5_000_000 + "@"),
-    ("nothing but @", "@" * 5_000_000),
-    ("many half-emails", "a@" * 2_500_000),
-    ("long local part then junk domain", ("a" * 60 + "@") * 50_000),
-    ("long digits", "1" * 5_000_000),
-    ("dashes and dots", ".-" * 3_000_000),
-])
-def test_pathological_text_is_scanned_in_linear_time(name, payload):
+# NOTE: the payloads are built INSIDE the test from a small factory, never passed as parametrize
+# values. pytest puts a test's parameters in its name, and the name goes into the PYTEST_CURRENT_TEST
+# environment variable; a multi-megabyte parameter made that name multi-megabyte, which Windows
+# rejects (environment variables are capped at 32,767 characters) while Linux does not -- so this
+# passed in CI and failed on a Windows machine. conftest.py now fails collection if any test name is long.
+_HOSTILE = {
+    "long-run-with-no-at-sign": lambda: "x" * 14_000_000,      # the case that froze the first version
+    "long-run-ending-in-at": lambda: "x" * 5_000_000 + "@",
+    "nothing-but-at-signs": lambda: "@" * 5_000_000,
+    "many-half-emails": lambda: "a@" * 2_500_000,
+    "long-local-part-then-junk-domain": lambda: ("a" * 60 + "@") * 50_000,
+    "long-digit-run": lambda: "1" * 5_000_000,
+    "dashes-and-dots": lambda: ".-" * 3_000_000,
+}
+
+
+@pytest.mark.parametrize("case", list(_HOSTILE))
+def test_pathological_text_is_scanned_in_linear_time(case):
+    payload = _HOSTILE[case]()
     started = time.perf_counter()
     scan_share_payload(_v2(findings=[{"text": payload}]))
-    assert time.perf_counter() - started < 5.0, f"too slow on: {name}"
+    assert time.perf_counter() - started < 5.0, f"too slow on: {case}"
 
 
 def test_a_huge_number_of_columns_and_rows_does_not_blow_up():

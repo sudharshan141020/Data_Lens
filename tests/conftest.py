@@ -112,3 +112,24 @@ def insurance_df(rng):
         "Deductible": rng.choice([500, 1000, 2500], n),
         "Risk Score": rng.integers(1, 100, n),
     })
+
+
+# ---------------------------------------------------------------------------------------------
+# Guard against over-long test names.
+# pytest stores the running test's name in the PYTEST_CURRENT_TEST environment variable, and a
+# parametrize value becomes part of the name. Windows rejects an environment variable longer than
+# 32,767 characters, Linux does not, so a test with a huge parameter passes on a Linux CI runner
+# and then fails on a developer's Windows machine ("ValueError: the environment variable is
+# longer than 32767 characters"). Fail at collection, on any OS, with the offending name.
+# ---------------------------------------------------------------------------------------------
+MAX_TEST_NAME_CHARS = 1000
+
+
+def pytest_collection_modifyitems(items):
+    too_long = [item for item in items if len(item.nodeid) > MAX_TEST_NAME_CHARS]
+    if too_long:
+        shown = "\n".join(f"  {len(i.nodeid):,} chars: {i.nodeid[:100]!r}..." for i in too_long[:5])
+        raise pytest.UsageError(
+            f"{len(too_long)} test name(s) exceed {MAX_TEST_NAME_CHARS} characters (limit exists because Windows caps "
+            "environment variables at 32,767). Build big inputs inside the test and give parametrized cases short ids=:\n" + shown
+        )

@@ -149,10 +149,16 @@ def _header(file_name: str, n_analyses: int, skipped: int, filters_active: bool)
         'Cells are marked with "# %%" so VS Code and Jupyter can run them one at a time.',
         '"""',
         "import json",
+        "import sys",
         "from pathlib import Path",
         "",
         "import numpy as np",
         "import pandas as pd",
+        "",
+        "# Column names and values can contain characters the console cannot show (on Windows, output sent to a",
+        "# file or pipe uses a legacy code page). Show a ? instead of stopping with UnicodeEncodeError.",
+        'if hasattr(sys.stdout, "reconfigure"):',
+        '    sys.stdout.reconfigure(errors="replace")',
         "",
     ]
 

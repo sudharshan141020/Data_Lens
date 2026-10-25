@@ -1505,3 +1505,34 @@ test that forces a refusal allows exactly that message.
 `tests/test_api_endpoints.py`, `frontend/src/api.js`, `frontend/src/sensitiveUtils.js`,
 `frontend/src/App.jsx`, `frontend/src/components/SensitiveExportDialog.jsx`, their
 tests, `frontend/e2e/features.spec.js`, `README.md`, `docs/CASE_STUDY.md`.
+
+## 2026-10-22 — Windows fixes: test names, and output encoding in the exported script
+
+Running `python -m pytest tests -q` on a Windows machine gave
+`305 passed, 14 errors` with `ValueError: the environment variable is longer than
+32767 characters`. CI (Linux) was green and so was my sandbox, so only a real Windows
+run could show it.
+
+**Cause.** The server-side-guard timing tests passed multi-megabyte strings as
+`parametrize` values. pytest puts parameters in the test's name and stores the running
+test's name in the `PYTEST_CURRENT_TEST` environment variable; Windows caps an
+environment variable at 32,767 characters and Linux does not. 7 tests × (setup +
+teardown) = the 14 errors. **Fix:** the hostile payloads are built inside the test from
+small factories, with short explicit ids; the longest test name is now 259 characters.
+**Guard:** `tests/conftest.py` fails collection on any OS if a test name exceeds 1,000
+characters, naming the offender (verified by planting a bad test), so this cannot
+silently return.
+
+**Same class of bug, found by looking for it.** On Windows, Python output sent to a
+pipe or file uses the legacy code page, so the exported script would stop with
+`UnicodeEncodeError` on a column or value in a non-Latin script (the generated script
+was pure ASCII for the sample data, which is why nothing had failed). The script now
+sets `sys.stdout.reconfigure(errors="replace")` so such text shows as `?` instead of
+stopping. The test runs the script with the Windows code page (`PYTHONIOENCODING=cp1252`)
+on a dataset whose column and values are Japanese. A first version of this test passed
+even with the fix removed (its data never printed non-Latin text, so it tested
+nothing); it now fails with exactly the `charmap` error when the fix is taken out. The
+script gains one import, `sys`.
+
+**Files:** `tests/test_share_guard.py`, `tests/conftest.py`, `app/code_export.py`,
+`tests/test_code_export.py`, `docs/CASE_STUDY.md`, `CHANGELOG.md`.

@@ -262,7 +262,7 @@ Three layers, from fast to realistic. All run in CI (`.github/workflows/ci.yml`)
 
 | Layer | Command | What it covers |
 |-------|---------|----------------|
-| Backend (pytest) — 312 tests | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
+| Backend (pytest) — 313 tests | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
 | Frontend (Vitest) — 407 tests | `cd frontend && npm test` | pure logic (filtering, query builder, snapshots, masking, API client), every panel rendered in jsdom, the whole `<App />` driven from a *real* captured backend response, and a source scan that fails on JS unicode escapes written in JSX text (they render literally and build clean) |
 | End to end (Playwright) — 11 tests | `cd frontend && npm run test:e2e` | a real browser against the real server: upload, dashboard, query builder, Present, navigation; the hypothesis test; **downloading the exported Python script and running it**; the personal-data guard, including that a masked share request contains no real customer ids, and that the share API itself refuses personal data from a caller that skips the UI; the driver and robustness panels; and a WCAG contrast check of the warning in both themes. Any uncaught exception or console error fails a test |
 
