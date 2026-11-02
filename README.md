@@ -1,5 +1,8 @@
 # DataLens — Universal Data Intelligence
 
+[![CI](https://github.com/sudharshan141020/Data_Lens/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sudharshan141020/Data_Lens/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Upload any structured dataset — CSV, TSV, or Excel — and get back a full
 analytical report in seconds: automatic domain detection, the 3 most
 valuable analyses for that specific dataset, a plain-English narrative
@@ -8,7 +11,16 @@ recommendations. Not a generic BI dashboard — the analysis itself adapts
 to whether it's looking at healthcare, sales, retail, manufacturing,
 marketing, education, HR, traffic, or finance data.
 
+![DataLens in about 16 seconds: upload a file, get a report, see where a change came from, filter and the reports follow, ask a direct question, and a guard that stops before sharing personal data](docs/demo.gif)
+
 **[Live demo →](#)** &nbsp;·&nbsp; *(add your Render URL here before sharing this repo)*
+
+### In 30 seconds
+
+- **What it is:** drop in a CSV or Excel file and get a report that adapts to the kind of data it sees, with a plain-English story, statistically-checked findings, and concrete next steps.
+- **No AI service behind it.** It is rule-based end to end, so there are no API keys and no per-use cost, and every number traces back to a rule or a standard statistical test.
+- **Built to be checked, not just trusted.** The newest features answer follow-up questions (*where did this change come from? is B really different from A? does this hold without the outliers?*), and are verified by tests that run the real thing: 372 backend, 443 frontend and 13 real-browser tests, all in CI. See [`docs/CASE_STUDY.md`](docs/CASE_STUDY.md) for what that testing caught.
+- **Run it:** on Windows, double-click `start.bat`. Anywhere else: `pip install -r requirements.txt`, then `python run.py`, and open <http://127.0.0.1:8000>.
 
 ---
 

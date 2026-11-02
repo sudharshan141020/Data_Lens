@@ -1635,3 +1635,35 @@ reproduced the last reported counts exactly (335 backend, 407 frontend, 11 e2e) 
 `frontend/src/components/DeepDivePanel.jsx`, `frontend/src/App.jsx`, their tests,
 `frontend/src/test/fixtures/analysis.{json,csv}` (regenerated), `frontend/e2e/features.spec.js`,
 `README.md`, `docs/CASE_STUDY.md`.
+
+## 2026-10-27 — Repo polish: license, at-a-glance README, demo GIF
+
+**Why.** Someone landing on the repo should understand it in 30 seconds. The README opened with a
+paragraph of prose and a placeholder demo link, and there was no license (without one, the code is
+legally "all rights reserved", so nobody can reuse it).
+
+- **`LICENSE`: MIT**, copyright "2026 N. Sudharshan". This is a choice, not a default: MIT is the usual
+  permissive pick for a portfolio project, but swap the file if you want something else (or delete it to
+  keep all rights).
+- **README header:** CI and license badges, the demo GIF, and an "In 30 seconds" block (what it is, that it
+  is rule-based with no AI service or API keys, that the newest features are verified by tests that run the
+  real thing, and how to run it). The "Live demo" line is still a placeholder: **put your Render address in
+  before sharing the repo.**
+- **`docs/demo.gif`** (362 KB, about 16 seconds, 7 frames): upload, dashboard, "why did it change?", filters
+  with the reports following, a hypothesis test, the personal-data guard, the story presentation. Every frame is
+  a screenshot of the real running app, not a mock-up. Frame 4 is three crops of the same page stacked (the note
+  that says filters are on, Period Comparison, and the top of "Why did it change?") so the text stays readable;
+  nothing in the app is altered.
+- **Regenerating it:** `cd frontend; DATALENS_DEMO=1 npx playwright test e2e/demo.spec.js; cd ..; python scripts/make_demo_gif.py`
+  (needs `pip install pillow`). The capture spec is skipped unless `DATALENS_DEMO` is set, so CI never runs it.
+- Found while reviewing the frames: the first version of frame 4 cropped the "Why did it change?" panel it was
+  meant to show; the final one was checked by eye.
+
+**GitHub settings (cannot be committed, set in the repo's About box):**
+description *"Upload any CSV or Excel file and get an adaptive analytical report: rule-based, no AI service, with
+driver analysis, A/B tests and a personal-data guard"*; topics `data-analysis`, `data-analytics`, `fastapi`,
+`pandas`, `react`, `vite`, `recharts`, `statistics`, `hypothesis-testing`, `data-privacy`, `playwright`, `vitest`,
+`rule-based`, `dashboard`; website: your Render address.
+
+**Files:** `LICENSE` (new), `README.md`, `docs/demo.gif` (new), `scripts/make_demo_gif.py` (new),
+`frontend/e2e/demo.spec.js` (new), `CHANGELOG.md`.
