@@ -55,6 +55,20 @@ they are too many to become a chart category or a row-level column and so never
 reach the payload. The guard looks at what is being *published*, not at what was
 uploaded.
 
+**Reports that disagreed with the chart beside them.** With a filter on, the
+trend chart re-aggregated in the browser while Period Comparison, "Why did it
+change?" and Robustness kept describing the whole dataset: two sets of numbers on
+one page. Re-implementing them in JavaScript would have created a second copy to
+drift, so the server recomputes them by calling the same functions the upload
+calls. The test that matters runs the whole upload pipeline on a pre-filtered
+copy of the data and requires the two to agree (3 datasets, 4 kinds of filter).
+Doing that comparison first found the one real difference: the pipeline stops
+treating a column as a breakdown once a filter leaves it a single value, and the
+first version kept it, reporting "Region=West explains 100% of the change". It
+now applies the pipeline's own chartable rule. A browser test closes the loop: it
+filters through the real filter bar, then uploads the same rows as a separate
+file, and requires the headline on screen to equal the upload's.
+
 **A warning nobody could read.** A screenshot showed the personal-data dialog
 as dark text on a dark box in the light theme. I had used CSS variables the
 app doesn't define, so the fallbacks applied. No unit test can see that, so I
@@ -112,9 +126,13 @@ with a real effect, over 90% must, and none may point the wrong way.
   not reproduce forecasts, k-means segments, anomaly scores, cohorts or
   p-values and bootstrap intervals.
 - "Why did it change?" shows where a change landed, not why it happened, and
-  says so on the panel. The driver and robustness panels use the full dataset
-  and do not re-compute under the filter bar; the hypothesis test does use the
-  filtered rows.
+  says so on the panel. With a filter on, Seasonality, Period Comparison, "Why
+  did it change?" and Robustness describe the rows in view (recomputed on the
+  server, 50,000 rows at most); the other Deep Dive panels (segments, anomalies,
+  cohorts, correlations) and the changepoint marker on the trend chart still
+  describe the full dataset, and a note on the page says which is which. A
+  column that wasn't chartable on the full data can't become a breakdown under
+  a filter, because it isn't in the row data.
 - The hypothesis test compares two groups at a time and assumes rows are
   independent (repeated customers make its p-value too optimistic). It does
   no multiple-testing correction and warns about running many tests and
@@ -123,7 +141,7 @@ with a real effect, over 90% must, and none may point the wrong way.
 
 ## By the numbers
 
-335 backend tests, 407 frontend tests, 11 end-to-end tests in a real browser,
+372 backend tests, 443 frontend tests, 13 end-to-end tests in a real browser,
 all in CI. Six additions, each with a changelog entry explaining the
 decisions and the bugs found along the way (`CHANGELOG.md`).
 
@@ -134,7 +152,7 @@ Accurate one-liners, in case they help:
 - Extended a rule-based analytics app (FastAPI, pandas, React) with driver
   analysis, a personal-data share guard enforced on the server, an
   outlier-robustness check, A/B hypothesis testing and a pandas-script export,
-  backed by 335 backend, 407 frontend and 11 real-browser tests.
+  backed by 372 backend, 443 frontend and 13 real-browser tests.
 - Verified the statistics rather than just exercising them: calibration tests
   for false-positive rate, cross-checks against SciPy, and executing the
   exported script to compare it with the dashboard.

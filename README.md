@@ -135,6 +135,11 @@ specifically, and flags when a finding shouldn't be trusted.
 - **Robustness check** — re-runs the headline numbers and top correlations
   with extreme rows set aside, and flags what moves materially or flips
   (a different failure mode from sampling noise)
+- **Reports that follow the filter bar** — Seasonality, Period Comparison,
+  *Why did it change?* and Robustness are recomputed for exactly the rows
+  you're looking at, by the same code the upload runs, so they never disagree
+  with the trend chart beside them (the panel says which numbers follow the
+  filters and which still describe the full dataset)
 - **Test a Hypothesis (A/B mode)** — pick a group column, two groups and an
   outcome; it chooses Welch's t, Mann-Whitney, chi-square or Fisher's exact,
   and answers with an effect size, an interval and a plain-language verdict
@@ -311,14 +316,15 @@ Three layers, from fast to realistic. All run in CI (`.github/workflows/ci.yml`)
 
 | Layer | Command | What it covers |
 |-------|---------|----------------|
-| Backend (pytest) — 335 tests | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
-| Frontend (Vitest) — 407 tests | `cd frontend && npm test` | pure logic (filtering, query builder, snapshots, masking, API client), every panel rendered in jsdom, the whole `<App />` driven from a *real* captured backend response, and a source scan that fails on JS unicode escapes written in JSX text (they render literally and build clean) |
-| End to end (Playwright) — 11 tests | `cd frontend && npm run test:e2e` | a real browser against the real server: upload, dashboard, query builder, Present, navigation; the hypothesis test; **downloading the exported Python script and running it**; the personal-data guard, including that a masked share request contains no real customer ids, and that the share API itself refuses personal data from a caller that skips the UI; the driver and robustness panels; and a WCAG contrast check of the warning in both themes. Any uncaught exception or console error fails a test |
+| Backend (pytest) — 372 tests | `python -m pytest tests/` | the analysis pipeline, API endpoints, statistics, and a **contract test** that fails if `/api/analyze` drops or retypes a field the frontend relies on |
+| Frontend (Vitest) — 443 tests | `cd frontend && npm test` | pure logic (filtering, query builder, snapshots, masking, API client), every panel rendered in jsdom, the whole `<App />` driven from a *real* captured backend response, and a source scan that fails on JS unicode escapes written in JSX text (they render literally and build clean) |
+| End to end (Playwright) — 13 tests | `cd frontend && npm run test:e2e` | a real browser against the real server: upload, dashboard, query builder, Present, navigation; the hypothesis test; **downloading the exported Python script and running it**; the personal-data guard, including that a masked share request contains no real customer ids, and that the share API itself refuses personal data from a caller that skips the UI; the driver and robustness panels, and that after filtering through the real filter bar they show **the same answer as uploading the pre-filtered file**; and a WCAG contrast check of the warning in both themes. Any uncaught exception or console error fails a test |
 
 A few tests are worth singling out because they check the *answer*, not just that code runs:
 
 - **Round trip:** the generated pandas script is executed on the sample datasets and every analysis and headline number is compared to what the dashboard computed.
 - **Calibration:** with no real difference between groups, about 5% of 600 simulated hypothesis tests must come out significant; with a real effect, over 90% must, and none may point the wrong way. A miswired p-value fails this even when every unit test passes.
+- **Agreement with the real pipeline:** the reports recomputed for a filter are compared with running the whole upload pipeline on the pre-filtered file (3 datasets × 4 filters), and must match.
 - **Mutation-checked guards:** the share enforcement and the contrast check were each verified by switching the protection off and confirming the tests fail.
 - **Independent cross-checks:** the Welch interval equals SciPy's exactly, and the Newcombe interval is rebuilt from SciPy's own Wilson intervals.
 

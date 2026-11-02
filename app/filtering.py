@@ -51,5 +51,8 @@ def build_filterable_data(df: pd.DataFrame, profile: DatasetProfile) -> dict:
         "date_column": profile.date_column,
         "dimension_columns": dim_cols,
         "measure_columns": measure_cols,
+        # How each measure is aggregated (sum or avg). Lets reports that are recomputed on filtered rows
+        # (filtered_reports.py) behave exactly like the ones computed at upload.
+        "measure_aggregations": {m.column: m.aggregation for m in profile.measures if m.column in df.columns},
         "rows": rows,
     }

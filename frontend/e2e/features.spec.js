@@ -302,3 +302,73 @@ test('Personal data: if the server finds more, the UI asks again, and "continue"
   // message is expected; anything else is still a failure.
   noProblems(problems.filter((p) => !/Failed to load resource.*status of 409/.test(p)));
 });
+
+
+// ---------------------------------------------------------------------------------------------
+// The reports beside the trend chart must follow the filter bar. The strongest end-to-end check:
+// filter through the real UI, then upload the SAME pre-filtered data as a separate file to the real
+// server, and require what the page shows to equal what that upload produces.
+// ---------------------------------------------------------------------------------------------
+const driversHeadline = (page) => panelOf(page, 'Why Did It Change?').locator('.insight-text').first();
+
+// The fixture rows for the given regions, as a CSV file. West + East leaves 114 rows, enough per month for
+// "Why did it change?" to have something to say (West alone leaves about 3 rows a month, and it correctly
+// declines to split a change on so little).
+function regionsCsv(regions) {
+  const [header, ...lines] = fs.readFileSync(SALES_CSV, 'utf8').trim().split('\n');
+  const region = header.split(',').indexOf('Region');
+  return [header, ...lines.filter((l) => regions.includes(l.split(',')[region]))].join('\n');
+}
+
+test('Filters: Period Comparison, Why Did It Change, Seasonality and Robustness follow the filter bar and match an upload of the filtered file', async ({ page, request }) => {
+  const problems = await openDashboard(page);
+  await page.locator('.explorer-tab', { hasText: 'Patterns' }).click();
+  await expect(page.getByRole('status')).toHaveCount(0);                     // no filter, no note
+  const fullHeadline = (await driversHeadline(page).textContent()).trim();
+
+  // filter through the real filter bar (two regions) and capture what the page asks the server
+  const kept = ['West', 'East'];
+  const csv = regionsCsv(kept);
+  const keptRows = csv.split('\n').length - 1;
+  const settled = page.waitForRequest((r) => r.url().endsWith('/api/filtered-reports') && new Set(r.postDataJSON().columns.Region).size === kept.length);
+  await page.getByRole('button', { name: /^Region/ }).click();
+  for (const region of kept) await page.getByLabel(region, { exact: true }).check();
+  const sent = (await settled).postDataJSON();
+  expect(sent.columns.Region).toHaveLength(keptRows);
+  expect(new Set(sent.columns.Region)).toEqual(new Set(kept));
+
+  const note = page.getByRole('status');
+  await expect(note).toContainText(`describe the ${keptRows} of 162 rows you are looking at`);
+  await expect(note).toContainText('The other panels here still describe the full dataset.');
+
+  // the oracle: the same data uploaded as its own file, through the real analysis pipeline
+  const oracle = await (await request.post('/api/analyze', {
+    multipart: { file: { name: 'filtered.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) } },
+  })).json();
+  expect(oracle.v2.drivers.available).toBe(true);                            // a real headline, not an "unavailable" note
+
+  await expect(driversHeadline(page)).toHaveText(oracle.v2.drivers.comparisons[0].headline);   // what an upload of that data says
+  expect((await driversHeadline(page).textContent()).trim()).not.toBe(fullHeadline);             // and filtering really changed the answer
+
+  await page.locator('.explorer-tab', { hasText: 'Precision & Text' }).click();
+  const robustness = panelOf(page, 'Does This Hold Without the Outliers?');
+  await expect(robustness.getByText(oracle.v2.robustness.overall.headline, { exact: true })).toBeVisible();
+
+  // clearing the filter brings the upload-time reports back
+  await page.getByRole('button', { name: /reset/i }).click();
+  await page.locator('.explorer-tab', { hasText: 'Patterns' }).click();
+  await expect(page.getByRole('status')).toHaveCount(0);
+  await expect(driversHeadline(page)).toHaveText(fullHeadline);
+  noProblems(problems);
+});
+
+test('Filters: with no filter on, nothing is sent to recompute', async ({ page }) => {
+  const problems = await openDashboard(page);
+  const asked = [];
+  page.on('request', (r) => { if (r.url().endsWith('/api/filtered-reports')) asked.push(r); });
+  await page.locator('.explorer-tab', { hasText: 'Patterns' }).click();
+  await page.locator('.explorer-tab', { hasText: 'Precision & Text' }).click();
+  await page.waitForTimeout(1000);
+  expect(asked).toHaveLength(0);
+  noProblems(problems);
+});

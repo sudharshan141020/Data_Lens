@@ -12,6 +12,7 @@ import WeakPointsPanel from './components/WeakPointsPanel';
 import DeepDivePanel from './components/DeepDivePanel';
 import QueryBuilderPanel from './components/QueryBuilderPanel';
 import HypothesisTestPanel from './components/HypothesisTestPanel';
+import { useFilteredReports } from './useFilteredReports';
 import DriftBanner from './components/DriftBanner';
 import JoinBanner from './components/JoinBanner';
 import SensitiveDataBanner from './components/SensitiveDataBanner';
@@ -451,6 +452,10 @@ export default function App() {
     return applyFilters(filterableData.rows, filters);
   }, [filterableData, filters, hasActiveFilters]);
 
+  // Seasonality, Period Comparison, "Why did it change?" and Robustness follow the filter bar by being recomputed
+  // on the server for exactly the rows in view (see filtered_reports.py).
+  const filteredReports = useFilteredReports({ v2: activeSession?.result?.v2, rows: filteredRows, active: hasActiveFilters });
+
   // Snapshot/drift: is there a previously-saved snapshot (this browser only)
   // that looks like an earlier version of the dataset now active? Only for
   // a genuine single-file upload, ready, with filterable_data available
@@ -668,7 +673,7 @@ export default function App() {
               <AnalysisExplorerV2 analyses={displayedAllAnalyses} tickNum="05" filtersActive={hasActiveFilters} jumpTarget={jumpTarget} />
               <FindingsPanel findings={activeSession.result.v2.findings} tickNum="06" />
               <WeakPointsPanel weakPoints={activeSession.result.v2.weak_points} tickNum="07" />
-              <DeepDivePanel v2={activeSession.result.v2} tickNum="08" />
+              <DeepDivePanel v2={activeSession.result.v2} tickNum="08" filtered={hasActiveFilters ? filteredReports : null} totalRows={filterableData?.rows?.length || 0} />
             </div>
           </div>
         )}

@@ -1582,3 +1582,56 @@ rule of thumb for this kind of data, not a guarantee. The live check needs a bro
 **Files:** `app/main.py`, `render.yaml`, `tests/test_upload_limit.py` (new),
 `frontend/e2e/live.spec.js` (new), `frontend/playwright.live.config.js` (new),
 `frontend/playwright.config.js`, `frontend/package.json`, `README.md`, `CHANGELOG.md`.
+
+## 2026-10-26 — Reports that follow the filter bar
+
+**Why.** With a filter on, the trend chart and the by-category charts re-aggregated in the browser,
+but Seasonality, Period Comparison, "Why did it change?" and Robustness kept describing the whole
+dataset, so one page showed two sets of numbers. Hypothesis testing already used the filtered rows;
+these four did not.
+
+**Approach: reuse, don't re-implement.** These reports need real statistics, so they can't be
+re-aggregated in the browser like the charts. A JavaScript copy would be a second implementation to
+drift. Instead `POST /api/filtered-reports` (`app/filtered_reports.py`) rebuilds a DataFrame from the
+rows the dashboard is showing and calls the same functions the upload pipeline calls
+(`decompose_trend`, `compare_periods`, `detect_changepoint`, `analyze_drivers`,
+`analyze_correlations`, `analyze_robustness`). Rows travel column by column (no repeated keys), the
+request is capped at 50,000 rows, and nothing is stored. Measured: 50,000 rows is a 2.9 MB request, 0.4 s,
++53 MB of memory, so it is safe on a 512 MB host. `filterable_data` now also carries
+`measure_aggregations` (sum or avg per measure) so the recompute behaves exactly like the upload.
+
+**Agreement with the real pipeline is the test.** For 3 datasets × 4 filters (one value, two values,
+a date range, both) the whole upload pipeline is run on the pre-filtered file and the recompute must
+match on all four reports. Comparing them first found the one real difference: the pipeline drops a
+dimension once a filter leaves it a single value (it is no longer chartable), and the first version
+kept it and reported "Region=West explains 100% of the change". It now applies the pipeline's own
+`_is_chartable` rule to the rows in view. One case cannot be reproduced: a column that was not
+chartable on the full data is not in the row data, so it cannot become a breakdown under a filter.
+
+**Frontend.** `useFilteredReports` debounces (350 ms), shows `loading`, and keeps two rules: a response
+is used only if it answers the *current* filters (a slow earlier request can never overwrite a newer one),
+and while an update is pending the panels show a placeholder, never numbers for the previous filter.
+On failure the panels fall back to the full-data reports and say so. Deep Dive shows a status note on the
+two tabs that contain these panels, naming exactly which panels follow the filters and that the others
+(segments, anomalies, cohorts, correlations) and the changepoint marker on the trend chart still describe
+the full dataset. Not recomputed when no filter is on, when the result predates `measure_aggregations`
+(it says to re-analyse), when there is no date column, or above 50,000 rows.
+
+**Verified.** 37 backend tests (agreement with the pipeline, a payload that is lossless for missing
+values/unparseable dates/text in a number column, input never modified, bad input explained, the endpoint,
+50,000 rows in time); 23 helper/hook tests including the stale-response rule; 9 Deep Dive tests; 4 App-level
+tests that drive the real filter bar. In a real browser: the page filters through the actual UI, uploads the
+same rows as a separate file to the real server, and requires the Drivers and Robustness headlines on screen to
+equal that upload's. **Mutation-checked:** with the filtered view disabled that test fails, showing the old
+full-data headline. Totals: 372 backend, 443 frontend, 13 e2e.
+
+**Process note.** The working environment was reset mid-task and the uncommitted work was lost. The project
+was rebuilt from the original upload plus every delivered zip and verified before continuing: the rebuilt tree
+reproduced the last reported counts exactly (335 backend, 407 frontend, 11 e2e) before this work was redone.
+
+**Files:** `app/filtered_reports.py` (new), `app/filtering.py`, `app/main.py`,
+`tests/test_filtered_reports.py` (new), `frontend/src/filteredReportsUtils.js` (new),
+`frontend/src/useFilteredReports.js` (new), `frontend/src/api.js`,
+`frontend/src/components/DeepDivePanel.jsx`, `frontend/src/App.jsx`, their tests,
+`frontend/src/test/fixtures/analysis.{json,csv}` (regenerated), `frontend/e2e/features.spec.js`,
+`README.md`, `docs/CASE_STUDY.md`.

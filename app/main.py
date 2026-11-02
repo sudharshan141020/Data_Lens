@@ -40,6 +40,7 @@ from app.drivers import analyze_drivers
 from app.robustness import analyze_robustness
 from app.code_export import generate_script
 from app.hypothesis import run_hypothesis_test
+from app.filtered_reports import recompute_reports, RECOMPUTE_MAX_ROWS
 from app.share_guard import scan_share_payload, blocking_findings, refusal_message
 from app.filtering import MAX_ROWS_FOR_FILTERING
 from app.segment_forecast import forecast_top_segments
@@ -1042,6 +1043,16 @@ class CodeExportRequest(BaseModel):
     filters: Optional[dict] = None   # {dateColumn, dateFrom, dateTo, dimensionFilters: {col: [values]}}
 
 
+class FilteredReportsRequest(BaseModel):
+    columns: dict                       # {"Region": [...], "Sales": [...]}: the rows the dashboard is showing, column by column
+    date_column: str
+    dimension_columns: list = []
+    measure_columns: list
+    measure_aggregations: dict = {}
+    metric_column: str
+    aggregation: str = "sum"            # sum | avg
+
+
 class HypothesisTestRequest(BaseModel):
     group_column: str
     outcome_column: str
@@ -1184,6 +1195,20 @@ def export_html(payload: PdfExportRequest):
         media_type="text/html",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}_report.html"'},
     )
+
+
+@app.post("/api/filtered-reports")
+def filtered_reports(payload: FilteredReportsRequest):
+    """Seasonality, Period Comparison, "Why did it change?" and Robustness for the rows the
+    dashboard is currently showing (i.e. with the filter bar applied). Calls the same analysis
+    functions as the upload pipeline; see filtered_reports.py. Stateless."""
+    sizes = [len(v) for v in payload.columns.values() if isinstance(v, list)]
+    if sizes and max(sizes) > RECOMPUTE_MAX_ROWS:
+        raise HTTPException(413, f"Too many rows to recompute interactively ({max(sizes):,}; limit {RECOMPUTE_MAX_ROWS:,}).")
+    return SafeJSONResponse(recompute_reports(
+        payload.columns, payload.date_column, payload.dimension_columns, payload.measure_columns,
+        payload.measure_aggregations, payload.metric_column, payload.aggregation,
+    ))
 
 
 @app.post("/api/hypothesis-test")

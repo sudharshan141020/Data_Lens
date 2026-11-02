@@ -263,6 +263,26 @@ export function serializeFilters(filters) {
   return out;
 }
 
+// Seasonality, Period Comparison, "Why did it change?" and Robustness for the rows currently in view
+// (filter bar applied). The server runs the same analysis code as the upload; see filtered_reports.py.
+export async function fetchFilteredReports(payload, { signal } = {}) {
+  const res = await fetch(`${API_BASE}/api/filtered-reports`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  if (!res.ok) {
+    let message = 'The reports could not be updated for your filters.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
 // A directed A-vs-B question. The server only gets the two groups' values (the
 // rows the dashboard is showing); an unusable question comes back as
 // { available: false, note } rather than an error, so the panel can say why.

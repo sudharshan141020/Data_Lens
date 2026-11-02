@@ -258,4 +258,88 @@ describe('App (integration, real backend response)', () => {
     expect(shareBodies).toHaveLength(1);                                    // nothing further was sent
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  describe('the reports that follow the filter bar', () => {
+    const rows = analysis.v2.filterable_data.rows;
+    const westRows = rows.filter((r) => r.Region === 'West');
+    const FULL_HEADLINE = analysis.v2.drivers.comparisons[0].headline;
+    const FILTERED_HEADLINE = 'WEST ONLY: Sales fell 12% among the rows in view.';
+
+    const stub = ({ fail = false } = {}) => {
+      const fetchFn = vi.fn(async (url) => {
+        if (url === '/api/analyze') return { ok: true, status: 200, json: async () => analysis };
+        if (url === '/api/filtered-reports') {
+          if (fail) return { ok: false, status: 500, json: async () => ({ detail: 'The reports could not be updated for your filters.' }) };
+          return { ok: true, status: 200, json: async () => ({
+            available: true, rows_used: westRows.length,
+            seasonality: analysis.v2.seasonality, period_comparison: analysis.v2.period_comparison,
+            drivers: { ...analysis.v2.drivers, comparisons: [{ ...analysis.v2.drivers.comparisons[0], headline: FILTERED_HEADLINE }] },
+            robustness: analysis.v2.robustness,
+          }) };
+        }
+        return { ok: false, status: 404, json: async () => ({ detail: `unexpected request in test: ${url}` }) };
+      });
+      vi.stubGlobal('fetch', fetchFn);
+      return fetchFn;
+    };
+    const calls = (fetchFn) => fetchFn.mock.calls.filter((c) => c[0] === '/api/filtered-reports');
+    const filterToWest = async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Region/ }));
+      await act(async () => { fireEvent.click(screen.getByLabelText('West')); });
+    };
+    const openPatterns = () => fireEvent.click(screen.getByText('Patterns'));
+
+    it('with no filter on, the server is never asked and the upload-time reports are shown', async () => {
+      const fetchFn = stub();
+      render(<App />);
+      await uploadSalesCsv();
+      openPatterns();
+      await new Promise((r) => setTimeout(r, 500));
+      expect(calls(fetchFn)).toHaveLength(0);
+      expect(screen.getByText(FULL_HEADLINE)).toBeInTheDocument();
+    });
+
+    it('filtering to one region sends exactly those rows and shows the answer for them', async () => {
+      const fetchFn = stub();
+      render(<App />);
+      await uploadSalesCsv();
+      await filterToWest();
+      openPatterns();
+
+      expect(await screen.findByText(FILTERED_HEADLINE)).toBeInTheDocument();
+      expect(calls(fetchFn)).toHaveLength(1);
+      const body = JSON.parse(calls(fetchFn)[0][1].body);
+      expect(body.columns.Region).toHaveLength(westRows.length);
+      expect(new Set(body.columns.Region)).toEqual(new Set(['West']));
+      expect(body.measure_aggregations).toEqual(analysis.v2.filterable_data.measure_aggregations);
+      expect(body.metric_column).toBe(analysis.v2.drivers.metric);
+
+      expect(screen.queryByText(FULL_HEADLINE)).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(`describe the ${westRows.length} of ${rows.length} rows you are looking at`);
+    });
+
+    it('clearing the filter brings the upload-time reports back, with no note', async () => {
+      stub();
+      render(<App />);
+      await uploadSalesCsv();
+      await filterToWest();
+      openPatterns();
+      await screen.findByText(FILTERED_HEADLINE);
+
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: /reset/i })); });
+      expect(await screen.findByText(FULL_HEADLINE)).toBeInTheDocument();
+      expect(screen.queryByText(FILTERED_HEADLINE)).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('if the server cannot update them, the full-data reports stay and the person is told', async () => {
+      stub({ fail: true });
+      render(<App />);
+      await uploadSalesCsv();
+      await filterToWest();
+      openPatterns();
+      expect(await screen.findByText(/Those four panels show the full dataset instead/)).toBeInTheDocument();
+      expect(screen.getByText(FULL_HEADLINE)).toBeInTheDocument();
+    });
+  });
 });

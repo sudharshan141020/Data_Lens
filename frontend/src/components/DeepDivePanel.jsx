@@ -30,8 +30,40 @@ const GROUPS = [
   { id: 'precision', label: 'Precision & Text' },
 ];
 
-export default function DeepDivePanel({ v2, tickNum }) {
+const FILTERED_PANELS = 'Seasonality, Period Comparison, Why Did It Change? and Robustness';
+
+// Tells the person which numbers follow the filter bar and which do not. Without it the same page would mix
+// reports about the filtered rows with reports about everything, and nothing would say which was which.
+function FilteredNote({ filtered, totalRows }) {
+  let text;
+  if (filtered.status === 'loading') text = 'Updating for your filters…';
+  else if (filtered.status === 'ready') {
+    text = `Filters are on. ${FILTERED_PANELS} describe the ${filtered.rowsUsed.toLocaleString('en-US')} of ${totalRows.toLocaleString('en-US')} rows you are looking at. The other panels here still describe the full dataset.`;
+  } else if (filtered.status === 'error') text = `${filtered.note} Those four panels show the full dataset instead.`;
+  else if (filtered.status === 'blocked') text = `${filtered.note} Those four panels describe the full dataset.`;
+  else return null;
+  return (
+    <p className="dim-sub" role="status" aria-live="polite" style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-raised)', border: '1px solid var(--border)' }}>
+      {text}
+    </p>
+  );
+}
+
+function UpdatingPlaceholder({ name }) {
+  return (
+    <div className="panel" aria-busy="true">
+      <div className="panel-head"><h3>{name}</h3></div>
+      <p className="dim-sub" style={{ padding: '4px 0 16px' }}>Updating for your filters…</p>
+    </div>
+  );
+}
+
+export default function DeepDivePanel({ v2, tickNum, filtered = null, totalRows = 0 }) {
   const [active, setActive] = useState(GROUPS[0].id);
+  const following = filtered && filtered.status === 'ready' && filtered.reports;
+  const updating = filtered && filtered.status === 'loading';
+  const report = (key) => (following ? filtered.reports[key] : v2[key]);
+  const note = filtered && filtered.status !== 'idle' ? <FilteredNote filtered={filtered} totalRows={totalRows} /> : null;
 
   return (
     <div className="panel deep-dive-panel">
@@ -62,10 +94,11 @@ export default function DeepDivePanel({ v2, tickNum }) {
         )}
         {active === 'patterns' && (
           <>
+            {note}
             <SegmentsPanel segments={v2.segments} tickNum={null} />
-            <SeasonalityPanel seasonality={v2.seasonality} tickNum={null} />
-            <PeriodComparisonPanel periodComparison={v2.period_comparison} tickNum={null} />
-            <DriversPanel drivers={v2.drivers} tickNum={null} />
+            {updating ? <UpdatingPlaceholder name="Seasonality" /> : <SeasonalityPanel seasonality={report('seasonality')} tickNum={null} />}
+            {updating ? <UpdatingPlaceholder name="Period Comparison" /> : <PeriodComparisonPanel periodComparison={report('period_comparison')} tickNum={null} />}
+            {updating ? <UpdatingPlaceholder name="Why Did It Change?" /> : <DriversPanel drivers={report('drivers')} tickNum={null} />}
             <CohortsPanel cohorts={v2.cohorts} tickNum={null} />
           </>
         )}
@@ -78,8 +111,9 @@ export default function DeepDivePanel({ v2, tickNum }) {
         )}
         {active === 'precision' && (
           <>
+            {note}
             <ConfidenceIntervalsPanel confidenceIntervals={v2.confidence_intervals} tickNum={null} />
-            <RobustnessPanel robustness={v2.robustness} tickNum={null} />
+            {updating ? <UpdatingPlaceholder name="Does This Hold Without the Outliers?" /> : <RobustnessPanel robustness={report('robustness')} tickNum={null} />}
             <TextAnalysisPanel textAnalysis={v2.text_analysis} tickNum={null} />
           </>
         )}
