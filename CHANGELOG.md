@@ -1190,7 +1190,7 @@ CSS is also gone.
 **Files:** `frontend/src/components/StoryPresentation.jsx` (restored),
 `frontend/src/components/StoryMode.jsx`.
 
-## 2026-10-16 — Robustness check: "does this hold without the outliers?"
+## 2026-10-17 — Robustness check: "does this hold without the outliers?"
 
 **Why:** the bootstrap confidence intervals and gated weak points test sampling
 noise. This tests a different failure mode: a result that is real for the data
@@ -1249,7 +1249,7 @@ law: on very heavy-tailed data it flags many rows (hence the "skewed" outcome).
 `frontend/src/components/RobustnessPanel.test.jsx` (new),
 `frontend/src/findingsText.test.js`, and the regenerated frontend fixture.
 
-## 2026-10-17 — "Show the code" export (pandas script)
+## 2026-10-18 — "Show the code" export (pandas script)
 
 **Why:** the app is rule-based, but from the outside it still looks like a
 black box: an analyst sees "Sales by Region" and has no way to check how it was
@@ -1312,7 +1312,7 @@ New endpoint `POST /api/export/code`; `api.js` gets `exportCode` and
 `frontend/src/components/ExportMenu.test.jsx`, `frontend/src/App.test.jsx`, and
 the regenerated frontend fixture.
 
-## 2026-10-18 — A/B and hypothesis-test mode ("Test a Hypothesis")
+## 2026-10-19 — A/B and hypothesis-test mode ("Test a Hypothesis")
 
 **Why:** everything else in DataLens is discovery: it looks at the data and says
 what stands out. This answers the question people actually walk in with: *is
@@ -1371,6 +1371,9 @@ statistics, the p-value, effect size, cross-check, why this test, and collapsed
 asymmetric interval (−47 to +5) and wrong for a very precise one. It now states the
 whole range the data are consistent with.
 
+**Re-issue.** The zip was re-issued once with a test-only cleanup: an `act()` warning from the
+"Python script" App test is gone (the click now runs inside an async `act`). No behaviour changed.
+
 **Files:** `app/hypothesis.py` (new), `app/main.py`, `tests/test_hypothesis.py`
 (new), `frontend/src/hypothesisUtils.js` (new),
 `frontend/src/components/HypothesisTestPanel.jsx` (new), `frontend/src/api.js`,
@@ -1378,7 +1381,7 @@ whole range the data are consistent with.
 `frontend/src/components/HypothesisTestPanel.test.jsx` (new),
 `frontend/src/api.test.js`, `frontend/src/App.test.jsx`.
 
-## 2026-10-19 — Real-browser verification found a privacy leak and a legibility bug; docs and screenshots
+## 2026-10-20 — Real-browser verification found a privacy leak and a legibility bug; docs and screenshots
 
 I got a real Chromium running against the real server (an npm-packaged binary,
 since Playwright's own download was blocked where I was working), ran the e2e
@@ -1433,7 +1436,7 @@ presentation, Story mode, hypothesis and drivers components, `frontend/src/App.t
 `frontend/e2e/features.spec.js` (new), `frontend/e2e/screenshots.spec.js` (new),
 `README.md`, `docs/CASE_STUDY.md` (new), `docs/screenshots/feature-*.png` (new).
 
-## 2026-10-21 — Personal-data guard enforced on the server for share links
+## 2026-10-22 — Personal-data guard enforced on the server for share links
 
 **Why:** the dialog that stops and asks before a share link is a UI step. Anyone
 calling `POST /api/share` directly (a script, an integration, a future client that
@@ -1506,7 +1509,7 @@ test that forces a refusal allows exactly that message.
 `frontend/src/App.jsx`, `frontend/src/components/SensitiveExportDialog.jsx`, their
 tests, `frontend/e2e/features.spec.js`, `README.md`, `docs/CASE_STUDY.md`.
 
-## 2026-10-22 — Windows fixes: test names, and output encoding in the exported script
+## 2026-10-24 — Windows fixes: test names, and output encoding in the exported script
 
 Running `python -m pytest tests -q` on a Windows machine gave
 `305 passed, 14 errors` with `ValueError: the environment variable is longer than
@@ -1537,7 +1540,7 @@ script gains one import, `sys`.
 **Files:** `tests/test_share_guard.py`, `tests/conftest.py`, `app/code_export.py`,
 `tests/test_code_export.py`, `docs/CASE_STUDY.md`, `CHANGELOG.md`.
 
-## 2026-10-24 — Deployment readiness: memory-safe upload cap, config, and a live-deployment check
+## 2026-10-25 — Deployment readiness: memory-safe upload cap, config, and a live-deployment check
 
 **Why.** The app is meant to run publicly, and nothing had checked what a small hosted
 instance can bear. Measured (single process, 9-column CSV): ~200 MB just to start; peak
@@ -1583,7 +1586,7 @@ rule of thumb for this kind of data, not a guarantee. The live check needs a bro
 `frontend/e2e/live.spec.js` (new), `frontend/playwright.live.config.js` (new),
 `frontend/playwright.config.js`, `frontend/package.json`, `README.md`, `CHANGELOG.md`.
 
-## 2026-10-26 — Reports that follow the filter bar
+## 2026-11-01 — Reports that follow the filter bar
 
 **Why.** With a filter on, the trend chart and the by-category charts re-aggregated in the browser,
 but Seasonality, Period Comparison, "Why did it change?" and Robustness kept describing the whole
@@ -1636,7 +1639,7 @@ reproduced the last reported counts exactly (335 backend, 407 frontend, 11 e2e) 
 `frontend/src/test/fixtures/analysis.{json,csv}` (regenerated), `frontend/e2e/features.spec.js`,
 `README.md`, `docs/CASE_STUDY.md`.
 
-## 2026-10-27 — Repo polish: license, at-a-glance README, demo GIF
+## 2026-11-02 — Repo polish: license, at-a-glance README, demo GIF
 
 **Why.** Someone landing on the repo should understand it in 30 seconds. The README opened with a
 paragraph of prose and a placeholder demo link, and there was no license (without one, the code is
@@ -1667,3 +1670,58 @@ driver analysis, A/B tests and a personal-data guard"*; topics `data-analysis`, 
 
 **Files:** `LICENSE` (new), `README.md`, `docs/demo.gif` (new), `scripts/make_demo_gif.py` (new),
 `frontend/e2e/demo.spec.js` (new), `CHANGELOG.md`.
+
+
+## 2026-11-03 — Changelog dates corrected
+
+**What was wrong.** Nine entries from the personal-data guard onward were dated by estimate, not from when
+the work was actually built, so their headings were 1 to 6 days early (the last two by almost a week). The
+dates below are the build times of the delivered zips (UTC, so a late-evening build can fall on the next day in
+India); the day a change reached the repo is its commit date.
+
+| Entry | Was | Now |
+|---|---|---|
+| Robustness check | 2026-10-16 | 2026-10-17 |
+| "Show the code" export | 2026-10-17 | 2026-10-18 |
+| A/B and hypothesis-test mode | 2026-10-18 | 2026-10-19 |
+| Real-browser verification, privacy leak, docs | 2026-10-19 | 2026-10-20 |
+| Personal-data guard enforced on the server | 2026-10-21 | 2026-10-22 |
+| Windows fixes | 2026-10-22 | 2026-10-24 |
+| Deployment readiness | 2026-10-24 | 2026-10-25 |
+| Reports that follow the filter bar | 2026-10-26 | 2026-11-01 |
+| Repo polish | 2026-10-27 | 2026-11-02 |
+
+The first three entries (personal-data detection, driver analysis, Story presentation restore) were already
+correct.
+
+**Audit.** There is one entry for each of the 12 deliveries, so none were skipped. One small change had no
+entry (a test-only `act()` cleanup in the re-issued hypothesis zip); it is now noted under that entry.
+
+**Going forward.** Each entry is dated from the system clock at the time it is written, not estimated.
+
+**Files:** `CHANGELOG.md`.
+
+## 2026-11-06 — HANDOFF.md brought up to date
+
+**Why.** `HANDOFF.md` is what a fresh chat reads to pick the project up (the working environment does not persist
+between chats, which already cost us a mid-task rebuild once). It predated all the recent work, and one passage was
+actively wrong: it called the design a "black & white minimalist theme" and told the reader not to add colour, while the app
+now has light and dark themes with colour tokens. A new chat that trusted it could have "fixed" the design backwards.
+
+**What changed.**
+- A "Status as of 2026-11-06 (READ THIS FIRST)" section at the top: where the project stands (CI green; 372 backend, 443 frontend,
+  13 end-to-end tests), what was added since, the new modules and endpoints, how deploying really works (`npm run build` writes to
+  `frontend/dist`, not `app/static`), the open items, and the PowerShell command that builds the project zip a new chat needs.
+  It names `CHANGELOG.md` as the authoritative history.
+- "Current visual design" rewritten: light and dark themes, the real CSS variable names, and the rule to use only those.
+- "Known regression-prone spots" gained the lessons from this session: non-existent CSS variables, JS unicode escapes in JSX,
+  quadratic regexes on user text, long test names failing on Windows, masking by structure, regenerating the frontend fixture, and
+  guarding what is published rather than what was uploaded.
+- "Working style" gained the rules that kept the work reliable: a dated changelog entry for every change; one zip of changed files
+  per change; "verified" means the suites were run and each guard was switched off to confirm its test fails; look at screenshots; drive a
+  real browser; reuse instead of re-implement; and what to do if the sandbox resets.
+
+**Not changed:** the long "Recently added" section, which still predates the changelog (the new status section says to trust
+the changelog where they disagree).
+
+**Files:** `HANDOFF.md`, `CHANGELOG.md`.

@@ -1,5 +1,52 @@
 # DataLens — Project Handoff Summary
 
+## Status as of 2026-11-06 (READ THIS FIRST)
+
+**`CHANGELOG.md` is the authoritative history** (newest entry at the bottom, each with what, why and the bugs
+found). The long "Recently added" section further down predates it; where they disagree, trust the changelog.
+
+**Where things stand.** `main` on GitHub (`sudharshan141020/Data_Lens`) is green in CI: 372 backend tests (pytest),
+443 frontend tests (Vitest, 29 files), 13 end-to-end tests (Playwright, real Chromium against the real server). Two
+more Playwright specs exist but are opt-in (screenshots, demo GIF), and `live.spec.js` only runs against a deployed URL.
+
+**Added since the sections below were written** (all in the changelog): frontend tests + CI; personal-data detection
+with a share/export guard (dialog in the browser, **and enforced on the server** for share links);
+"why did it change?" driver analysis; outlier-robustness check; A/B / hypothesis-test mode; "show the code" pandas
+export; Period Comparison / Drivers / Robustness / Seasonality that **follow the filter bar**; deployment readiness
+(configurable upload cap, health check, `npm run test:live`); MIT license, README header and demo GIF.
+New backend modules: `sensitive_data.py`, `share_guard.py`, `drivers.py`, `robustness.py`, `hypothesis.py`,
+`code_export.py`, `filtered_reports.py`. New endpoints: `/api/hypothesis-test`, `/api/export/code`,
+`/api/filtered-reports`; `/api/share` now returns 409 for personal data unless `acknowledge_personal_data` is sent;
+`/api/health` reports `max_file_mb`.
+
+**Deploying.** `npm run build` writes to `frontend/dist`, **not** to `app/static`, which is what the server serves. After
+a frontend change: `cd frontend; npm run build; cd ..; Remove-Item -Recurse -Force app\static; Copy-Item -Recurse frontend\dist app\static`,
+then commit `app/static`. `render.yaml` sets the free plan, Python 3.12.7, a health check and `DATALENS_MAX_FILE_MB=10`
+(measured: a 32 MB CSV peaks at ~620 MB, over the free plan's 512 MB). Check a deployment with
+`$env:LIVE_URL = "https://..."; cd frontend; npm run test:live` (it detects a stale frontend and a missing cap setting).
+
+**Open items.**
+- Confirm Render redeployed from the latest push and run `npm run test:live` against it.
+- README "Live demo" line is still a placeholder: put the Render address in.
+- GitHub About box: description and topics (suggested text is in the 2026-11-02 changelog entry).
+- Free plan: share links live in server memory, so a spin-down or redeploy ends them; no login or rate limiting.
+- Not recomputed under filters (still full data): segments, anomalies, cohorts, correlations, the changepoint marker.
+
+**Starting a new chat.** The sandbox does not persist between chats. Upload the current project zip first (command below),
+then ask for changes. Do not start editing from memory of an older version.
+
+```powershell
+cd D:\Data_Lens
+$out = "$env:USERPROFILE\Desktop\datalens_full.zip"; Remove-Item $out -ErrorAction SilentlyContinue
+$skip = '\\(node_modules|venv|\.venv|env|dist|build|\.git|__pycache__|\.pytest_cache|\.hypothesis|test-results|playwright-report)(\\|$)'
+$root = (Get-Location).Path
+$files = Get-ChildItem -Recurse -File -Force | Where-Object { $_.FullName.Substring($root.Length) -notmatch $skip -and $_.Extension -notin '.pyc','.zip' }
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [System.IO.Compression.ZipFile]::Open($out, 'Create')
+foreach ($f in $files) { [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $f.FullName, $f.FullName.Substring($root.Length + 1).Replace('\','/'), 'Optimal') }
+$zip.Dispose(); "{0} files -> {1}" -f $files.Count, $out
+```
+
 ## What it is
 A universal, rule-based data analytics platform (originally "Sales Insights
 Ledger," renamed to **DataLens**). Upload any CSV/Excel file → it detects
@@ -22,11 +69,13 @@ call to "improve" insights — that would violate a core design constraint.
 - No database, no auth — everything processed in-memory per request
 
 ## Current visual design
-**Black & white minimalist theme** (most recent state). Near-black
-background (`#0A0A0B`), grayscale UI throughout. Color is used in exactly
-ONE place: red, reserved for high-priority warnings. This was a deliberate
-pivot away from an earlier colorful light theme — if asked to "make it
-look better," don't reintroduce color without checking this is still wanted.
+**Light and dark themes**, switched by a toggle in the top bar (the page sets `data-theme="light"|"dark"` on the root
+element). The earlier black-and-white-only theme is now just the dark one. All colour comes from CSS variables defined
+in `frontend/src/index.css`: `--ink` (page background), `--surface`, `--surface-raised`, `--border`, `--border-soft`,
+`--text`, `--text-muted`, `--text-faint`, `--teal` (the accent), `--on-accent` (text on an accent), `--red`, `--amber`,
+`--shadow-raised`. **Use only these.** A variable that does not exist silently falls back to whatever default you wrote,
+which is how a warning dialog once shipped dark-on-dark in the light theme. Check contrast in BOTH themes whenever UI changes
+(`e2e/features.spec.js` has a WCAG contrast test for the personal-data warning).
 
 ## Architecture (backend, all in `app/`)
 Built in phases, each a separate tested module — this layering matters,
@@ -103,6 +152,20 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
 - **top-3 diversity logic** in `analysis_planner.py`'s `top_n()`: only
   enforces unique *subject* (column), not unique *type* — an earlier
   stricter version blocked legitimate second entity-distribution analyses.
+
+- **CSS variables that do not exist** (see the design section): always use the real tokens.
+- **JS unicode escapes in JSX text** (`\\u25B6`) render literally and build clean; a Vitest scan fails on them.
+- **Regexes over user-controlled text must be linear.** An email regex that scans a long run of letters with no `@` is quadratic
+  and can freeze the server from one request (it hung a test for five minutes). `share_guard.py` finds each `@` and examines a
+  bounded window; keep it that way, and keep the timing tests.
+- **Test names must be short.** pytest stores the current test name in an environment variable, Windows caps those at 32,767
+  characters, Linux does not. A huge `parametrize` value passes in CI and breaks on a Windows machine. `tests/conftest.py` fails
+  collection on any name over 1,000 characters; build big inputs inside the test.
+- **Masking works by structure, not only by value.** A masked identifier column also appears as raw numbers in the at-risk list
+  and in scatter charts; `maskV2` handles those places explicitly. A test on the real captured analysis guards it.
+- **The frontend fixture must be regenerated** after any change to the `/api/analyze` response:
+  `python scripts/regenerate_frontend_fixture.py`, then `npm test`. A stale fixture makes new features look "blocked".
+- **A guard that only checks what was uploaded is the wrong guard.** The share check looks at what is being PUBLISHED.
 
 ## Deployment
 - Live on Render, auto-deploys from GitHub on push to main
@@ -298,3 +361,19 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
   current project zip** (exclude `venv/` and `frontend/node_modules/`,
   those are huge and regenerate automatically) before any further backend
   or frontend edits can be made, same as had to happen this session.
+- **Every change gets a `CHANGELOG.md` entry**, appended at the bottom: what, why, decisions, the bugs found along the way, limits,
+  files. Date it from the system clock (`date +%F`), never an estimate. (Nine headings were once guessed and had to be corrected.)
+- **Deliver one zip per change, containing only the files that changed**, extracted over the project root, and say how to verify
+  it (the expected test counts). The user works in Windows PowerShell and pastes terminal output back; ask for it.
+- **"Verified" means run.** Run all three suites before delivering. For any guard or check, also switch the protection OFF and
+  confirm the test fails (a test that passes either way tests nothing; one such test was caught this way). Look at screenshots of
+  UI work: tests did not catch unreadable text or a distorted chart.
+- **Drive the real thing.** A real Chromium against the real server found bugs unit tests missed (a privacy leak in masking,
+  unreadable text). If the sandbox cannot download Playwright's browser, an npm-packaged Chromium
+  (`@sparticuz/chromium`) works with `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
+- **Reuse, don't re-implement.** Filter-aware reports call the same Python functions the upload does, and are tested against
+  running the whole pipeline on a pre-filtered file.
+- **Be honest about limits** in the docs and the UI (what the guard cannot catch, which panels do not follow filters).
+- If the sandbox resets mid-task, rebuild from the original upload plus the delivered zips (in order) and check the test counts
+  match the last reported ones before continuing.
+
