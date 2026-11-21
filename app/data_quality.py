@@ -92,7 +92,11 @@ def analyze_data_quality(df: pd.DataFrame, profile: DatasetProfile) -> DataQuali
     score = _quality_score(missing_frac_overall, dup_pct / 100, len(constant_columns), len(df.columns))
 
     used_cols = {m.column for m in profile.measures} | {d.column for d in profile.dimensions}
-    date_col = next((c for c, r in profile.semantic_roles.items() if r == "DATE"), None)
+    # The date column the pipeline actually charts (understanding._pick_date_column),
+    # not merely the first DATE-role one: those differ whenever a file leads with a
+    # mostly-empty or birth-date column, and scoring the unused one made this number
+    # describe a column nothing else in the app analyses.
+    date_col = profile.date_column or next((c for c, r in profile.semantic_roles.items() if r == "DATE"), None)
     if date_col:
         used_cols.add(date_col)
     used_cols = [c for c in used_cols if c in df.columns]

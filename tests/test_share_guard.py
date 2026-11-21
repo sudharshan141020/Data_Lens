@@ -311,6 +311,23 @@ def test_the_endpoint_refuses_a_result_with_one_address_in_a_row(client):
     assert SECRET_EMAIL not in resp.text
 
 
+def test_an_address_in_the_last_rows_is_found_past_the_leaf_cap():
+    """MAX_LEAVES bounds how many strings are inspected, not which ones. The scan used
+    to stop at a PREFIX, so a large result's later rows were never looked at while the
+    guard still reported nothing found, and the link was created without a word."""
+    rows = [{"Region": f"R{i}", "Note": "ok", "Remarks": "delivered"} for i in range(70_000)]
+    for row in rows[-20:]:
+        row["Remarks"] = f"call {SECRET_EMAIL} about the order"
+    v2 = _v2(
+        profile={"columns": ["Region", "Note", "Remarks"]},
+        filterable_data={"available": True, "rows": rows, "dimension_columns": ["Region"], "measure_columns": []},
+    )
+
+    assert len(rows) * 3 > 200_000                      # more strings than MAX_LEAVES
+    findings = scan_share_payload(v2)
+    assert [(f["kind"], f["source"]) for f in findings] == [("email", "text")]
+
+
 def test_ordinary_row_text_is_still_not_flagged():
     """Scanning every cell must not turn numbers and words into findings."""
     rows = [{"Region": "West", "Remarks": "delivered 2024-05-01, 12 units", "Sales": 10.5} for _ in range(60)]

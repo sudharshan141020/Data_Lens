@@ -39,6 +39,7 @@ from app.seasonality import decompose_trend
 from app.understanding import Dimension, Measure, _is_chartable
 
 RECOMPUTE_MAX_ROWS = 50_000     # beyond this the request is refused (a hosted instance has little memory to parse it)
+RECOMPUTE_MAX_CELLS = 1_000_000  # and beyond this many VALUES: the caller chooses how many columns ride along, so rows alone bound nothing
 VALID_AGGREGATIONS = {"sum", "avg"}
 
 

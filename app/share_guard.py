@@ -50,6 +50,7 @@ who already has the data, so there is nothing public to protect there.
 """
 from __future__ import annotations
 
+import math
 import re
 from typing import Iterator, Optional
 
@@ -174,10 +175,19 @@ def _text_sources(v2: dict) -> Iterator[tuple]:
 
 
 def _text_findings(v2: dict) -> list:
+    # MAX_LEAVES bounds how many strings are inspected, but it must not bound
+    # WHICH ones. Stopping at a prefix meant a large result's later rows were
+    # never looked at while the scan still reported "nothing found" -- the one
+    # outcome a guard like this must not get wrong. When there are more strings
+    # than the cap, every step-th one is checked instead, so the whole payload is
+    # represented at the same bounded cost.
+    total = sum(1 for _ in _text_sources(v2))
+    step = max(1, math.ceil(total / MAX_LEAVES))
+
     hits = {}
     for n, (_path, text) in enumerate(_text_sources(v2)):
-        if n >= MAX_LEAVES:
-            break
+        if n % step:
+            continue
         if "email" not in hits and contains_email(text):
             hits["email"] = "email address"
         if "gov_id" not in hits and _SSN_IN_TEXT.search(text):

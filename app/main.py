@@ -1,14 +1,16 @@
 import io
+import logging
 from typing import Optional
 import pandas as pd
 import os
 from pathlib import Path
 import json
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from app import rate_limit
 from app.column_detector import detect_columns
 from app.kpi import prepare, compute_kpis, timeseries_monthly, breakdown_by, all_breakdowns, combine_dataframes
 from app.relational_join import detect_join_key, join_dataframes
@@ -40,7 +42,7 @@ from app.drivers import analyze_drivers
 from app.robustness import analyze_robustness
 from app.code_export import generate_script
 from app.hypothesis import run_hypothesis_test
-from app.filtered_reports import recompute_reports, RECOMPUTE_MAX_ROWS
+from app.filtered_reports import recompute_reports, RECOMPUTE_MAX_ROWS, RECOMPUTE_MAX_CELLS
 from app.share_guard import scan_share_payload, blocking_findings, refusal_message
 from app.filtering import MAX_ROWS_FOR_FILTERING
 from app.segment_forecast import forecast_top_segments
@@ -54,6 +56,8 @@ from starlette.concurrency import run_in_threadpool
 import math
 import numpy as np
 from starlette.responses import JSONResponse as _StarletteJSONResponse
+
+logger = logging.getLogger(__name__)
 
 
 def _sanitize_json(obj):
@@ -124,6 +128,14 @@ def _max_file_size_mb(raw: Optional[str] = None) -> float:
 MAX_FILE_SIZE_MB = _max_file_size_mb()
 CSV_CHUNK_ROWS = 100_000
 UPLOAD_READ_CHUNK = 1024 * 1024
+
+# /api/analyze-combined holds every upload in memory at once -- every analysis
+# needs the merged frame, so the raw bytes cannot be released early. The per-file
+# cap therefore bounds nothing on its own: ten 250MB files are 2.5GB before a
+# single row is parsed. Both the number of files and what they may add up to are
+# capped here.
+MAX_COMBINED_FILES = 10
+MAX_COMBINED_UPLOAD_BYTES = int(2 * MAX_FILE_SIZE_MB * 1024 * 1024)
 
 
 def _serialize_correlation_pair(pair) -> Optional[dict]:
@@ -606,9 +618,19 @@ def _json_records_to_dataframe(data) -> pd.DataFrame:
     if isinstance(data, list):
         return pd.json_normalize(data)
     if isinstance(data, dict):
-        list_fields = [v for v in data.values() if isinstance(v, list) and v and isinstance(v[0], dict)]
+        list_fields = [(k, v) for k, v in data.items() if isinstance(v, list) and v and isinstance(v[0], dict)]
         if len(list_fields) == 1:
-            return pd.json_normalize(list_fields[0])
+            return pd.json_normalize(list_fields[0][1])
+        if len(list_fields) > 1:
+            # Two lists of records ({"orders": [...], "items": [...]}) used to fall
+            # through to pd.DataFrame(data), which produced a one-row table whose
+            # cells were Python lists -- numbers that look plausible and describe
+            # nothing. Naming the lists is more useful than analysing that.
+            names = ", ".join(str(k) for k, _v in list_fields)
+            raise ValueError(
+                f"This JSON has {len(list_fields)} lists of records ({names}). "
+                "Upload a file with a single list of records, or export one list at a time."
+            )
         return pd.DataFrame(data)  # columns-orientation dict
     raise ValueError("Expected a JSON array of records, or an object of columns.")
 
@@ -776,15 +798,22 @@ LEGACY_ROLE_TO_V2_ROLE = {
 
 
 def _analyze_df(df: pd.DataFrame, mapping: dict, confidence: dict, unmapped: list, extra_categoricals: list, v2_role_overrides: dict = None) -> dict:
-    df_prepared = prepare(df, mapping)
+    # prepare() adds a "profit" role pointing at a column it derives (kpi.py), and it
+    # does so by writing into the mapping it was given. Pass a copy: the reported
+    # detected_columns must describe the FILE, and otherwise listed "_derived_profit"
+    # as a column name that does not exist in it (the Column Mapping panel shows every
+    # value in that dict). The stats below still need the derived role, so they get
+    # the copy.
+    prepared_mapping = dict(mapping)
+    df_prepared = prepare(df, prepared_mapping)
     response = {
         "detected_columns": mapping,
         "detection_confidence": confidence,
         "unmapped_columns": unmapped,
-        "kpis": compute_kpis(df_prepared, mapping),
-        "monthly_trend": timeseries_monthly(df_prepared, mapping),
-        "breakdowns": all_breakdowns(df_prepared, mapping, extra_categoricals),
-        "insights": generate_insights(df_prepared, mapping, extra_categoricals),
+        "kpis": compute_kpis(df_prepared, prepared_mapping),
+        "monthly_trend": timeseries_monthly(df_prepared, prepared_mapping),
+        "breakdowns": all_breakdowns(df_prepared, prepared_mapping, extra_categoricals),
+        "insights": generate_insights(df_prepared, prepared_mapping, extra_categoricals),
     }
     response.update(_semantic_layer(df))
     response["v2"] = _run_v2_pipeline(df, role_overrides=v2_role_overrides)
@@ -864,7 +893,11 @@ def _attach_sensitive_report(result: dict, df: pd.DataFrame) -> dict:
     try:
         report = detect_sensitive_data(df)
     except Exception:
-        report = None  # detection is advisory -- never let it fail an analysis
+        # Advisory, so it must never fail an analysis -- but a silent failure here
+        # disables the personal-data warning the share dialog relies on, so at least
+        # leave a trace of it in the server log.
+        logger.warning("sensitive-data scan failed; continuing without it", exc_info=True)
+        report = None
     if report is not None and isinstance(result.get("v2"), dict):
         result["v2"]["sensitive_data"] = report
     return result
@@ -945,7 +978,7 @@ class CompareResponse(BaseModel):
     diff: dict
 
 
-def _validated_response(model, payload) -> SafeJSONResponse:
+def _validated_response(model, payload, headers: Optional[dict] = None) -> SafeJSONResponse:
     """Serialise `payload` after checking it still matches its documented model.
 
     `response_model=` on its own does nothing here, because these handlers return
@@ -958,7 +991,7 @@ def _validated_response(model, payload) -> SafeJSONResponse:
     field is renamed, missing or the wrong type -- and the body is sanitised once.
     """
     model.model_validate(payload)
-    return SafeJSONResponse(payload)
+    return SafeJSONResponse(payload, headers=headers)
 
 
 class HealthResponse(BaseModel):
@@ -1041,7 +1074,18 @@ async def analyze_combined(files: list[UploadFile] = File(...)):
     if len(files) < 2:
         raise HTTPException(400, "Select at least two files to combine.")
 
+    if len(files) > MAX_COMBINED_FILES:
+        raise HTTPException(400, f"Combine at most {MAX_COMBINED_FILES} files at once.")
+
     uploads = [(f.filename, await _read_upload(f)) for f in files]
+    total_bytes = sum(len(raw) for _name, raw in uploads)
+    if total_bytes > MAX_COMBINED_UPLOAD_BYTES:
+        raise HTTPException(
+            400,
+            f"These files add up to {total_bytes / (1024 * 1024):.0f} MB, which is over the "
+            f"{MAX_COMBINED_UPLOAD_BYTES / (1024 * 1024):.0f} MB limit for a combined analysis. "
+            "Try combining fewer or smaller files.",
+        )
     result = await run_in_threadpool(_analyze_combined_sync, uploads)
     return _validated_response(AnalyzeResponse, result)
 
@@ -1131,7 +1175,9 @@ class HypothesisTestRequest(BaseModel):
 
 
 class ShareRequest(BaseModel):
-    file_name: str
+    # Carried to whoever opens the link and kept for the life of the share, so it is
+    # capped like a filename rather than accepting as much text as the body allows.
+    file_name: str = Field(max_length=260)
     kpis: dict = {}
     v2: dict
     # The explicit, deliberate "share it as is" decision (the UI's "Continue without
@@ -1145,8 +1191,31 @@ class ShareCreateResponse(BaseModel):
     share_path: str
 
 
+# The two endpoints that accept a caller-supplied payload and do real work on it
+# without an account (app/rate_limit.py explains the budgets and the key).
+_SHARE_CREATE_LIMITER = rate_limit.SlidingWindowLimiter(rate_limit.SHARE_CREATE_LIMIT, rate_limit.WINDOW_SECONDS)
+_SHARE_READ_LIMITER = rate_limit.SlidingWindowLimiter(rate_limit.SHARE_READ_LIMIT, rate_limit.WINDOW_SECONDS)
+
+# A share response carries the shared result itself (or the column names a refusal
+# is about): neither belongs in a browser or proxy cache, where it would outlive the
+# link's 24-hour expiry. The token in the URL should also not follow the recipient to
+# another site as a referrer.
+_SHARE_HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
+
+
+def _enforce_rate_limit(limiter, request: Request) -> None:
+    wait = limiter.check(rate_limit.client_key(request))
+    if wait:
+        seconds = rate_limit.retry_after_header(wait)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many requests. Try again in {seconds} second{'s' if seconds != 1 else ''}.",
+            headers={"Retry-After": str(seconds)},
+        )
+
+
 @app.post("/api/share", response_model=ShareCreateResponse)
-def create_share_link(payload: ShareRequest):
+def create_share_link(payload: ShareRequest, request: Request):
     """Stores a snapshot of an already-computed analysis (kpis + v2,
     filterable_data included so the recipient gets the same interactive
     filtering the original session has, not a stripped static view) and
@@ -1157,9 +1226,17 @@ def create_share_link(payload: ShareRequest):
     where personal data is refused unless the caller says otherwise
     (share_guard.py explains what is checked and what is deliberately not
     trusted). The refusal lists column names and kinds, never values."""
-    # Refuse an oversized request before inspecting it, not after.
+    _enforce_rate_limit(_SHARE_CREATE_LIMITER, request)
+    # The exports refuse an empty v2; a share link to nothing is the same mistake, and
+    # it would sit in the cache for 24 hours looking like a working link.
+    if not payload.v2:
+        raise HTTPException(400, "No analysis data provided.")
+
+    shared = {"file_name": payload.file_name, "kpis": payload.kpis, "v2": payload.v2}
+    # Refuse an oversized request before inspecting it, not after -- and keep the
+    # size that was measured, so storing the entry does not serialise it again.
     try:
-        check_share_size({"file_name": payload.file_name, "kpis": payload.kpis, "v2": payload.v2})
+        size = check_share_size(shared)
     except ValueError as e:
         raise HTTPException(400, str(e))
     if not payload.acknowledge_personal_data:
@@ -1168,20 +1245,23 @@ def create_share_link(payload: ShareRequest):
             return SafeJSONResponse(
                 status_code=409,
                 content={"detail": refusal_message(findings), "code": "personal_data", "findings": findings},
+                headers=_SHARE_HEADERS,
             )
     try:
-        token, expires_at = create_share({"file_name": payload.file_name, "kpis": payload.kpis, "v2": payload.v2})
+        token, expires_at = create_share(shared, size=size)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return ShareCreateResponse(token=token, expires_at=expires_at, share_path=f"/share/{token}")
+    body = {"token": token, "expires_at": expires_at, "share_path": f"/share/{token}"}
+    return _validated_response(ShareCreateResponse, body, headers=_SHARE_HEADERS)
 
 
 @app.get("/api/share/{token}")
-def get_share_link(token: str):
+def get_share_link(token: str, request: Request):
+    _enforce_rate_limit(_SHARE_READ_LIMITER, request)
     payload = get_share(token)
     if payload is None:
         raise HTTPException(404, "This share link has expired or doesn't exist.")
-    return SafeJSONResponse(payload)
+    return SafeJSONResponse(payload, headers=_SHARE_HEADERS)
 
 
 def _cleaned_csv_bytes(df: pd.DataFrame) -> tuple:
@@ -1233,6 +1313,7 @@ def export_pdf(payload: PdfExportRequest):
     try:
         pdf_bytes = build_pdf_report(payload.file_name, payload.v2)
     except Exception:
+        logger.exception("PDF report generation failed")
         raise HTTPException(500, "Could not generate the PDF report.")
 
     safe_name = "".join(c for c in payload.file_name.rsplit(".", 1)[0] if c.isalnum() or c in ("-", "_")) or "datalens-report"
@@ -1256,6 +1337,7 @@ def export_html(payload: PdfExportRequest):
     try:
         html_str = build_html_report(payload.file_name, payload.v2)
     except Exception:
+        logger.exception("HTML report generation failed")
         raise HTTPException(500, "Could not generate the HTML report.")
 
     safe_name = "".join(c for c in payload.file_name.rsplit(".", 1)[0] if c.isalnum() or c in ("-", "_")) or "datalens-report"
@@ -1274,6 +1356,11 @@ def filtered_reports(payload: FilteredReportsRequest):
     sizes = [len(v) for v in payload.columns.values() if isinstance(v, list)]
     if sizes and max(sizes) > RECOMPUTE_MAX_ROWS:
         raise HTTPException(413, f"Too many rows to recompute interactively ({max(sizes):,}; limit {RECOMPUTE_MAX_ROWS:,}).")
+    # The row cap alone does not bound the work: the caller also chooses how many
+    # columns come with those rows, and every value is rebuilt into a DataFrame.
+    cells = sum(sizes)
+    if cells > RECOMPUTE_MAX_CELLS:
+        raise HTTPException(413, f"Too many values to recompute interactively ({cells:,}; limit {RECOMPUTE_MAX_CELLS:,}).")
     return SafeJSONResponse(recompute_reports(
         payload.columns, payload.date_column, payload.dimension_columns, payload.measure_columns,
         payload.measure_aggregations, payload.metric_column, payload.aggregation,
@@ -1308,6 +1395,7 @@ def export_code(payload: CodeExportRequest):
     try:
         script = generate_script(payload.file_name, payload.v2, payload.filters)
     except Exception:
+        logger.exception("code export generation failed")
         raise HTTPException(500, "Could not generate the script.")
 
     safe_name = "".join(c for c in payload.file_name.rsplit(".", 1)[0] if c.isalnum() or c in ("-", "_")) or "datalens"
@@ -1345,11 +1433,22 @@ def _safe_static_file(full_path: str) -> Optional[Path]:
 
 
 if STATIC_ROOT is not None:
-    app.mount("/assets", StaticFiles(directory=STATIC_ROOT / "assets"), name="assets")
+    # check_dir=False: a build that is missing its assets directory (a partial copy,
+    # an interrupted deploy) used to raise here and stop the whole app from starting,
+    # which also took the API down. Now those requests 404 and everything else works.
+    app.mount("/assets", StaticFiles(directory=STATIC_ROOT / "assets", check_dir=False), name="assets")
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         # Any non-API path returns the SPA's index.html; the React app handles the rest.
         # A path that escapes the build is treated the same as a route the SPA
         # does not know: index.html, never the file outside the directory.
-        return FileResponse(_safe_static_file(full_path) or (STATIC_ROOT / "index.html"))
+        found = _safe_static_file(full_path)
+        if found is not None:
+            return FileResponse(found)
+        index = STATIC_ROOT / "index.html"
+        if not index.is_file():
+            # FileResponse on a missing file raises at send time, i.e. a 500 on every
+            # SPA route; say what is actually wrong instead.
+            raise HTTPException(404, "This build has no index.html to serve.")
+        return FileResponse(index)

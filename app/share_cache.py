@@ -30,6 +30,7 @@ import json
 import secrets
 import threading
 import time
+from typing import Optional
 
 TTL_SECONDS = 24 * 60 * 60  # 24 hours -- long enough to actually share with someone, short enough to stay "ephemeral"
 MAX_ENTRY_BYTES = 15 * 1024 * 1024  # 15MB -- generous for a full v2+kpis payload, defensive against abuse
@@ -69,12 +70,19 @@ def check_size(payload: dict) -> int:
     return size
 
 
-def create_share(payload: dict) -> tuple:
+def create_share(payload: dict, size: Optional[int] = None) -> tuple:
     """Returns (token, expires_at_unix_ts). Raises ValueError if the
     payload is too large -- caller is expected to turn that into a 400,
-    not a 500."""
+    not a 500.
+
+    `size` is the already-measured serialisation size (check_size's return
+    value) when the caller has one. Measuring it again would dump the whole
+    payload to JSON a second time, and at the 15MB per-entry limit that is not
+    free on the 512MB instance this runs on, so the endpoint measures once and
+    passes it through."""
     global _total_bytes
-    size = check_size(payload)
+    if size is None:
+        size = check_size(payload)
     if size > MAX_TOTAL_BYTES:
         raise ValueError(
             f"This analysis is too large to keep a share link for "

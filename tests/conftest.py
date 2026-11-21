@@ -114,6 +114,19 @@ def insurance_df(rng):
     })
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """The share endpoints' limiters are process-global state, so without this the
+    share calls one test makes would eat the next test's budget and the suite would
+    pass or fail depending on order. Each test starts with a full allowance; the
+    test that checks the limit spends it deliberately."""
+    from app import main as main_module
+
+    main_module._SHARE_CREATE_LIMITER.reset()
+    main_module._SHARE_READ_LIMITER.reset()
+    yield
+
+
 # ---------------------------------------------------------------------------------------------
 # Guard against over-long test names.
 # pytest stores the running test's name in the PYTEST_CURRENT_TEST environment variable, and a
