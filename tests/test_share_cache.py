@@ -6,6 +6,8 @@ MAX_ENTRIES alone never bounded memory: 500 entries at the 15MB per-entry cap is
 total-byte budget and the eviction that keeps it, which is the cap that actually
 matters on a small host.
 """
+import time
+
 import pytest
 
 from app import share_cache
@@ -53,7 +55,7 @@ def test_the_per_entry_cap_still_applies(monkeypatch):
 
 def test_an_expired_entry_gives_its_bytes_back(monkeypatch):
     monkeypatch.setattr(share_cache, "TTL_SECONDS", -1)        # already expired on insert
-    token, _ = share_cache.create_share(_payload(1_000))
+    token, _expires, _revoke = share_cache.create_share(_payload(1_000))
     assert share_cache._total_bytes > 0
 
     assert share_cache.get_share(token) is None
@@ -62,6 +64,75 @@ def test_an_expired_entry_gives_its_bytes_back(monkeypatch):
 
 
 def test_a_retrieved_share_is_unchanged(monkeypatch):
-    token, expires_at = share_cache.create_share(_payload(50))
+    token, expires_at, _revoke = share_cache.create_share(_payload(50))
     assert share_cache.get_share(token) == _payload(50)
     assert expires_at > 0
+
+
+# ---------------------------------------------------------------------------
+# revoking a link early
+# ---------------------------------------------------------------------------
+def test_a_link_can_be_revoked_before_it_expires():
+    token, _expires, revoke_token = share_cache.create_share(_payload(1_000))
+    assert share_cache.revoke_share(token, revoke_token) == "revoked"
+
+    assert share_cache.get_share(token) is None
+    assert share_cache._store == {}
+    assert share_cache._total_bytes == 0                  # the budget is given back
+    assert share_cache.revoke_share(token, revoke_token) == "not_found"
+
+
+def test_the_wrong_revoke_secret_leaves_the_link_alone():
+    token, _expires, _revoke = share_cache.create_share(_payload(100))
+    assert share_cache.revoke_share(token, "not-the-secret") == "forbidden"
+    assert share_cache.revoke_share(token, "") == "forbidden"
+    assert share_cache.get_share(token) == _payload(100)
+    assert share_cache._total_bytes > 0
+
+
+def test_each_link_gets_its_own_revoke_secret():
+    a, _ea, revoke_a = share_cache.create_share(_payload(10))
+    b, _eb, revoke_b = share_cache.create_share(_payload(10))
+    assert revoke_a != revoke_b
+    assert share_cache.revoke_share(b, revoke_a) == "forbidden"
+    assert share_cache.revoke_share(a, revoke_a) == "revoked"
+
+
+def test_the_revoke_secret_is_not_stored_in_plaintext():
+    """The store is small and in memory, but a secret should not sit there
+    readable by anything that happens to dump it."""
+    token, _expires, revoke_token = share_cache.create_share(_payload(10))
+    assert revoke_token not in str(share_cache._store[token])
+
+
+def test_revoking_an_already_expired_link_reports_not_found(monkeypatch):
+    monkeypatch.setattr(share_cache, "TTL_SECONDS", -1)
+    token, _expires, revoke_token = share_cache.create_share(_payload(10))
+    assert share_cache.revoke_share(token, revoke_token) == "not_found"
+    assert share_cache._total_bytes == 0
+
+
+# ---------------------------------------------------------------------------
+# what a token says about its own lifetime
+# ---------------------------------------------------------------------------
+def test_a_token_carries_the_expiry_it_was_issued_with():
+    token, expires_at, _revoke = share_cache.create_share(_payload(10))
+    assert share_cache.expiry_of(token) == pytest.approx(expires_at)
+
+
+def test_an_arbitrary_string_is_unknown_not_expired():
+    for junk in ("", "not-a-token", "abc", "abc_def-", "_123", "abc_", "x" * 5_000):
+        assert share_cache.expiry_of(junk) is None, junk[:20]
+
+
+def test_a_revoked_token_still_says_it_had_not_expired_yet():
+    """The endpoint relies on this: an expired link says so, a revoked one must
+    not pretend to have aged out."""
+    token, _expires, revoke_token = share_cache.create_share(_payload(10))
+    share_cache.revoke_share(token, revoke_token)
+    assert share_cache.expiry_of(token) > time.time()
+
+
+def test_a_very_long_tail_does_not_reach_the_int_digit_limit():
+    # int(text, 36) raises past CPython's digit limit; expiry_of must not raise.
+    assert share_cache.expiry_of("abc_" + "1" * 100_000) is None

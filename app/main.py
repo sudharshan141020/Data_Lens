@@ -1,11 +1,12 @@
 import io
 import logging
+import time
 from typing import Optional
 import pandas as pd
 import os
 from pathlib import Path
 import json
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
@@ -49,7 +50,9 @@ from app.segment_forecast import forecast_top_segments
 from app.filtering import build_filterable_data
 from app.pdf_report import build_pdf_report
 from app.html_report import build_html_report
-from app.share_cache import create_share, get_share, check_size as check_share_size
+from app.share_cache import (create_share, get_share, revoke_share as revoke_share_in_cache,
+                             expiry_of as share_expiry, TTL_SECONDS as SHARE_TTL_SECONDS,
+                             check_size as check_share_size)
 from app.sensitive_data import detect_sensitive_data
 from starlette.concurrency import run_in_threadpool
 
@@ -1188,6 +1191,9 @@ class ShareRequest(BaseModel):
 class ShareCreateResponse(BaseModel):
     token: str
     expires_at: float
+    # The creator's proof of ownership for revoking the link early (DELETE
+    # /api/share/{token}). Returned once, never derivable from the URL token.
+    revoke_token: str
     share_path: str
 
 
@@ -1248,10 +1254,11 @@ def create_share_link(payload: ShareRequest, request: Request):
                 headers=_SHARE_HEADERS,
             )
     try:
-        token, expires_at = create_share(shared, size=size)
+        token, expires_at, revoke_token = create_share(shared, size=size)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    body = {"token": token, "expires_at": expires_at, "share_path": f"/share/{token}"}
+    body = {"token": token, "expires_at": expires_at, "revoke_token": revoke_token,
+            "share_path": f"/share/{token}"}
     return _validated_response(ShareCreateResponse, body, headers=_SHARE_HEADERS)
 
 
@@ -1259,9 +1266,45 @@ def create_share_link(payload: ShareRequest, request: Request):
 def get_share_link(token: str, request: Request):
     _enforce_rate_limit(_SHARE_READ_LIMITER, request)
     payload = get_share(token)
-    if payload is None:
-        raise HTTPException(404, "This share link has expired or doesn't exist.")
-    return SafeJSONResponse(payload, headers=_SHARE_HEADERS)
+    if payload is not None:
+        return SafeJSONResponse(payload, headers=_SHARE_HEADERS)
+
+    # Not in the cache. The token carries the expiry it was issued with, so the
+    # three ways a link can be unavailable are distinguishable without keeping a
+    # tombstone for every dead link: never existed, aged out, or revoked/lost.
+    expires_at = share_expiry(token)
+    if expires_at is None:
+        raise HTTPException(404, "This share link doesn't exist.")
+    if expires_at < time.time():
+        when = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(expires_at))
+        hours = SHARE_TTL_SECONDS / 3600
+        raise HTTPException(
+            410,
+            f"This share link expired on {when}. Links are kept for {hours:g} hours.",
+        )
+    raise HTTPException(
+        404,
+        "This share link is no longer available. It may have been revoked, or the "
+        "server keeping it was restarted.",
+    )
+
+
+@app.delete("/api/share/{token}", status_code=204)
+def revoke_share_link(token: str, x_share_revoke: Optional[str] = Header(None, alias="X-Share-Revoke")):
+    """Revoke a link before its expiry, using the revoke token handed to whoever
+    created it -- the token in the URL is public by design (it is in the link),
+    so it cannot also be the credential for deleting it.
+
+    No rate limit of its own: creating a share serialises, scans and retains up
+    to 15MB, and reading is a public lookup, but this is one dict comparison
+    behind the cache lock against a 192-bit secret. There is nothing to
+    brute-force, and a wrong secret never touches the entry."""
+    outcome = revoke_share_in_cache(token, x_share_revoke or "")
+    if outcome == "revoked":
+        return Response(status_code=204, headers=_SHARE_HEADERS)
+    if outcome == "forbidden":
+        raise HTTPException(403, "The revoke token doesn't match this share link.")
+    raise HTTPException(404, "This share link has expired or doesn't exist.")
 
 
 def _cleaned_csv_bytes(df: pd.DataFrame) -> tuple:

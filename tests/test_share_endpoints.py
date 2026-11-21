@@ -65,3 +65,61 @@ def test_a_share_of_nothing_is_refused_like_the_exports_are(client):
     refused = _share(client, v2={})
     assert refused.status_code == 400
     assert "No analysis data" in refused.json()["detail"]
+
+
+def test_a_link_can_be_revoked_with_the_secret_returned_at_creation(client):
+    created = _share(client)
+    assert created.status_code == 200
+    body = created.json()
+    token, revoke_token = body["token"], body["revoke_token"]
+    assert revoke_token and revoke_token != token
+
+    revoked = client.delete(f"/api/share/{token}", headers={"X-Share-Revoke": revoke_token})
+    assert revoked.status_code == 204
+
+    gone = client.get(f"/api/share/{token}")
+    assert gone.status_code == 404
+    assert "no longer available" in gone.json()["detail"]       # not "expired": it had not aged out
+    assert client.delete(f"/api/share/{token}", headers={"X-Share-Revoke": revoke_token}).status_code == 404
+
+
+def test_revoking_needs_the_matching_secret(client):
+    token = _share(client).json()["token"]
+    assert client.delete(f"/api/share/{token}").status_code == 403
+    assert client.delete(f"/api/share/{token}", headers={"X-Share-Revoke": "guess"}).status_code == 403
+    assert client.get(f"/api/share/{token}").status_code == 200     # a wrong guess destroys nothing
+
+
+def test_each_link_gets_its_own_revoke_secret(client):
+    a = _share(client).json()
+    b = _share(client).json()
+    assert a["revoke_token"] != b["revoke_token"]
+    other = client.delete(f"/api/share/{b['token']}", headers={"X-Share-Revoke": a["revoke_token"]})
+    assert other.status_code == 403
+    assert client.get(f"/api/share/{b['token']}").status_code == 200
+
+
+def test_an_expired_link_says_it_expired_instead_of_acting_unknown(client, monkeypatch):
+    monkeypatch.setattr(share_cache, "TTL_SECONDS", -1)
+    token = _share(client).json()["token"]
+    expired = client.get(f"/api/share/{token}")
+    assert expired.status_code == 410
+    assert "expired on" in expired.json()["detail"]
+
+
+def test_an_unknown_token_is_not_reported_as_expired(client):
+    missing = client.get("/api/share/not-a-token")
+    assert missing.status_code == 404
+    assert "doesn't exist" in missing.json()["detail"]
+
+
+def test_a_link_lost_from_the_cache_is_not_reported_as_expired(client):
+    """A restart, an eviction or a revoke all leave an unexpired token with no
+    entry; the message must not claim the link aged out."""
+    token = _share(client).json()["token"]
+    _payload, _expires_at, size, _revoke = share_cache._store.pop(token)   # as a restart would
+    share_cache._total_bytes -= size
+
+    lost = client.get(f"/api/share/{token}")
+    assert lost.status_code == 404
+    assert "no longer available" in lost.json()["detail"]
