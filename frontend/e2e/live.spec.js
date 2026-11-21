@@ -11,7 +11,7 @@ const MAX_SAFE_UPLOAD_MB = Number(process.env.LIVE_MAX_SAFE_UPLOAD_MB || 50);
 const STALE = [
   'The deployed frontend is out of date: it does not contain features that are in this repo.',
   'Rebuild and refresh the deployed copy, then commit and redeploy:',
-  '  cd frontend; npm run build; cd ..; Remove-Item -Recurse -Force app\\static; Copy-Item -Recurse frontend\\dist app\\static',
+  '  cd frontend; npm run build:static; cd ..; git add app/static; git commit',
 ].join('\n');
 
 test.beforeAll(async ({ request }) => {
@@ -30,7 +30,10 @@ test.beforeAll(async ({ request }) => {
 });
 
 // Text that only the current frontend build contains, one marker per feature added since the first deploy.
-const CURRENT_BUILD_MARKERS = ['Test a Hypothesis', 'Why Did It Change?', 'Does This Hold Without the Outliers?', 'Personal data may be included', 'Python script (pandas)'];
+// One marker per feature added since the first deploy. Keep adding to this: every marker that was
+// already in an older bundle is invisible to this check, which is how a whole feature (filter-aware
+// reports) shipped in the repo but absent from the served build.
+const CURRENT_BUILD_MARKERS = ['Test a Hypothesis', 'Why Did It Change?', 'Does This Hold Without the Outliers?', 'Personal data may be included', 'Python script (pandas)', 'Updating for your filters'];
 
 test('the deployed frontend is the current build', async ({ request }) => {
   // Read the JavaScript the server is actually serving and look for the current features' text. This

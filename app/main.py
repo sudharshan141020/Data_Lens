@@ -900,7 +900,7 @@ class AnalyzeResponse(BaseModel):
     unmapped_columns: list
     kpis: dict
     monthly_trend: list
-    breakdowns: dict
+    breakdowns: list   # all_breakdowns() returns [{column, data}, ...] -- a list, not a dict
     insights: list
     domain: str
     domain_confidence: float
@@ -918,6 +918,22 @@ class CompareResponse(BaseModel):
     diff: dict
 
 
+def _validated_response(model, payload) -> SafeJSONResponse:
+    """Serialise `payload` after checking it still matches its documented model.
+
+    `response_model=` on its own does nothing here, because these handlers return
+    a Response (to control NaN/Infinity cleanup) and FastAPI only applies the
+    model to handlers that return data. Returning data is not an option either:
+    pydantic's serialiser runs first and cannot encode the numpy scalars sitting
+    inside the opaque `v2`/`analyses` values, which SafeJSONResponse would have
+    converted. So the model is applied here instead -- `model_validate` raises
+    the same ResponseValidationError a declared `response_model` would when a
+    field is renamed, missing or the wrong type -- and the body is sanitised once.
+    """
+    model.model_validate(payload)
+    return SafeJSONResponse(payload)
+
+
 class HealthResponse(BaseModel):
     status: str
     # The upload cap in force. Lets a deployment check confirm that the host's configuration
@@ -929,7 +945,7 @@ class HealthResponse(BaseModel):
 async def analyze(file: UploadFile = File(...), column_overrides: str = Form(None)):
     raw = await _read_upload(file)
     df = _load_dataframe(file.filename, raw)
-    return SafeJSONResponse(_full_analyze_from_df(df, column_overrides=column_overrides))
+    return _validated_response(AnalyzeResponse, _full_analyze_from_df(df, column_overrides=column_overrides))
 
 
 @app.post("/api/compare", response_model=CompareResponse)
@@ -950,7 +966,7 @@ async def compare(file_a: UploadFile = File(...), file_b: UploadFile = File(...)
         raise HTTPException(400, "Both files need a usable numeric metric to compare.")
 
     diff = compare_results(result_a, result_b, file_a.filename, file_b.filename)
-    return SafeJSONResponse({"result_a": result_a, "result_b": result_b, "diff": diff})
+    return _validated_response(CompareResponse, {"result_a": result_a, "result_b": result_b, "diff": diff})
 
 
 @app.post("/api/analyze-combined", response_model=AnalyzeResponse)
@@ -985,7 +1001,7 @@ async def analyze_combined(files: list[UploadFile] = File(...)):
     result.update(_semantic_layer(combined_df))
     result["v2"] = _run_v2_pipeline(combined_df)
     _attach_sensitive_report(result, combined_df)
-    return SafeJSONResponse(result)
+    return _validated_response(AnalyzeResponse, result)
 
 
 @app.post("/api/analyze-joined", response_model=AnalyzeResponse)
@@ -1024,7 +1040,7 @@ async def analyze_joined(files: list[UploadFile] = File(...)):
     result = _full_analyze_from_df(joined_df)
     result["join_info"] = join_info
     result["source_files"] = [files[0].filename, files[1].filename]
-    return SafeJSONResponse(result)
+    return _validated_response(AnalyzeResponse, result)
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -1250,13 +1266,37 @@ def export_code(payload: CodeExportRequest):
 
 
 # ---- Serve the built frontend (if present) ----
-if STATIC_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+STATIC_ROOT = STATIC_DIR.resolve() if STATIC_DIR.is_dir() else None
+
+
+def _safe_static_file(full_path: str) -> Optional[Path]:
+    """The real file to serve for a request path, or None when the path does
+    not name a file INSIDE the built frontend.
+
+    `full_path` comes straight from the URL, and ASGI hands it over already
+    percent-decoded, so a request for `/..%2f..%2frequirements.txt` arrives
+    here as `../../requirements.txt`. Joining that onto the static directory
+    without a containment check served any file the process could read. Both
+    sides are resolved before the comparison, so `..` segments, absolute
+    paths and symlinks pointing outside the build all collapse to a path that
+    fails `relative_to` and are refused.
+    """
+    if not full_path or STATIC_ROOT is None:
+        return None
+    candidate = (STATIC_ROOT / full_path).resolve()
+    try:
+        candidate.relative_to(STATIC_ROOT)
+    except ValueError:
+        return None
+    return candidate if candidate.is_file() else None
+
+
+if STATIC_ROOT is not None:
+    app.mount("/assets", StaticFiles(directory=STATIC_ROOT / "assets"), name="assets")
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         # Any non-API path returns the SPA's index.html; the React app handles the rest.
-        candidate = STATIC_DIR / full_path
-        if full_path and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(STATIC_DIR / "index.html")
+        # A path that escapes the build is treated the same as a route the SPA
+        # does not know: index.html, never the file outside the directory.
+        return FileResponse(_safe_static_file(full_path) or (STATIC_ROOT / "index.html"))

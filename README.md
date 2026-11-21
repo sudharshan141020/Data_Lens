@@ -232,16 +232,14 @@ Data_Lens/
 
 ## If you want to change the frontend design or behavior
 
-Edit files under `frontend/src/`, then rebuild and re-copy into the
-backend's static folder:
+Edit files under `frontend/src/`, then rebuild into the backend's static
+folder with one command (it builds `frontend/dist` and copies it over
+`app/static`):
 
 ```powershell
 cd frontend
-npm install      # first time only
-npm run build
-cd ..
-Remove-Item -Recurse -Force app\static
-Copy-Item -Recurse frontend\dist app\static
+npm install          # first time only
+npm run build:static
 ```
 
 Then just run `start.bat` (or `python run.py`) again — the server will pick
@@ -285,9 +283,10 @@ so measure your own.
 - There is no login and no rate limiting: anyone with the address can upload. Nothing is stored beyond share
   links, but the server does the work for every request.
 
-**Before you deploy, refresh the frontend.** `npm run build` writes to `frontend/dist`; the server serves
-`app/static`, which is refreshed by the copy step in the section above. Forgetting it deploys the new
-backend with the old frontend.
+**Before you deploy, refresh the frontend.** `npm run build:static` in `frontend/` builds the SPA and
+copies it into `app/static`, which is what the server serves. `npm run build` alone only writes
+`frontend/dist`, which nothing serves — so a deploy after that ships the new backend with the old frontend.
+CI fails when `app/static` does not match `frontend/src`, so this cannot drift unnoticed.
 
 **Check a deployment.** This runs against the live address; it builds and starts nothing, waits for a sleeping
 instance to wake, and changes nothing except one tiny share link that expires in 24 hours:

@@ -38,7 +38,17 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      # The server serves app/static, not frontend/dist. Building without
+      # copying it over is how the deployed UI fell behind the source, so the
+      # build output is committed and this step fails when it is stale.
+      - name: Build, then fail if the committed app/static is stale
+        run: |
+          npm run build:static
+          if [ -n "$(git -C .. status --porcelain -- app/static)" ]; then
+            echo "app/static does not match frontend/src. Run 'npm run build:static' in frontend/ and commit the result." >&2
+            git -C .. status --porcelain -- app/static >&2
+            exit 1
+          fi
 
   e2e:
     name: End-to-end smoke test (Playwright)
