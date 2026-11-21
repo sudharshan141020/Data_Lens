@@ -28,6 +28,8 @@ import json
 import os
 from typing import Optional
 
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 DEFAULT_MAX_BODY_MB = 25.0
 
 
@@ -47,8 +49,23 @@ def _max_body_bytes() -> int:
 MAX_BODY_BYTES = _max_body_bytes()
 
 
-class BodyTooLarge(Exception):
-    """Internal signal from the streaming guard. Never escapes the middleware."""
+def _detail(limit: int) -> str:
+    return (f"This request is over the {limit / 1024 / 1024:g} MB limit for request bodies. "
+            "Send a smaller analysis, or upload the file and let the server compute it.")
+
+
+class BodyTooLarge(StarletteHTTPException):
+    """Raised from the wrapped `receive` when a streamed body crosses the cap.
+
+    Deliberately an HTTPException rather than a private exception: FastAPI catches
+    *any* exception raised while it is reading a model endpoint's body and turns it
+    into 400 "There was an error parsing the body" (fastapi/routing.py), which would
+    report a body that is simply too large as a malformed one. FastAPI re-raises an
+    HTTPException untouched, so the 413 is the status the caller actually gets.
+    """
+
+    def __init__(self, limit: int):
+        super().__init__(status_code=413, detail=_detail(limit))
 
 
 def _header(scope, name: bytes) -> Optional[bytes]:
@@ -82,10 +99,7 @@ def _declared_length(scope) -> Optional[int]:
 
 
 async def _reject(send, limit: int) -> None:
-    body = json.dumps({
-        "detail": (f"This request is over the {limit / 1024 / 1024:g} MB limit for request bodies. "
-                   "Send a smaller analysis, or upload the file and let the server compute it."),
-    }).encode("utf-8")
+    body = json.dumps({"detail": _detail(limit)}).encode("utf-8")
     await send({
         "type": "http.response.start",
         "status": 413,
@@ -134,7 +148,7 @@ class BodySizeLimitMiddleware:
             if message.get("type") == "http.request":
                 received += len(message.get("body", b""))
                 if received > limit:
-                    raise BodyTooLarge
+                    raise BodyTooLarge(limit)
             return message
 
         async def watched_send(message):
@@ -151,4 +165,7 @@ class BodySizeLimitMiddleware:
                 # it starts answering -- but replacing a half-sent response with
                 # a 413 is not possible, so let the failure be visible.
                 raise
+            # Only reached when the wrapped app has no handler of its own (the bare
+            # ASGI app in the tests, or a non-FastAPI endpoint): FastAPI answers the
+            # HTTPException itself, before it gets back here.
             await _reject(send, limit)

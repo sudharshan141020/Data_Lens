@@ -155,7 +155,11 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
      whole body had been decoded). The gate is "not multipart", not "is JSON":
      FastAPI still buffers the body for a model endpoint when the caller declares
      `text/plain`, so a cap that watched only `application/json` could be skipped
-     by changing one header. Uploads keep their own streaming cap. The cache
+     by changing one header. Uploads keep their own streaming cap. One subtlety
+     worth keeping: the streamed refusal is raised as an `HTTPException`, because
+     FastAPI rewrites any other exception raised while it reads a model body into
+     a misleading 400 "There was an error parsing the body" -- a chunked 27MB
+     `text/plain` post really did answer 400 before that, and 413 after. The cache
      also gives each address 15MB / 20 links of its own, evicting that address's
      oldest entries first, so one caller looping creates cannot push out everyone
      else's live links.

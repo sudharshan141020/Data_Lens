@@ -11,6 +11,7 @@ import asyncio
 
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from app import body_limit
 
@@ -82,6 +83,33 @@ def test_the_cap_is_read_from_the_module_when_the_app_installs_it(monkeypatch):
     client = TestClient(_app())                          # max_bytes=None, as main.py installs it
     assert client.post("/echo", json={"data": "x" * 500}).status_code == 413
     assert client.post("/echo", json={"data": "x"}).status_code == 200
+
+
+def test_fastapi_does_not_turn_a_streamed_refusal_into_a_400():
+    """FastAPI wraps every exception from reading a model endpoint's body into 400
+    "There was an error parsing the body" (fastapi/routing.py). A body that is merely
+    too large must still be a 413 -- which is why the guard raises an HTTPException,
+    not a private exception."""
+    app = FastAPI()
+
+    class Body(BaseModel):
+        data: str
+
+    @app.post("/model")
+    async def model(body: Body):
+        return {"length": len(body.data)}
+
+    app.add_middleware(body_limit.BodySizeLimitMiddleware, max_bytes=100)
+
+    def chunks():
+        for _ in range(20):
+            yield b"x" * 100
+
+    resp = TestClient(app).post(
+        "/model", content=chunks(), headers={"Content-Type": "application/json"}
+    )
+    assert resp.status_code == 413
+    assert "limit for request bodies" in resp.json()["detail"]
 
 
 def _streaming_app():
