@@ -17,6 +17,14 @@ this ever needs to survive process restarts or run across multiple
 instances is swapping this module's storage for Redis with the same
 three functions' signatures unchanged -- nothing else in the app would
 need to change.
+
+Memory is bounded twice over. A per-entry cap refuses one oversized
+payload, and a TOTAL cap keeps the cache inside a fixed budget: the
+entry count alone is not a bound, because 500 entries at the 15MB
+per-entry limit is 7.5GB, which is far more than the 512MB instance this
+app is deployed on. Entries closest to expiring are dropped to make
+room, so a busy server degrades by forgetting old links rather than by
+being killed for memory.
 """
 import json
 import secrets
@@ -25,45 +33,65 @@ import time
 
 TTL_SECONDS = 24 * 60 * 60  # 24 hours -- long enough to actually share with someone, short enough to stay "ephemeral"
 MAX_ENTRY_BYTES = 15 * 1024 * 1024  # 15MB -- generous for a full v2+kpis payload, defensive against abuse
-MAX_ENTRIES = 500  # defensive cap on total memory use
+MAX_ENTRIES = 500  # defensive cap on the number of links, independent of their size
+MAX_TOTAL_BYTES = 64 * 1024 * 1024  # 64MB -- the REAL memory bound; MAX_ENTRIES * MAX_ENTRY_BYTES would be 7.5GB
 
+# token -> (payload, expires_at, size_in_bytes)
 _store = {}
+_total_bytes = 0
 _lock = threading.Lock()
 
 
 def _prune_expired_locked():
+    global _total_bytes
     now = time.time()
-    expired = [k for k, (_, expires_at) in _store.items() if expires_at < now]
-    for k in expired:
-        del _store[k]
+    for token in [t for t, (_p, expires_at, _s) in _store.items() if expires_at < now]:
+        _total_bytes -= _store[token][2]
+        del _store[token]
 
 
-def check_size(payload: dict) -> None:
-    """Raises ValueError if the payload is too large. Cheap enough to run
-    BEFORE anything scans the payload, so an oversized request is refused
-    without being inspected."""
+def _evict_one_locked():
+    """Drop whichever entry is closest to expiring anyway."""
+    global _total_bytes
+    oldest_token = min(_store, key=lambda t: _store[t][1])
+    _total_bytes -= _store[oldest_token][2]
+    del _store[oldest_token]
+
+
+def check_size(payload: dict) -> int:
+    """Raises ValueError if the single payload is too large, and returns its
+    size in bytes so the caller doesn't have to serialise it a second time.
+    Cheap enough to run BEFORE anything scans the payload, so an oversized
+    request is refused without being inspected."""
     size = len(json.dumps(payload))
     if size > MAX_ENTRY_BYTES:
         raise ValueError(f"This analysis is too large to share ({size / 1024 / 1024:.1f}MB, limit {MAX_ENTRY_BYTES / 1024 / 1024:.0f}MB).")
+    return size
 
 
 def create_share(payload: dict) -> tuple:
     """Returns (token, expires_at_unix_ts). Raises ValueError if the
     payload is too large -- caller is expected to turn that into a 400,
     not a 500."""
-    check_size(payload)
+    global _total_bytes
+    size = check_size(payload)
+    if size > MAX_TOTAL_BYTES:
+        raise ValueError(
+            f"This analysis is too large to keep a share link for "
+            f"({size / 1024 / 1024:.1f}MB, cache budget {MAX_TOTAL_BYTES / 1024 / 1024:.0f}MB)."
+        )
 
     with _lock:
         _prune_expired_locked()
-        if len(_store) >= MAX_ENTRIES:
-            # Make room by dropping whichever entry is closest to expiring
-            # anyway, rather than refusing new shares outright once the
-            # cache is full.
-            oldest_token = min(_store, key=lambda k: _store[k][1])
-            del _store[oldest_token]
+        # Make room -- by count OR by bytes -- rather than refusing new shares
+        # once the cache is full. Dropping expires-soonest entries is the least
+        # destructive way to stay inside both caps.
+        while _store and (len(_store) >= MAX_ENTRIES or _total_bytes + size > MAX_TOTAL_BYTES):
+            _evict_one_locked()
         token = secrets.token_urlsafe(16)
         expires_at = time.time() + TTL_SECONDS
-        _store[token] = (payload, expires_at)
+        _store[token] = (payload, expires_at, size)
+        _total_bytes += size
     return token, expires_at
 
 
@@ -71,12 +99,14 @@ def get_share(token: str):
     """Returns the stored payload, or None if the token is unknown or
     expired (expired entries are deleted on the read that finds them,
     same lazy-cleanup spirit as the write-time pruning above)."""
+    global _total_bytes
     with _lock:
         entry = _store.get(token)
         if entry is None:
             return None
-        payload, expires_at = entry
+        payload, expires_at, size = entry
         if expires_at < time.time():
+            _total_bytes -= size
             del _store[token]
             return None
         return payload

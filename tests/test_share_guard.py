@@ -276,3 +276,46 @@ def test_a_personal_column_whose_values_never_reach_the_payload_does_not_block_s
     assert "person0@example.org" not in json.dumps(v2)
     v2.pop("sensitive_data")
     assert client.post("/api/share", json={"file_name": "d.csv", "kpis": data["kpis"], "v2": v2}).status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# one address in one free-text row
+# ---------------------------------------------------------------------------
+def test_a_single_address_in_one_row_is_found_even_though_a_column_scan_would_miss_it():
+    """One email among 300 rows is 0.3% of a column: far under the 50% a value
+    pattern needs to classify the column, and a free-text header like "Remarks"
+    carries no header hint. The row-level scan used to be skipped entirely -- the
+    rows were only scanned as columns -- so the address was published silently."""
+    rows = [{"Region": f"R{i}", "Remarks": "no contact on file"} for i in range(300)]
+    rows[7]["Remarks"] = f"call {SECRET_EMAIL} about the order"
+    v2 = _v2(
+        profile={"columns": ["Region", "Remarks"]},
+        filterable_data={"available": True, "rows": rows, "dimension_columns": ["Region"], "measure_columns": []},
+    )
+
+    findings = scan_share_payload(v2)
+    assert [(f["kind"], f["source"]) for f in findings] == [("email", "text")]
+    assert blocking_findings(findings)
+
+
+def test_the_endpoint_refuses_a_result_with_one_address_in_a_row(client):
+    rows = [{"Region": f"R{i}", "Remarks": "ok"} for i in range(300)]
+    rows[7]["Remarks"] = f"call {SECRET_EMAIL}"
+    v2 = _v2(
+        profile={"columns": ["Region", "Remarks"]},
+        filterable_data={"available": True, "rows": rows, "dimension_columns": ["Region"], "measure_columns": []},
+    )
+
+    resp = _share(client, v2)
+    assert resp.status_code == 409
+    assert SECRET_EMAIL not in resp.text
+
+
+def test_ordinary_row_text_is_still_not_flagged():
+    """Scanning every cell must not turn numbers and words into findings."""
+    rows = [{"Region": "West", "Remarks": "delivered 2024-05-01, 12 units", "Sales": 10.5} for _ in range(60)]
+    v2 = _v2(
+        profile={"columns": ["Region", "Remarks", "Sales"]},
+        filterable_data={"available": True, "rows": rows, "dimension_columns": ["Region"], "measure_columns": ["Sales"]},
+    )
+    assert scan_share_payload(v2) == []

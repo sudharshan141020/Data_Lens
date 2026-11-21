@@ -20,9 +20,14 @@ server re-derives what it can from the payload it actually receives:
    an identifier column is often absent from the rows and its values appear only
    as numbers elsewhere (the at-risk customer list, scatter points), where no
    pattern can be checked.
-3. TEXT. Every other string in the result is searched for email addresses,
+3. TEXT. Every other string in the result -- including every cell of the
+   row-level data, one value at a time -- is searched for email addresses,
    US-style SSNs and card numbers: high-precision patterns that cannot be
-   masked by column, only acknowledged or removed.
+   masked by column, only acknowledged or removed. The row cells matter
+   separately from the per-column scan above because that scan needs a
+   pattern to match most of a column's values: one customer's address in one
+   note field of a 10,000-row file is nowhere near 50%, and used to be
+   published without a word.
 
 A declared mask never suppresses a VALUE finding: if the rows still contain
 email addresses, saying "masked" does not make them go away.
@@ -150,9 +155,27 @@ def _header_findings(v2: dict) -> list:
     return out
 
 
+def _row_texts(v2: dict) -> Iterator[str]:
+    """Every string cell in the row-level data, one at a time."""
+    for row in _list(_dict(v2.get("filterable_data")).get("rows")):
+        if not isinstance(row, dict):
+            continue
+        for value in row.values():
+            if isinstance(value, str):
+                yield value
+
+
+def _text_sources(v2: dict) -> Iterator[tuple]:
+    """Everything scanned by the text pass: the result's own strings, then the
+    contents of the row-level data cell by cell."""
+    yield from _leaves(v2)
+    for text in _row_texts(v2):
+        yield "filterable_data.rows", text
+
+
 def _text_findings(v2: dict) -> list:
     hits = {}
-    for n, (_path, text) in enumerate(_leaves(v2)):
+    for n, (_path, text) in enumerate(_text_sources(v2)):
         if n >= MAX_LEAVES:
             break
         if "email" not in hits and contains_email(text):

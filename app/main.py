@@ -49,6 +49,7 @@ from app.pdf_report import build_pdf_report
 from app.html_report import build_html_report
 from app.share_cache import create_share, get_share, check_size as check_share_size
 from app.sensitive_data import detect_sensitive_data
+from starlette.concurrency import run_in_threadpool
 
 import math
 import numpy as np
@@ -612,9 +613,25 @@ def _json_records_to_dataframe(data) -> pd.DataFrame:
     raise ValueError("Expected a JSON array of records, or an object of columns.")
 
 
+def _float32_is_lossless(series: pd.Series) -> bool:
+    """Whether every value in the column round-trips through float32 unchanged.
+
+    Checked over the whole chunk, not a sample: a column is one dtype, so a
+    decision made on the first 1,000 values would silently truncate the ones
+    after it. Counts, small integers and 0/1 flags convert exactly and are
+    what the downcast exists for; money and most other decimals do not, and
+    dropping their precision changes reported totals.
+    """
+    values = series.to_numpy(dtype="float64", copy=False)
+    if values.size == 0:
+        return True
+    return bool(np.array_equal(values.astype("float32").astype("float64"), values, equal_nan=True))
+
+
 def _downcast_numeric_chunk(chunk: pd.DataFrame) -> pd.DataFrame:
-    """Only touches already-numeric columns -- float64->float32,
-    int64->the smallest int type that fits. Deliberately does NOT
+    """Only touches already-numeric columns -- float64->float32 (when that is
+    lossless, see _float32_is_lossless), int64->the smallest int type that
+    fits. Deliberately does NOT
     convert string columns to category dtype here: a column with mostly
     numbers and a few stray text values (see _coerce_mostly_numeric_columns
     below) is read as object dtype by the CSV parser, and converting it
@@ -624,7 +641,12 @@ def _downcast_numeric_chunk(chunk: pd.DataFrame) -> pd.DataFrame:
     function exists to catch. Categorical conversion happens as a
     separate pass, after numeric coercion, in _load_dataframe."""
     for col in chunk.select_dtypes(include=["float64"]).columns:
-        chunk[col] = pd.to_numeric(chunk[col], downcast="float")
+        # A price column is what loses here: float32 keeps ~7 significant digits,
+        # so 1234567.89 becomes 1234567.875 and a summed total drifts by whole
+        # cents while still being formatted as currency. Only columns that
+        # survive the round trip are narrowed; decimals stay float64.
+        if _float32_is_lossless(chunk[col]):
+            chunk[col] = pd.to_numeric(chunk[col], downcast="float")
     for col in chunk.select_dtypes(include=["int64"]).columns:
         chunk[col] = pd.to_numeric(chunk[col], downcast="integer")
     return chunk
@@ -648,14 +670,19 @@ def _read_csv_chunked(raw: bytes, sep: str, encoding: str) -> pd.DataFrame:
     raises on an unordered Categorical. Numeric downcasting can't cause
     that class of bug -- float32 and int8 behave identically to float64
     and int64 for every comparison/arithmetic operation anything else in
-    this codebase does, just with less precision/range, which is a
-    trade-off, not a type-semantics change."""
+    this codebase does. The one real difference is precision, and for money
+    that is not a free trade-off: narrowed values keep ~7 significant digits,
+    so only columns that survive the float32 round trip are narrowed at all
+    (see _float32_is_lossless)."""
     chunks = [
         _downcast_numeric_chunk(chunk)
         for chunk in pd.read_csv(io.BytesIO(raw), sep=sep, encoding=encoding, chunksize=CSV_CHUNK_ROWS)
     ]
     if not chunks:
         return pd.DataFrame()
+    # The chunks list is dropped as soon as this returns, and pandas' copy-on-write
+    # (3.x) does not copy the blocks here, so the frame and the list share buffers
+    # for the moment both exist -- peak memory is the parsed data, not twice it.
     return pd.concat(chunks, ignore_index=True)
 
 
@@ -944,8 +971,15 @@ class HealthResponse(BaseModel):
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze(file: UploadFile = File(...), column_overrides: str = Form(None)):
     raw = await _read_upload(file)
-    df = _load_dataframe(file.filename, raw)
-    return _validated_response(AnalyzeResponse, _full_analyze_from_df(df, column_overrides=column_overrides))
+    # Everything below is CPU-bound pandas work. This handler is `async def`
+    # because reading an upload has to be awaited, but running the analysis
+    # inline would block the event loop for its whole duration -- /api/health
+    # would stop answering (and a host watching that endpoint would restart the
+    # app) while one large file was being analysed. The threadpool keeps the
+    # loop free.
+    df = await run_in_threadpool(_load_dataframe, file.filename, raw)
+    result = await run_in_threadpool(_full_analyze_from_df, df, column_overrides=column_overrides)
+    return _validated_response(AnalyzeResponse, result)
 
 
 @app.post("/api/compare", response_model=CompareResponse)
@@ -956,31 +990,29 @@ async def compare(file_a: UploadFile = File(...), file_b: UploadFile = File(...)
     pipeline as a normal single-file upload, independently; comparison.py
     then diffs the two already-computed results."""
     raw_a, raw_b = await _read_upload(file_a), await _read_upload(file_b)
-    df_a = _load_dataframe(file_a.filename, raw_a)
-    df_b = _load_dataframe(file_b.filename, raw_b)
+    df_a = await run_in_threadpool(_load_dataframe, file_a.filename, raw_a)
+    df_b = await run_in_threadpool(_load_dataframe, file_b.filename, raw_b)
 
-    result_a = _full_analyze_from_df(df_a)
-    result_b = _full_analyze_from_df(df_b)
+    result_a = await run_in_threadpool(_full_analyze_from_df, df_a)
+    result_b = await run_in_threadpool(_full_analyze_from_df, df_b)
 
     if result_a.get("no_numeric_metric") or result_b.get("no_numeric_metric"):
         raise HTTPException(400, "Both files need a usable numeric metric to compare.")
 
-    diff = compare_results(result_a, result_b, file_a.filename, file_b.filename)
+    diff = await run_in_threadpool(compare_results, result_a, result_b, file_a.filename, file_b.filename)
     return _validated_response(CompareResponse, {"result_a": result_a, "result_b": result_b, "diff": diff})
 
 
-@app.post("/api/analyze-combined", response_model=AnalyzeResponse)
-async def analyze_combined(files: list[UploadFile] = File(...)):
-    if len(files) < 2:
-        raise HTTPException(400, "Select at least two files to combine.")
-
+def _analyze_combined_sync(uploads: list) -> dict:
+    """The CPU-bound body of /api/analyze-combined, so the async handler can run
+    it in the threadpool. `uploads` is [(filename, raw_bytes), ...], already read:
+    reading an upload has to be awaited on the event loop, the analysis doesn't."""
     prepared_with_mappings = []
     source_names = []
-    for f in files:
-        raw = await _read_upload(f)
-        df_prepared, mapping = _load_and_detect(f.filename, raw)
+    for filename, raw in uploads:
+        df_prepared, mapping = _load_and_detect(filename, raw)
         prepared_with_mappings.append((df_prepared, mapping))
-        source_names.append(f.filename)
+        source_names.append(filename)
 
     combined_df, combined_mapping = combine_dataframes(prepared_with_mappings, source_names)
 
@@ -1001,25 +1033,24 @@ async def analyze_combined(files: list[UploadFile] = File(...)):
     result.update(_semantic_layer(combined_df))
     result["v2"] = _run_v2_pipeline(combined_df)
     _attach_sensitive_report(result, combined_df)
+    return result
+
+
+@app.post("/api/analyze-combined", response_model=AnalyzeResponse)
+async def analyze_combined(files: list[UploadFile] = File(...)):
+    if len(files) < 2:
+        raise HTTPException(400, "Select at least two files to combine.")
+
+    uploads = [(f.filename, await _read_upload(f)) for f in files]
+    result = await run_in_threadpool(_analyze_combined_sync, uploads)
     return _validated_response(AnalyzeResponse, result)
 
 
-@app.post("/api/analyze-joined", response_model=AnalyzeResponse)
-async def analyze_joined(files: list[UploadFile] = File(...)):
-    """The relational counterpart to /api/analyze-combined: that one
-    stacks two same-shaped files' ROWS on top of each other; this one
-    merges two DIFFERENTLY-shaped files' COLUMNS side by side on a
-    shared key it detects automatically (app/relational_join.py), the
-    way orders.csv + customers.csv actually relate to each other in
-    real exports. Runs the merged table through the exact same
-    _full_analyze_from_df pipeline as a normal single-file upload, so
-    every stat is computed on the real joined rows."""
-    if len(files) != 2:
-        raise HTTPException(400, "Select exactly two files to join.")
-
-    raw_a, raw_b = await _read_upload(files[0]), await _read_upload(files[1])
-    df_a = _load_dataframe(files[0].filename, raw_a)
-    df_b = _load_dataframe(files[1].filename, raw_b)
+def _analyze_joined_sync(upload_a: tuple, upload_b: tuple) -> dict:
+    """The CPU-bound body of /api/analyze-joined (see _analyze_combined_sync)."""
+    (name_a, raw_a), (name_b, raw_b) = upload_a, upload_b
+    df_a = _load_dataframe(name_a, raw_a)
+    df_b = _load_dataframe(name_b, raw_b)
 
     if df_a.empty or df_b.empty:
         raise HTTPException(400, "Both files need at least one row to join.")
@@ -1035,11 +1066,30 @@ async def analyze_joined(files: list[UploadFile] = File(...)):
             "of data (same columns, different rows), use Combine instead of Join.",
         )
 
-    joined_df, join_info = join_dataframes(df_a, df_b, key, files[0].filename, files[1].filename)
+    joined_df, join_info = join_dataframes(df_a, df_b, key, name_a, name_b)
 
     result = _full_analyze_from_df(joined_df)
     result["join_info"] = join_info
-    result["source_files"] = [files[0].filename, files[1].filename]
+    result["source_files"] = [name_a, name_b]
+    return result
+
+
+@app.post("/api/analyze-joined", response_model=AnalyzeResponse)
+async def analyze_joined(files: list[UploadFile] = File(...)):
+    """The relational counterpart to /api/analyze-combined: that one
+    stacks two same-shaped files' ROWS on top of each other; this one
+    merges two DIFFERENTLY-shaped files' COLUMNS side by side on a
+    shared key it detects automatically (app/relational_join.py), the
+    way orders.csv + customers.csv actually relate to each other in
+    real exports. Runs the merged table through the exact same
+    _full_analyze_from_df pipeline as a normal single-file upload, so
+    every stat is computed on the real joined rows."""
+    if len(files) != 2:
+        raise HTTPException(400, "Select exactly two files to join.")
+
+    upload_a = (files[0].filename, await _read_upload(files[0]))
+    upload_b = (files[1].filename, await _read_upload(files[1]))
+    result = await run_in_threadpool(_analyze_joined_sync, upload_a, upload_b)
     return _validated_response(AnalyzeResponse, result)
 
 
@@ -1134,6 +1184,12 @@ def get_share_link(token: str):
     return SafeJSONResponse(payload)
 
 
+def _cleaned_csv_bytes(df: pd.DataFrame) -> tuple:
+    """Understand + clean + serialise in one CPU-bound call (see the endpoint)."""
+    cleaned, summary = build_cleaned_csv(df, understand_dataset(df))
+    return cleaned.to_csv(index=False).encode("utf-8"), summary
+
+
 @app.post(
     "/api/export/cleaned-csv",
     responses={200: {"content": {"text/csv": {}}, "description": "The cleaned CSV file, as a direct download."}},
@@ -1146,14 +1202,11 @@ async def export_cleaned_csv(file: UploadFile = File(...)):
     anything else -- see data_cleaning.py for why deletion isn't the
     default here."""
     raw = await _read_upload(file)
-    df = _load_dataframe(file.filename, raw)
+    df = await run_in_threadpool(_load_dataframe, file.filename, raw)
     if df.empty:
         raise HTTPException(400, "The uploaded file has no rows.")
 
-    profile = understand_dataset(df)
-    cleaned, summary = build_cleaned_csv(df, profile)
-
-    csv_bytes = cleaned.to_csv(index=False).encode("utf-8")
+    csv_bytes, summary = await run_in_threadpool(_cleaned_csv_bytes, df)
     safe_name = "".join(c for c in file.filename.rsplit(".", 1)[0] if c.isalnum() or c in ("-", "_")) or "datalens-data"
     return Response(
         content=csv_bytes,

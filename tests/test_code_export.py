@@ -176,14 +176,26 @@ def test_mostly_numeric_columns_with_stray_placeholders_are_coerced_like_the_app
     assert pd.api.types.is_numeric_dtype(ns["df"]["Sales"]) and ns["df"]["Sales"].isna().sum() == 2
 
 
-def test_precision_flag_switches_between_the_apps_float32_and_full_float64(tmp_path, monkeypatch):
+def test_precision_flag_switches_between_narrowing_and_leaving_dtypes_as_read(tmp_path, monkeypatch):
+    """DataLens narrows only what converts EXACTLY. A decimal column (prices) keeps
+    float64 in either mode, because float32 cannot hold its cents; an
+    integer-valued column is narrowed under MATCH_APP_PRECISION and left as read
+    when the flag is off."""
     csv = tmp_path / "prec.csv"
-    csv.write_text("Region,Sales\n" + "\n".join(f"{'A' if i % 2 else 'B'},{i / 7:.6f}" for i in range(1, 60)))
+    csv.write_text(
+        "Region,Sales,Units\n"
+        + "\n".join(f"{'A' if i % 2 else 'B'},{i / 7:.6f},{i}" for i in range(1, 60))
+    )
     v2 = _analyze(csv)
     script = generate_script("prec.csv", v2)
-    assert _run(script, csv, tmp_path, monkeypatch)["df"]["Sales"].dtype == np.float32
+
+    narrowed = _run(script, csv, tmp_path, monkeypatch)["df"]
+    assert narrowed["Sales"].dtype == np.float64     # decimals keep their cents
+    assert narrowed["Units"].dtype == np.int8        # exact narrowing still happens
+
     full = script.replace("MATCH_APP_PRECISION = True ", "MATCH_APP_PRECISION = False")
-    assert _run(full, csv, tmp_path, monkeypatch)["df"]["Sales"].dtype == np.float64
+    as_read = _run(full, csv, tmp_path, monkeypatch)["df"]
+    assert as_read["Units"].dtype == np.int64
 
 
 def test_duplicate_removal_is_off_by_default_because_the_app_analyses_every_row(tmp_path, monkeypatch):

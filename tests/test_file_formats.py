@@ -80,3 +80,29 @@ def test_tsv_delimiter_parsed_correctly():
     df = _load_dataframe("data.tsv", tsv_text.encode())
     assert list(df.columns) == ["Name", "Revenue"]
     assert len(df) == 2
+
+
+def test_money_keeps_its_cents_through_the_chunked_reader():
+    """float32 keeps ~7 significant digits, so 1234567.89 is stored as
+    1234567.875 and a total of such rows drifts by cents while the dashboard
+    still formats it as currency. Decimals must stay float64."""
+    prices = [1234567.89, 2345678.91, 3456789.12]
+    csv = "Price\n" + "\n".join(str(p) for p in prices) + "\n"
+
+    df = _load_dataframe("money.csv", csv.encode())
+
+    assert df["Price"].dtype == "float64"
+    assert df["Price"].sum() == pytest.approx(sum(prices), abs=1e-6)
+
+
+def test_integral_columns_are_still_narrowed_for_memory():
+    csv = "Count\n" + "\n".join(["1", "2", "3", "4"]) + "\n"
+    df = _load_dataframe("counts.csv", csv.encode())
+    assert df["Count"].dtype == "int8"
+
+
+def test_a_zero_one_column_may_still_be_narrowed():
+    """Flags and counts convert to float32 exactly -- the memory win is kept."""
+    csv = "Flag\n" + "\n".join(["0.0", "1.0"] * 5) + "\n"
+    df = _load_dataframe("flags.csv", csv.encode())
+    assert df["Flag"].dtype == "float32"

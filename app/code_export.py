@@ -91,11 +91,17 @@ def _coerce_mostly_numeric_columns(frame):
 
 
 def _downcast_numeric(frame):
-    """DataLens reads numbers at reduced precision (float32 / small ints) to save
-    memory. Kept by default so your totals match the app to the last digit."""
+    """DataLens narrows numbers that convert EXACTLY (int64 -> the smallest int
+    type, floats only when float32 represents them exactly) to save memory.
+    Decimals such as money stay float64: float32 carries ~7 significant digits,
+    so casting them here would make this script's totals drift from the app's.
+    Kept by default so your numbers match the dashboard."""
     frame = frame.copy()
     for col in frame.select_dtypes(include=["float64"]).columns:
-        frame[col] = pd.to_numeric(frame[col], downcast="float")
+        values = frame[col].to_numpy(dtype="float64")
+        narrowed = values.astype("float32").astype("float64")
+        if bool(((narrowed == values) | (pd.isna(narrowed) & pd.isna(values))).all()):
+            frame[col] = pd.to_numeric(frame[col], downcast="float")
     for col in frame.select_dtypes(include=["int64"]).columns:
         frame[col] = pd.to_numeric(frame[col], downcast="integer")
     return frame
@@ -316,7 +322,7 @@ def generate_script(file_name: str, v2: dict, filters: Optional[dict] = None) ->
     lines += [
         "# %% 1. Load",
         f"DATA_FILE = {_lit(file_name)}  # <- point this at your copy of the file",
-        "MATCH_APP_PRECISION = True      # False = read numbers at full float64 precision instead of DataLens's float32",
+        "MATCH_APP_PRECISION = True      # False = skip DataLens's exact-only numeric narrowing (keeps int64/float64 as read)",
         "REMOVE_EXACT_DUPLICATES = False  # DataLens analyses every row as loaded; its \"cleaned CSV\" export drops exact duplicates",
         _LOAD_HELPERS.rstrip("\n"),
         "",

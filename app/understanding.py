@@ -173,6 +173,37 @@ def _is_usable_column(df: pd.DataFrame, col: str) -> bool:
     return True
 
 
+_BIRTH_DATE_HINTS = ("dob", "birth")
+
+
+def _pick_date_column(df: pd.DataFrame, semantic_roles: dict) -> str | None:
+    """The one DATE column the pipeline treats as "the" time axis.
+
+    This used to be the first DATE-role column in file order, which is arbitrary:
+    a healthcare export with "Date of Birth" before "Admission Date" charted age
+    against time, and a file whose first date column is mostly empty produced an
+    empty trend while a complete one sat next to it. Rank by what actually works
+    as a timeline -- not a birth date, then how much of it parses -- and leave
+    ties to file order, which keeps the choice STABLE: ranking on something as
+    incidental as distinct-value count made a filtered subset of the same file
+    pick a different time axis than the full file, and the filtered panel then
+    disagreed with the pipeline it is supposed to reproduce. `max` returns the
+    first of equal candidates, so the choice is deterministic.
+    """
+    date_columns = [c for c, info in semantic_roles.items() if info["role"] == "DATE"]
+    usable = [c for c in date_columns if _is_usable_column(df, c)]
+    if not usable:
+        return date_columns[0] if date_columns else None
+
+    def rank(column) -> tuple:
+        name = str(column).lower()
+        is_birth_date = any(hint in name for hint in _BIRTH_DATE_HINTS)
+        parsed = pd.to_datetime(df[column], errors="coerce")
+        return (not is_birth_date, float(parsed.notna().mean()))
+
+    return max(usable, key=rank)
+
+
 def understand_dataset(df: pd.DataFrame, role_overrides: dict = None) -> DatasetProfile:
     """
     The single entry point for the entire downstream pipeline. Everything
@@ -207,7 +238,7 @@ def understand_dataset(df: pd.DataFrame, role_overrides: dict = None) -> Dataset
     missing_frac = df.isnull().mean().mean() if col_count else 0
     completeness = float(round((1 - missing_frac) * 100, 1))
 
-    date_column = next((c for c, info in semantic_roles.items() if info["role"] == "DATE"), None)
+    date_column = _pick_date_column(df, semantic_roles)
 
     # --- Entity ---
     entity_role = next((info["role"] for info in semantic_roles.values() if info["role"] in ENTITY_ROLE_TO_NOUN), None)
@@ -243,17 +274,39 @@ def understand_dataset(df: pd.DataFrame, role_overrides: dict = None) -> Dataset
     # still excluded here -- a sequential ID isn't a real measure either
     # way (see the existing PassengerId-as-revenue caution in HANDOFF.md).
     claimed = {m.column for m in measures}
-    for col, info in semantic_roles.items():
-        if col in claimed or col not in numeric_cols:
-            continue
-        if info["role"] == "IDENTIFIER":
-            continue
-        if not _is_usable_column(df, col):
-            continue
-        is_primary = not primary_set
-        measures.append(Measure(column=col, role=info["role"], aggregation="sum", is_primary=is_primary))
-        if is_primary:
-            primary_set = True
+
+    def _add_fallback_measures(last_resort: bool) -> None:
+        nonlocal primary_set
+        for col, info in semantic_roles.items():
+            if col in claimed or col not in numeric_cols:
+                continue
+            if info["role"] == "IDENTIFIER":
+                continue
+            if not last_resort and info["role"] in DIMENSION_ROLES:
+                continue
+            if not _is_usable_column(df, col):
+                continue
+            # A numeric 0/1 flag ("Returned", "is_churned") describes a slice of
+            # the data, not something whose TOTAL is a meaningful headline -- the
+            # sum of a binary column is just its count. It used to be picked up
+            # here, and because this loop runs in column order it could take the
+            # primary-measure slot ahead of a real metric, so every KPI and trend
+            # was computed on "sum of Returned". Flags are only used when the file
+            # has no other numeric column at all.
+            if not last_resort and int(df[col].nunique()) <= 2:
+                continue
+            is_primary = not primary_set
+            measures.append(Measure(column=col, role=info["role"], aggregation="sum", is_primary=is_primary))
+            claimed.add(col)
+            if is_primary:
+                primary_set = True
+
+    # Last resort: a file whose only numeric columns are flags/stores still has to
+    # produce some analysis, so the exclusions above are relaxed once nothing else
+    # qualified. IDENTIFIER columns stay excluded either way.
+    _add_fallback_measures(last_resort=False)
+    if not measures:
+        _add_fallback_measures(last_resort=True)
 
     # --- Dimensions ---
     dimensions = []

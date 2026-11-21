@@ -174,7 +174,28 @@ ROLE_KEYWORDS = {
 
 
 def _normalize(col: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "_", col.strip().lower()).strip("_")
+    """Header -> lower_snake_case. camelCase is split first, so "CustomerID"
+    normalises to "customer_id" and matches the same keywords as "Customer ID";
+    without that, a substring test was the only way to find "id" inside it."""
+    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", col.strip())
+    spaced = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", spaced)
+    return re.sub(r"[^a-z0-9]+", "_", spaced.lower()).strip("_")
+
+
+# Time words too generic to match as one token among several. A column called
+# "Time" or "Month" is a date, but "lead_time" / "delivery_time_minutes" are
+# durations and "days_to_ship" is a count -- matching these as substrings made
+# every one of them a DATE, which then got coerced to NaT downstream. They
+# match an exact name only (pass 1).
+_EXACT_ONLY_KEYWORDS = {"date", "time", "day", "month", "year", "created"}
+
+
+def _has_token_run(column_tokens: list, keyword_tokens: list) -> bool:
+    """Whether keyword_tokens appear as a contiguous run of whole tokens."""
+    n = len(keyword_tokens)
+    if n == 0 or n > len(column_tokens):
+        return False
+    return any(column_tokens[i:i + n] == keyword_tokens for i in range(len(column_tokens) - n + 1))
 
 
 def _keyword_matches(columns: list) -> dict:
@@ -197,14 +218,25 @@ def _keyword_matches(columns: list) -> dict:
                 assigned[match] = {"role": role, "confidence": "name", "matched_keyword": kw}
                 claimed.add(match)
 
-    # Pass 2: substring matches (longest keyword wins per column)
+    # Pass 2: whole-token matches (longest keyword wins per column).
+    #
+    # This used to be a plain substring test, which claimed columns for whatever
+    # short keyword happened to appear inside the word: "Paid" contains "id" (so
+    # it became an IDENTIFIER), "Usage" and "Package" contain "age" (AGE), and
+    # "cancelled" contains "c"... only real words mattered, but the point stands --
+    # the role was decided by a fragment of the name. Requiring the keyword to line
+    # up with whole tokens keeps the useful cases ("order_id", "delivery_date",
+    # "gross_sales") and drops the accidents.
     for role, keywords in ROLE_KEYWORDS.items():
         for kw in keywords:
             kw_norm = _normalize(kw)
+            if kw_norm in _EXACT_ONLY_KEYWORDS:
+                continue
+            kw_tokens = kw_norm.split("_")
             for c in columns:
                 if c in claimed:
                     continue
-                if kw_norm in norm_cols[c]:
+                if _has_token_run(norm_cols[c].split("_"), kw_tokens):
                     existing = assigned.get(c)
                     if not existing or len(kw_norm) > len(existing.get("matched_keyword", "")):
                         assigned[c] = {"role": role, "confidence": "name", "matched_keyword": kw}
