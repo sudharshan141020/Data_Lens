@@ -281,12 +281,13 @@ so measure your own.
 - An idle service is spun down (after about 15 minutes) and the next visit waits roughly a minute for it to start.
 - Share links are held in the server's memory for 24 hours, so a spin-down, restart or redeploy ends them.
   This is by design (no database; see `app/share_cache.py`), and worth knowing before sending a link to someone.
-  The creator can revoke one early: creating a link also returns a `revoke_token`, and
-  `DELETE /api/share/{token}` with that value in `X-Share-Revoke` deletes it.
+  The creator can revoke one early: creating a link also returns a `revoke_token`, which the
+  Export menu keeps in that tab so its "Revoke share link" item can delete the link
+  (`DELETE /api/share/{token}` with that value in `X-Share-Revoke`).
 - There is no login: anyone with the address can upload and analyse. The analysis endpoints are not
   rate-limited; the two share endpoints are (30 creates and 120 reads a minute per address, see
-  `app/rate_limit.py`), JSON bodies are refused over 25MB before they are parsed (`DATALENS_MAX_JSON_MB`),
-  and each address may hold 15MB / 20 share links out of the cache's 64MB. Nothing is stored beyond share
+  `app/rate_limit.py`), request bodies are refused over 25MB before they are parsed (`DATALENS_MAX_BODY_MB`;
+  uploads keep their own cap), and each address may hold 15MB / 20 share links out of the cache's 64MB. Nothing is stored beyond share
   links, but the server does the work for every request.
 
 **Before you deploy, refresh the frontend.** `npm run build:static` in `frontend/` builds the SPA and

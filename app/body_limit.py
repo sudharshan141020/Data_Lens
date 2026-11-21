@@ -1,22 +1,26 @@
 """
-A cap on JSON request bodies, applied before anything parses them.
+A cap on request bodies, applied before anything parses them.
 
-Every endpoint that takes JSON (`/api/share`, the exports, filtered reports, the
-hypothesis test) has the body read into memory and turned into Python objects
-first. The per-endpoint limits -- a share payload's 15MB, a recompute's cell
-count -- are checked *after* that has already happened, so they bound what is
-kept, not what is received: a caller could post a gigabyte to /api/share and the
-process would die parsing it before any of those checks ran.
+Every endpoint that takes a body -- JSON, form-encoded, or a plain text body that
+Starlette's model handling will happily decode into a Pydantic field -- has it read
+into memory and turned into Python objects first. The per-endpoint limits -- a share
+payload's 15MB, a recompute's cell count -- are checked *after* that has already
+happened, so they bound what is kept, not what is received: a caller could post a
+gigabyte to /api/share and the process would die parsing it before any of those
+checks ran.
 
-This refuses on the declared Content-Length, and enforces the same cap while the
-body streams for a caller that uses chunked encoding and sends no length at all.
-Only requests declaring a JSON content type are affected: uploads are multipart
-and already have their own streaming cap (`_read_upload` in main.py), and a
-non-JSON body is never parsed into objects here in the first place.
+The cap therefore covers every request *except* multipart uploads, which already
+have their own streaming cap (`_read_upload` in main.py) and whose whole point is to
+carry a large file. Content type must not decide whether the cap applies: FastAPI
+still buffers the body for a model endpoint when the caller says `text/plain`, so a
+cap that only watched `application/json` could be skipped by changing one header.
+
+It refuses on the declared Content-Length, and enforces the same cap while the body
+streams for a caller that uses chunked encoding and sends no length at all.
 
 The cap sits above every legitimate payload this app produces (a share link's own
 payload cap is 15MB) and far below what would hurt the 512MB instance it is
-deployed on. DATALENS_MAX_JSON_MB overrides it.
+deployed on. DATALENS_MAX_BODY_MB overrides it.
 """
 from __future__ import annotations
 
@@ -24,23 +28,23 @@ import json
 import os
 from typing import Optional
 
-DEFAULT_MAX_JSON_MB = 25.0
+DEFAULT_MAX_BODY_MB = 25.0
 
 
-def _max_json_bytes() -> int:
+def _max_body_bytes() -> int:
     """The cap in bytes. A bad or non-positive value falls back to the default
     rather than stopping the app from starting -- same rule as the upload cap."""
-    raw = os.environ.get("DATALENS_MAX_JSON_MB", "").strip()
+    raw = os.environ.get("DATALENS_MAX_BODY_MB", "").strip()
     try:
-        mb = float(raw) if raw else DEFAULT_MAX_JSON_MB
+        mb = float(raw) if raw else DEFAULT_MAX_BODY_MB
     except ValueError:
-        mb = DEFAULT_MAX_JSON_MB
-    return int((mb if mb > 0 else DEFAULT_MAX_JSON_MB) * 1024 * 1024)
+        mb = DEFAULT_MAX_BODY_MB
+    return int((mb if mb > 0 else DEFAULT_MAX_BODY_MB) * 1024 * 1024)
 
 
 # Read per request, not captured at import, so a deployment can be reasoned about
 # (and a test can tighten it) without rebuilding the app.
-MAX_JSON_BYTES = _max_json_bytes()
+MAX_BODY_BYTES = _max_body_bytes()
 
 
 class BodyTooLarge(Exception):
@@ -54,11 +58,15 @@ def _header(scope, name: bytes) -> Optional[bytes]:
     return None
 
 
-def _is_json(scope) -> bool:
+def _is_multipart(scope) -> bool:
+    """The one kind of request this middleware leaves alone: an upload, whose size
+    is bounded by main._read_upload while it is read. Anything else -- JSON,
+    text/plain, form-encoded, or no declared type at all -- is guarded, because
+    a model endpoint will buffer it too."""
     content_type = _header(scope, b"content-type")
     if not content_type:
         return False
-    return content_type.split(b";", 1)[0].strip().lower() == b"application/json"
+    return content_type.split(b";", 1)[0].strip().lower() == b"multipart/form-data"
 
 
 def _declared_length(scope) -> Optional[int]:
@@ -75,7 +83,7 @@ def _declared_length(scope) -> Optional[int]:
 
 async def _reject(send, limit: int) -> None:
     body = json.dumps({
-        "detail": (f"This request is over the {limit / 1024 / 1024:g} MB limit for JSON bodies. "
+        "detail": (f"This request is over the {limit / 1024 / 1024:g} MB limit for request bodies. "
                    "Send a smaller analysis, or upload the file and let the server compute it."),
     }).encode("utf-8")
     await send({
@@ -104,10 +112,10 @@ class BodySizeLimitMiddleware:
         self._max_bytes = max_bytes
 
     def _limit(self) -> int:
-        return MAX_JSON_BYTES if self._max_bytes is None else self._max_bytes
+        return MAX_BODY_BYTES if self._max_bytes is None else self._max_bytes
 
     async def __call__(self, scope, receive, send):
-        if scope.get("type") != "http" or not _is_json(scope):
+        if scope.get("type") != "http" or _is_multipart(scope):
             await self.app(scope, receive, send)
             return
 

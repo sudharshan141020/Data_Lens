@@ -135,7 +135,12 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
      around and so cannot be the credential for deleting it (stored only as a
      SHA-256 hash, compared with `hmac.compare_digest`).
      `DELETE /api/share/{token}` with `X-Share-Revoke` deletes the link; a wrong
-     secret returns 403 and changes nothing.
+     secret returns 403 and changes nothing. The frontend keeps that revoke
+     token in memory, per session, for the tab that created the link, and the
+     Export menu shows a **Revoke share link** item only while one is held --
+     so a link can be deleted from the UI rather than only by hand. A reload or
+     another device has no revoke token, and therefore no revoke item: the proof
+     of creation was never in the URL (or in storage) to begin with.
   2. **Honest expiry.** Every token is `<random>_<expiry in base 36>`, so the
      expiry is readable from the token alone. That is what lets a miss answer
      410 "expired on <date>" (aged out), 404 "no longer available" (revoked, or
@@ -144,14 +149,20 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
   3. **Limits.** Both share endpoints are rate-limited per client (sliding
      window, 30 creates / 120 reads a minute); `render.yaml` sets
      `DATALENS_TRUSTED_PROXIES=1` because Render's proxy is the socket peer, and
-     without it every visitor would share one budget. JSON bodies are refused
-     over 25MB *before* anything parses them (`app/body_limit.py`; the endpoints'
-     own size checks ran only after the whole body had been decoded). The cache
+     without it every visitor would share one budget. Every non-upload request
+     body is refused over 25MB *before* anything parses it (`app/body_limit.py`,
+     `DATALENS_MAX_BODY_MB`; the endpoints' own size checks ran only after the
+     whole body had been decoded). The gate is "not multipart", not "is JSON":
+     FastAPI still buffers the body for a model endpoint when the caller declares
+     `text/plain`, so a cap that watched only `application/json` could be skipped
+     by changing one header. Uploads keep their own streaming cap. The cache
      also gives each address 15MB / 20 links of its own, evicting that address's
      oldest entries first, so one caller looping creates cannot push out everyone
      else's live links.
-  Not wired to the UI yet: the frontend still copies the URL and drops
-  `revoke_token`, so revocation is API-only (curl/scripts).
+  What the UI does and does not do: it copies the URL and keeps `revoke_token` in
+  memory for the tab, so **Revoke share link** works for a link created in that
+  tab; links created elsewhere stay API-only (curl/scripts), which is the
+  intended trade -- the key is the only proof of creation and is not persisted.
 - **Marketing domain** (`analyzers/marketing_analyzer.py`): 9th domain,
   same additive plugin pattern -- new semantic roles (CAMPAIGN, CHANNEL,
   IMPRESSIONS, CLICKS, CTR, CONVERSION_RATE, CPC, ROAS, AD_SPEND). Verified

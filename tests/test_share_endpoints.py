@@ -68,13 +68,13 @@ def test_a_share_of_nothing_is_refused_like_the_exports_are(client):
     assert "No analysis data" in refused.json()["detail"]
 
 
-def test_a_json_body_over_the_limit_is_refused_before_the_endpoint_parses_it(client, monkeypatch):
+def test_a_body_over_the_limit_is_refused_before_the_endpoint_parses_it(client, monkeypatch):
     """The payload cap below only ran after the whole request had been decoded, so it
     bounded what was kept, not what was received (app/body_limit.py)."""
-    monkeypatch.setattr(body_limit, "MAX_JSON_BYTES", 2_000)
+    monkeypatch.setattr(body_limit, "MAX_BODY_BYTES", 2_000)
     refused = _share(client, v2={"data": "x" * 5_000})
     assert refused.status_code == 413
-    assert "limit for JSON bodies" in refused.json()["detail"]
+    assert "limit for request bodies" in refused.json()["detail"]
 
 
 def test_a_link_can_be_revoked_with_the_secret_returned_at_creation(client):

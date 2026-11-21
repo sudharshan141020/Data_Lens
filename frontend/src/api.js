@@ -133,6 +133,9 @@ export class PersonalDataError extends Error {
 
 // `acknowledge` is the deliberate "share it as is" decision (the dialog's "Continue without
 // masking"). It is sent only when true, so an ordinary request is byte-for-byte what it was.
+// Returns { url, token, revokeToken }: the URL is what gets pasted, and the other two are
+// kept in this tab so the link can be revoked before its 24 hours are up. `revokeToken` is
+// the creator's proof of ownership and is deliberately NOT part of the URL.
 export async function createShareLink(fileName, kpis, v2, { acknowledge = false } = {}) {
   const body = { file_name: fileName, kpis: kpis || {}, v2 };
   if (acknowledge) body.acknowledge_personal_data = true;
@@ -154,7 +157,30 @@ export async function createShareLink(fileName, kpis, v2, { acknowledge = false 
   }
 
   const data = await res.json();
-  return `${window.location.origin}${data.share_path}`;
+  return {
+    url: `${window.location.origin}${data.share_path}`,
+    token: data.token,
+    revokeToken: data.revoke_token || null,
+  };
+}
+
+// Deletes a link created in this tab. Both parts are needed: the URL token says WHICH
+// link, and the revoke token proves you are the one who made it (the URL alone is public,
+// which is why it cannot also be the credential). 204 on success; a wrong key is a 403.
+export async function revokeShareLink(token, revokeToken) {
+  const res = await fetch(`${API_BASE}/api/share/${encodeURIComponent(token)}`, {
+    method: 'DELETE',
+    headers: { 'X-Share-Revoke': revokeToken },
+  });
+
+  if (!res.ok) {
+    let message = 'The share link could not be revoked.';
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') message = body.detail;
+    } catch (e) { /* non-JSON error body -- keep the default message */ }
+    throw new Error(message);
+  }
 }
 
 export async function fetchSharedAnalysis(token) {

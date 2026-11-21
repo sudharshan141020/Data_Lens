@@ -61,6 +61,38 @@ describe('ExportMenu', () => {
     expect(screen.getByRole('menuitem', { name: /couldn't save/i })).toBeInTheDocument();
   });
 
+  describe('Revoke share link item', () => {
+    it('only appears when the app holds a revoke key for a link from this tab', () => {
+      const { rerender } = render(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} onCreateShareLink={async () => 'https://x/share/t'} />);
+      openMenu();
+      expect(screen.queryByRole('menuitem', { name: /revoke share link/i })).not.toBeInTheDocument();
+      rerender(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} onCreateShareLink={async () => 'https://x/share/t'} onRevokeShareLink={async () => {}} />);
+      expect(screen.getByRole('menuitem', { name: /revoke share link/i })).toHaveAttribute('title', expect.stringMatching(/only possible in this tab/i));
+    });
+
+    it('runs the handler, closes the menu, and confirms briefly', async () => {
+      vi.useFakeTimers();
+      const onRevokeShareLink = vi.fn().mockResolvedValue(undefined);
+      render(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} onRevokeShareLink={onRevokeShareLink} />);
+      openMenu();
+      await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /revoke share link/i })); });
+      expect(onRevokeShareLink).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(2000); });
+      openMenu();
+      expect(screen.getByRole('menuitem', { name: /revoke share link/i })).toBeInTheDocument();
+    });
+
+    it('reports a failed revoke instead of pretending it worked', async () => {
+      vi.useFakeTimers();
+      render(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} onRevokeShareLink={vi.fn().mockRejectedValue(new Error('x'))} />);
+      openMenu();
+      await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /revoke share link/i })); });
+      openMenu();
+      expect(screen.getByRole('menuitem', { name: /couldn't revoke/i })).toBeInTheDocument();
+    });
+  });
+
   describe('Python script item', () => {
     it('only appears when the app can generate one', () => {
       const { rerender } = render(<ExportMenu onExportExcel={noop} onExportPdf={noop} onCopyFindings={noop} />);

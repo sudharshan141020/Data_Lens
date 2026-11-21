@@ -1,10 +1,11 @@
-"""app.body_limit -- refusing an oversized JSON body before it is parsed.
+"""app.body_limit -- refusing an oversized body before it is parsed.
 
-Every JSON endpoint had its body read into memory and decoded before any of the
-app's own limits could run, so those limits bounded what was kept, not what was
-received. These pin the cap in both places it has to apply -- a declared
-Content-Length and a streamed body that declares none -- and that uploads (which
-have their own streaming cap) are untouched.
+Every endpoint had its body read into memory and decoded before any of the app's
+own limits could run, so those limits bounded what was kept, not what was received.
+These pin the cap in both places it has to apply -- a declared Content-Length and a
+streamed body that declares none -- that every non-multipart content type is
+covered (a model endpoint buffers text/plain just the same), and that uploads,
+which have their own streaming cap, are untouched.
 """
 import asyncio
 
@@ -31,7 +32,7 @@ def test_a_declared_length_over_the_cap_is_refused_before_the_endpoint_runs():
     calls = []
     resp = TestClient(_app(limit=100, calls=calls)).post("/echo", json={"data": "x" * 500})
     assert resp.status_code == 413
-    assert "limit for JSON bodies" in resp.json()["detail"]
+    assert "limit for request bodies" in resp.json()["detail"]
     assert resp.headers["cache-control"] == "no-store"
     assert calls == []                                   # the handler never ran
 
@@ -42,15 +43,42 @@ def test_a_body_under_the_cap_still_reaches_the_endpoint():
     assert resp.json()["length"] > 0
 
 
+def test_a_text_plain_body_is_capped_too():
+    """The whole point of the widening: FastAPI does not care that the caller said
+    text/plain, so the cap must not care either."""
+    calls = []
+    resp = TestClient(_app(limit=100, calls=calls)).post(
+        "/echo",
+        content=b"x" * 500,
+        headers={"Content-Type": "text/plain"},
+    )
+    assert resp.status_code == 413
+    assert calls == []
+
+
+def test_a_form_encoded_body_is_capped_too():
+    resp = TestClient(_app(limit=100)).post(
+        "/echo",
+        content=b"a=" + b"x" * 500,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert resp.status_code == 413
+
+
+def test_a_body_with_no_content_type_is_capped_too():
+    resp = TestClient(_app(limit=100)).post("/echo", content=b"x" * 500)
+    assert resp.status_code == 413
+
+
 def test_a_multipart_upload_is_not_affected():
-    # A 10KB CSV is far over this JSON cap and must still be accepted: uploads are
+    # A 10KB CSV is far over this cap and must still be accepted: uploads are
     # capped while they are read (main._read_upload), not by this middleware.
     resp = TestClient(_app(limit=10)).post("/echo", files={"file": ("a.csv", b"x" * 10_000, "text/csv")})
     assert resp.status_code == 200
 
 
 def test_the_cap_is_read_from_the_module_when_the_app_installs_it(monkeypatch):
-    monkeypatch.setattr(body_limit, "MAX_JSON_BYTES", 200)
+    monkeypatch.setattr(body_limit, "MAX_BODY_BYTES", 200)
     client = TestClient(_app())                          # max_bytes=None, as main.py installs it
     assert client.post("/echo", json={"data": "x" * 500}).status_code == 413
     assert client.post("/echo", json={"data": "x"}).status_code == 200
@@ -68,11 +96,11 @@ def _streaming_app():
     return app
 
 
-def _run_streamed(chunks, limit):
+def _run_streamed(chunks, limit, content_type=b"application/json"):
     sent = []
     scope = {
         "type": "http", "method": "POST", "path": "/echo", "scheme": "http",
-        "headers": [(b"content-type", b"application/json")],       # deliberately no content-length
+        "headers": [(b"content-type", content_type)],               # deliberately no content-length
         "client": ("9.9.9.9", 1), "server": ("testserver", 80), "query_string": b"",
     }
     incoming = [{"type": "http.request", "body": c, "more_body": True} for c in chunks]
@@ -97,4 +125,18 @@ def test_a_body_with_no_content_length_is_counted_while_it_streams():
 
 def test_a_small_streamed_body_is_allowed_through():
     started = _run_streamed([b'{"data":"ok"}'], limit=100)
+    assert [m["status"] for m in started] == [200]
+
+
+def test_a_streamed_text_plain_body_is_capped_too():
+    started = _run_streamed([b"x" * 128, b"x" * 128], limit=100, content_type=b"text/plain")
+    assert [m["status"] for m in started] == [413]
+
+
+def test_a_streamed_multipart_body_is_left_to_the_upload_cap():
+    started = _run_streamed(
+        [b"--b\r\n", b"x" * 128, b"x" * 128],
+        limit=100,
+        content_type=b"multipart/form-data; boundary=b",
+    )
     assert [m["status"] for m in started] == [200]

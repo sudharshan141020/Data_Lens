@@ -259,6 +259,49 @@ describe('App (integration, real backend response)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('Share link: the revoke key from creation is what the Export menu uses to delete that link', async () => {
+    const shareLinks = [];
+    const deletes = [];
+    vi.stubGlobal('fetch', vi.fn(async (url, init) => {
+      if (url === '/api/analyze') return { ok: true, status: 200, json: async () => analysis };
+      if (url === '/api/share') {
+        shareLinks.push(JSON.parse(init.body));
+        return { ok: true, status: 200, json: async () => ({ token: 'tok_1', expires_at: 1, revoke_token: 'rev_1', share_path: '/share/tok_1' }) };
+      }
+      if (url === '/api/share/tok_1') {
+        deletes.push(init);
+        return { ok: true, status: 204 };
+      }
+      return { ok: false, status: 404, json: async () => ({ detail: 'unexpected' }) };
+    }));
+    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+
+    render(<App />);
+    await uploadSalesCsv();
+
+    // Nothing to revoke until this tab creates a link.
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    expect(screen.queryByRole('menuitem', { name: /revoke share link/i })).not.toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /share link/i })); });
+
+    // The fixture has Customer ID, so the personal-data dialog asks first; masking is enough.
+    const dialog = await screen.findByRole('dialog', { name: 'Personal data may be included' });
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /mask 1 selected/i })); });
+    await vi.waitFor(() => expect(shareLinks).toHaveLength(1));
+    await vi.waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/share/tok_1')));
+
+    // Now the item exists, and deleting uses the URL token + the separate revoke key.
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: /revoke share link/i })); });
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0].method).toBe('DELETE');
+    expect(deletes[0].headers).toEqual({ 'X-Share-Revoke': 'rev_1' });
+
+    // And it is gone: this tab holds no key for that link any more.
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    expect(screen.queryByRole('menuitem', { name: /revoke share link/i })).not.toBeInTheDocument();
+  });
+
   describe('the reports that follow the filter bar', () => {
     const rows = analysis.v2.filterable_data.rows;
     const westRows = rows.filter((r) => r.Region === 'West');

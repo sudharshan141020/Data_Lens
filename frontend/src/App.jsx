@@ -25,7 +25,7 @@ import ExportMenu from './components/ExportMenu';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import SampleGallery from './components/SampleGallery';
-import { analyzeFile, analyzeCombined, analyzeJoined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, fetchSharedAnalysis, exportCode, PersonalDataError } from './api';
+import { analyzeFile, analyzeCombined, analyzeJoined, compareFiles, downloadCleanedCsv, loadSampleFile, exportPdf, exportHtml, createShareLink, revokeShareLink, fetchSharedAnalysis, exportCode, PersonalDataError } from './api';
 import { exportAnalysisToExcel } from './exportReport';
 import { buildFindingsText } from './findingsText';
 import CompareView from './components/CompareView';
@@ -65,6 +65,10 @@ export default function App() {
   const jumpNonceRef = useRef(0);
   const [sharedLoadState, setSharedLoadState] = useState(null); // null | 'loading' | 'error'
   const [sharedLoadError, setSharedLoadError] = useState(null);
+  // Share links created in this tab, by session id: { url, token, revokeToken }.
+  // Deliberately memory-only -- the revoke token is the only proof this browser made
+  // the link, and it is not something to leave lying around in storage.
+  const [shareLinks, setShareLinks] = useState({});
 
   useEffect(() => {
     // A share link looks like /share/<token> -- the SPA catch-all on the
@@ -269,7 +273,9 @@ export default function App() {
       for (;;) {
         const choice = await guardedChoice(session, 'share', attempt);
         try {
-          return await createShareLink(session.fileName, session.result.kpis, choice.v2, { acknowledge: choice.acknowledged });
+          const link = await createShareLink(session.fileName, session.result.kpis, choice.v2, { acknowledge: choice.acknowledged });
+          setShareLinks((prev) => ({ ...prev, [session.id]: link }));
+          return link.url;
         } catch (err) {
           if (!(err instanceof PersonalDataError)) throw err;
           // The server checked the payload itself and found personal data the scan did not.
@@ -281,6 +287,19 @@ export default function App() {
       if (err?.cancelled) throw new Error('Share cancelled \u2014 nothing was uploaded.');
       throw err;
     }
+  };
+
+  // The revoke token only exists in this tab, so a link created on another device (or
+  // before a reload) has nothing here to prove ownership with -- that is the point.
+  const handleRevokeShareLink = async (session) => {
+    const link = shareLinks[session.id];
+    if (!link?.revokeToken) throw new Error('This link can no longer be revoked from this tab.');
+    await revokeShareLink(link.token, link.revokeToken);
+    setShareLinks((prev) => {
+      const next = { ...prev };
+      delete next[session.id];
+      return next;
+    });
   };
 
   const handleToggleCombineMode = () => {
@@ -629,6 +648,7 @@ export default function App() {
                 onExportHtml={() => handleExportHtml(activeSession)}
                 onExportCode={isPlainSession ? () => exportCode(activeSession.fileName, activeSession.result.v2, filters) : null}
                 onCreateShareLink={() => handleCreateShareLink(activeSession)}
+                onRevokeShareLink={shareLinks[activeSession.id]?.revokeToken ? () => handleRevokeShareLink(activeSession) : null}
                 onSaveSnapshot={isPlainSession ? () => saveSnapshot(activeSession) : null}
                 pdfLoading={pdfLoading}
               />

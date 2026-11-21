@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   analyzeFile, analyzeCombined, analyzeJoined, compareFiles, loadSampleFile, SAMPLE_DATASETS,
-  createShareLink, fetchSharedAnalysis, exportPdf, exportHtml, exportCode, serializeFilters, runHypothesisTest, PersonalDataError, downloadCleanedCsv,
+  createShareLink, revokeShareLink, fetchSharedAnalysis, exportPdf, exportHtml, exportCode, serializeFilters, runHypothesisTest, PersonalDataError, downloadCleanedCsv,
 } from './api';
 
 function reply({ ok = true, status = 200, body = {}, blob = new Blob(['x']), headers = {} } = {}) {
@@ -117,11 +117,28 @@ describe('sample datasets', () => {
 describe('share links', () => {
   beforeEach(() => { vi.stubGlobal('location', { ...window.location, origin: 'https://datalens.example' }); });
 
-  it('builds an absolute URL from the origin and the returned path', async () => {
-    const fetchFn = stubFetch(reply({ body: { share_path: '/s/abc123' } }));
-    const url = await createShareLink('sales.csv', null, { a: 1 });
-    expect(url).toBe('https://datalens.example/s/abc123');
+  it('builds an absolute URL from the origin and the returned path, keeping the tokens apart', async () => {
+    const fetchFn = stubFetch(reply({ body: { token: 'abc123', revoke_token: 'rev', share_path: '/s/abc123' } }));
+    const link = await createShareLink('sales.csv', null, { a: 1 });
+    expect(link).toEqual({ url: 'https://datalens.example/s/abc123', token: 'abc123', revokeToken: 'rev' });
+    expect(link.revokeToken).not.toBe(link.token);
     expect(JSON.parse(fetchFn.mock.calls[0][1].body)).toMatchObject({ file_name: 'sales.csv', kpis: {} });
+  });
+
+  it('revokes with the URL token in the path and the revoke token in the header', async () => {
+    const fetchFn = stubFetch(reply({ ok: true, status: 204 }));
+    await revokeShareLink('abc', 'rev');
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe('/api/share/abc');
+    expect(init.method).toBe('DELETE');
+    expect(init.headers).toEqual({ 'X-Share-Revoke': 'rev' });
+  });
+
+  it('explains a refused revoke instead of failing silently', async () => {
+    stubFetch(reply({ ok: false, status: 403, body: { detail: "The revoke token doesn't match this share link." } }));
+    await expect(revokeShareLink('abc', 'wrong')).rejects.toThrow("doesn't match");
+    stubFetch(reply({ ok: false, status: 404, body: {} }));
+    await expect(revokeShareLink('abc', 'rev')).rejects.toThrow('The share link could not be revoked.');
   });
 
   it('surfaces a string detail, and keeps the default message when the error body is not JSON', async () => {

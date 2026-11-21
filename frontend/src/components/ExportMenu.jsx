@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, onExportCode, onCreateShareLink, onSaveSnapshot, pdfLoading }) {
+export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings, onDownloadCleanedCsv, onExportHtml, onExportCode, onCreateShareLink, onRevokeShareLink, onSaveSnapshot, pdfLoading }) {
   const [open, setOpen] = useState(false);
   const [copyState, setCopyState] = useState('idle'); // idle | copied | error
   const [cleanState, setCleanState] = useState('idle'); // idle | downloading | done | error
   const [htmlState, setHtmlState] = useState('idle'); // idle | downloading | done | error
   const [codeState, setCodeState] = useState('idle'); // idle | downloading | done | error
   const [shareState, setShareState] = useState('idle'); // idle | creating | copied | error
+  const [revokeState, setRevokeState] = useState('idle'); // idle | revoking | revoked | error
   const [snapshotState, setSnapshotState] = useState('idle'); // idle | saved | error
   const wrapRef = useRef(null);
 
@@ -97,6 +98,20 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
   };
 
   const shareLabel = shareState === 'creating' ? 'Creating link…' : shareState === 'copied' ? 'Link copied!' : shareState === 'error' ? "Couldn't create link" : 'Copy share link';
+
+  const handleRevokeShareLink = async () => {
+    setRevokeState('revoking');
+    try {
+      await onRevokeShareLink();
+      setRevokeState('revoked');
+    } catch {
+      setRevokeState('error');
+    }
+    setTimeout(() => setRevokeState('idle'), 1800);
+    setOpen(false);
+  };
+
+  const revokeLabel = revokeState === 'revoking' ? 'Revoking…' : revokeState === 'revoked' ? 'Link revoked!' : revokeState === 'error' ? "Couldn't revoke" : 'Revoke share link';
 
   const handleSaveSnapshot = () => {
     const ok = onSaveSnapshot();
@@ -203,6 +218,19 @@ export default function ExportMenu({ onExportExcel, onExportPdf, onCopyFindings,
             >
               <span>{shareLabel}</span>
               <span className="export-menu-ext">24h link</span>
+            </button>
+          )}
+          {onRevokeShareLink && (
+            <button
+              type="button"
+              className="export-menu-item"
+              role="menuitem"
+              disabled={revokeState === 'revoking'}
+              onClick={handleRevokeShareLink}
+              title="Delete the share link you just created, so it stops working before its 24 hours are up. Only possible in this tab -- the revoke key is never put in the link."
+            >
+              <span>{revokeLabel}</span>
+              <span className="export-menu-ext">this tab</span>
             </button>
           )}
           {onSaveSnapshot && (
