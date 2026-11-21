@@ -136,3 +136,39 @@ def test_a_revoked_token_still_says_it_had_not_expired_yet():
 def test_a_very_long_tail_does_not_reach_the_int_digit_limit():
     # int(text, 36) raises past CPython's digit limit; expiry_of must not raise.
     assert share_cache.expiry_of("abc_" + "1" * 100_000) is None
+
+
+# ---------------------------------------------------------------------------
+# one client cannot evict everyone else's links
+# ---------------------------------------------------------------------------
+def test_one_client_cannot_push_out_another_clients_link(monkeypatch):
+    """The 64MB budget is global and unauthenticated, so without a per-client quota
+    a single caller creating links in a loop wiped everybody else's live links."""
+    monkeypatch.setattr(share_cache, "MAX_ENTRY_BYTES", 10_000)
+    monkeypatch.setattr(share_cache, "MAX_BYTES_PER_CLIENT", 3_000)
+    monkeypatch.setattr(share_cache, "MAX_ENTRIES_PER_CLIENT", 100)
+    monkeypatch.setattr(share_cache, "MAX_TOTAL_BYTES", 100_000)
+    monkeypatch.setattr(share_cache, "MAX_ENTRIES", 500)
+
+    host, _e, _r = share_cache.create_share(_payload(500), quota_key="host")
+    flood = [share_cache.create_share(_payload(1_000), quota_key="flood")[0] for _ in range(10)]
+
+    assert share_cache.get_share(host) == _payload(500)          # untouched
+    held = [t for t in flood if share_cache.get_share(t) is not None]
+    assert len(held) == 2                                       # its own budget, not the whole cache
+    assert share_cache._total_bytes <= 100_000
+
+
+def test_a_clients_number_of_links_is_capped_too(monkeypatch):
+    monkeypatch.setattr(share_cache, "MAX_ENTRIES_PER_CLIENT", 2)
+    monkeypatch.setattr(share_cache, "MAX_BYTES_PER_CLIENT", 100_000)
+
+    tokens = [share_cache.create_share(_payload(50), quota_key="one")[0] for _ in range(5)]
+    assert [share_cache.get_share(t) is not None for t in tokens] == [False, False, False, True, True]
+
+
+def test_without_a_quota_key_the_global_caps_still_apply(monkeypatch):
+    monkeypatch.setattr(share_cache, "MAX_ENTRIES", 2)
+    tokens = [share_cache.create_share(_payload(10))[0] for _ in range(3)]
+    assert share_cache.get_share(tokens[0]) is None
+    assert share_cache.get_share(tokens[-1]) is not None

@@ -126,6 +126,32 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
 - Sunburst charts, map visualizations (mentioned as "future" in specs)
 
 ## Recently added (worth knowing about if picking this back up)
+- **Share links, and the limits around them** (`app/share_cache.py`,
+  `app/rate_limit.py`, `app/body_limit.py`, `app/main.py`): `POST /api/share`
+  keeps a snapshot in memory for 24 hours; `GET /api/share/{token}` returns it.
+  Three things were added on top of the original feature:
+  1. **Revocation.** Creation returns a `revoke_token` in addition to the URL
+     token -- deliberately separate, because the URL is the part people paste
+     around and so cannot be the credential for deleting it (stored only as a
+     SHA-256 hash, compared with `hmac.compare_digest`).
+     `DELETE /api/share/{token}` with `X-Share-Revoke` deletes the link; a wrong
+     secret returns 403 and changes nothing.
+  2. **Honest expiry.** Every token is `<random>_<expiry in base 36>`, so the
+     expiry is readable from the token alone. That is what lets a miss answer
+     410 "expired on <date>" (aged out), 404 "no longer available" (revoked, or
+     lost with the process), or 404 "doesn't exist" (never ours), instead of one
+     generic 404 for all three -- without keeping a tombstone for every dead link.
+  3. **Limits.** Both share endpoints are rate-limited per client (sliding
+     window, 30 creates / 120 reads a minute); `render.yaml` sets
+     `DATALENS_TRUSTED_PROXIES=1` because Render's proxy is the socket peer, and
+     without it every visitor would share one budget. JSON bodies are refused
+     over 25MB *before* anything parses them (`app/body_limit.py`; the endpoints'
+     own size checks ran only after the whole body had been decoded). The cache
+     also gives each address 15MB / 20 links of its own, evicting that address's
+     oldest entries first, so one caller looping creates cannot push out everyone
+     else's live links.
+  Not wired to the UI yet: the frontend still copies the URL and drops
+  `revoke_token`, so revocation is API-only (curl/scripts).
 - **Marketing domain** (`analyzers/marketing_analyzer.py`): 9th domain,
   same additive plugin pattern -- new semantic roles (CAMPAIGN, CHANNEL,
   IMPRESSIONS, CLICKS, CTR, CONVERSION_RATE, CPC, ROAS, AD_SPEND). Verified

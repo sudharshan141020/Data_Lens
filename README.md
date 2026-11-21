@@ -261,6 +261,7 @@ port.
 | `healthCheckPath` | `/api/health` | Render restarts the service if it stops answering and waits for it before switching traffic |
 | `PYTHON_VERSION` | `3.12.7` | the minor version CI tests on, instead of whatever Render defaults to |
 | `DATALENS_MAX_FILE_MB` | `10` | the app's own default (250 MB) suits your own machine, not a 512 MB host (below) |
+| `DATALENS_TRUSTED_PROXIES` | `1` | Render's proxy is what the app sees as the caller's address; without this, one rate-limit budget and one share quota are shared by every visitor |
 
 **Why the upload cap is 10 MB on the free plan.** Measured on this app (single process, 9-column
 sales-style CSV): it uses about 200 MB just to start, and peaks at roughly
@@ -280,7 +281,12 @@ so measure your own.
 - An idle service is spun down (after about 15 minutes) and the next visit waits roughly a minute for it to start.
 - Share links are held in the server's memory for 24 hours, so a spin-down, restart or redeploy ends them.
   This is by design (no database; see `app/share_cache.py`), and worth knowing before sending a link to someone.
-- There is no login and no rate limiting: anyone with the address can upload. Nothing is stored beyond share
+  The creator can revoke one early: creating a link also returns a `revoke_token`, and
+  `DELETE /api/share/{token}` with that value in `X-Share-Revoke` deletes it.
+- There is no login: anyone with the address can upload and analyse. The analysis endpoints are not
+  rate-limited; the two share endpoints are (30 creates and 120 reads a minute per address, see
+  `app/rate_limit.py`), JSON bodies are refused over 25MB before they are parsed (`DATALENS_MAX_JSON_MB`),
+  and each address may hold 15MB / 20 share links out of the cache's 64MB. Nothing is stored beyond share
   links, but the server does the work for every request.
 
 **Before you deploy, refresh the frontend.** `npm run build:static` in `frontend/` builds the SPA and

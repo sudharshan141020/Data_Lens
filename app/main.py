@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from app import rate_limit
+from app.body_limit import BodySizeLimitMiddleware
 from app.column_detector import detect_columns
 from app.kpi import prepare, compute_kpis, timeseries_monthly, breakdown_by, all_breakdowns, combine_dataframes
 from app.relational_join import detect_join_key, join_dataframes
@@ -105,6 +106,12 @@ class SafeJSONResponse(_StarletteJSONResponse):
 
 
 app = FastAPI(title="DataLens", default_response_class=SafeJSONResponse)
+
+# Refuse an oversized JSON body before any endpoint can parse it. The endpoints'
+# own limits (a share payload's 15MB, a recompute's cell count) are checked after
+# the body has already been read and decoded, so they bound what is kept, not what
+# is received -- app/body_limit.py explains the cap and why it has to be here.
+app.add_middleware(BodySizeLimitMiddleware)
 
 # Where the built frontend is served from. Defaults to app/static (what the
 # deploy steps copy frontend/dist into). DATALENS_STATIC_DIR lets the end-to-end
@@ -1254,7 +1261,8 @@ def create_share_link(payload: ShareRequest, request: Request):
                 headers=_SHARE_HEADERS,
             )
     try:
-        token, expires_at, revoke_token = create_share(shared, size=size)
+        token, expires_at, revoke_token = create_share(
+            shared, size=size, quota_key=rate_limit.client_key(request))
     except ValueError as e:
         raise HTTPException(400, str(e))
     body = {"token": token, "expires_at": expires_at, "revoke_token": revoke_token,

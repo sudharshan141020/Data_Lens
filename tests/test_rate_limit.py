@@ -127,3 +127,15 @@ def test_probing_unknown_tokens_is_not_free(client, monkeypatch):
     monkeypatch.setattr(main_module, "_SHARE_READ_LIMITER", SlidingWindowLimiter(1, 60))
     assert client.get("/api/share/not-a-token").status_code == 404
     assert client.get("/api/share/not-a-token").status_code == 429
+
+
+def test_the_deployed_config_counts_one_trusted_proxy():
+    """On Render the socket peer is Render's proxy, so without this setting every
+    visitor would share one budget and one share-cache quota -- a failure that
+    looks like "the limit is too low" rather than like a missing config line."""
+    from pathlib import Path
+
+    text = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")
+    assert "- key: DATALENS_TRUSTED_PROXIES" in text
+    value_block = text.split("DATALENS_TRUSTED_PROXIES", 1)[1].split("- key:", 1)[0]
+    assert 'value: "1"' in value_block

@@ -17,3 +17,11 @@ services:
       # on a bigger plan. (The app's own default is 250 MB, which suits running it locally.)
       - key: DATALENS_MAX_FILE_MB
         value: "10"
+      # Who the share endpoints' rate limits (and the per-client share-cache quota) count
+      # against. Render's proxy is the socket peer and appends the caller's address to
+      # X-Forwarded-For; with the app's default of 0 every visitor would share one
+      # 30-creates/120-reads-a-minute budget and one client's cache quota. Raise this if
+      # another proxy you control is put in front (app/rate_limit.py explains which end of
+      # the header is read, and why it is not the left-most value).
+      - key: DATALENS_TRUSTED_PROXIES
+        value: "1"

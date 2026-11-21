@@ -26,6 +26,13 @@ app is deployed on. Entries closest to expiring are dropped to make
 room, so a busy server degrades by forgetting old links rather than by
 being killed for memory.
 
+That total budget is shared by every caller, and creating a link is
+unauthenticated, so one client filling it would push out everyone else's live
+links. Each caller therefore has a much smaller budget of its own (an address's
+links are evicted -- oldest first -- before the global budget is touched), which
+bounds how much damage one address can do. Many addresses still add up to the
+global cap; that part needs the global eviction above, not this.
+
 A link can also be revoked before it expires. Revoking needs a secret, and
 the secret cannot be the token in the URL: the URL is exactly the part people
 paste into chats and email, so anyone who can open the link would also be able
@@ -50,8 +57,14 @@ TTL_SECONDS = 24 * 60 * 60  # 24 hours -- long enough to actually share with som
 MAX_ENTRY_BYTES = 15 * 1024 * 1024  # 15MB -- generous for a full v2+kpis payload, defensive against abuse
 MAX_ENTRIES = 500  # defensive cap on the number of links, independent of their size
 MAX_TOTAL_BYTES = 64 * 1024 * 1024  # 64MB -- the REAL memory bound; MAX_ENTRIES * MAX_ENTRY_BYTES would be 7.5GB
+# One caller's share of that budget. Without it the global caps are the only bound,
+# and filling them is unauthenticated: a single client creating links in a loop would
+# evict everybody else's live links. Equal to one max-size entry so a single large
+# analysis can always be shared as long as its creator has nothing else stored.
+MAX_BYTES_PER_CLIENT = MAX_ENTRY_BYTES
+MAX_ENTRIES_PER_CLIENT = 20
 
-# token -> (payload, expires_at, size_in_bytes, revoke_hash)
+# token -> (payload, expires_at, size_in_bytes, revoke_hash, quota_key)
 _store = {}
 _total_bytes = 0
 _lock = threading.Lock()
@@ -101,7 +114,7 @@ def _hash_secret(secret: str) -> bytes:
 def _prune_expired_locked():
     global _total_bytes
     now = time.time()
-    for token in [t for t, (_p, expires_at, _s, _r) in _store.items() if expires_at < now]:
+    for token in [t for t, (_p, expires_at, _s, _r, _k) in _store.items() if expires_at < now]:
         _total_bytes -= _store[token][2]
         del _store[token]
 
@@ -125,7 +138,31 @@ def check_size(payload: dict) -> int:
     return size
 
 
-def create_share(payload: dict, size: Optional[int] = None) -> tuple:
+def _key_usage_locked(key: str) -> tuple:
+    """(entries, bytes) currently held for one client. Scanned from the store
+    rather than tracked separately: the store is capped at MAX_ENTRIES, so this
+    is a few hundred comparisons on a create, and there is no second counter that
+    could drift out of step with what is actually stored."""
+    count = held = 0
+    for _payload, _expires_at, size, _revoke_hash, entry_key in _store.values():
+        if entry_key == key:
+            count += 1
+            held += size
+    return count, held
+
+
+def _evict_one_of_key_locked(key: str) -> None:
+    """Drop this client's link that is closest to expiring anyway."""
+    global _total_bytes
+    candidates = [t for t, entry in _store.items() if entry[4] == key]
+    if not candidates:
+        return
+    oldest_token = min(candidates, key=lambda t: _store[t][1])
+    _total_bytes -= _store[oldest_token][2]
+    del _store[oldest_token]
+
+
+def create_share(payload: dict, size: Optional[int] = None, quota_key: Optional[str] = None) -> tuple:
     """Returns (token, expires_at_unix_ts, revoke_token). Raises ValueError if
     the payload is too large -- caller is expected to turn that into a 400,
     not a 500.
@@ -138,7 +175,13 @@ def create_share(payload: dict, size: Optional[int] = None) -> tuple:
 
     `revoke_token` is the creator's proof of ownership: returned exactly once,
     stored only as a hash, and required by `revoke_share`. It is deliberately
-    NOT the token in the URL, which is public by design."""
+    NOT the token in the URL, which is public by design.
+
+    `quota_key` is who to charge the entry to (the caller's address; see
+    rate_limit.client_key). When given, this client's own links are evicted to
+    stay inside MAX_BYTES_PER_CLIENT / MAX_ENTRIES_PER_CLIENT before the global
+    budget is touched, so a busy or hostile caller runs out of its own room
+    instead of everyone else's."""
     global _total_bytes
     if size is None:
         size = check_size(payload)
@@ -151,14 +194,21 @@ def create_share(payload: dict, size: Optional[int] = None) -> tuple:
 
     with _lock:
         _prune_expired_locked()
-        # Make room -- by count OR by bytes -- rather than refusing new shares
-        # once the cache is full. Dropping expires-soonest entries is the least
-        # destructive way to stay inside both caps.
+        # This client's own room first. It always terminates: every pass removes
+        # one of that key's entries, and the loop stops once the key has none.
+        if quota_key is not None:
+            count, held = _key_usage_locked(quota_key)
+            while count and (held + size > MAX_BYTES_PER_CLIENT or count >= MAX_ENTRIES_PER_CLIENT):
+                _evict_one_of_key_locked(quota_key)
+                count, held = _key_usage_locked(quota_key)
+        # Then the global room -- by count OR by bytes -- rather than refusing new
+        # shares once the cache is full. Dropping expires-soonest entries is the
+        # least destructive way to stay inside both caps.
         while _store and (len(_store) >= MAX_ENTRIES or _total_bytes + size > MAX_TOTAL_BYTES):
             _evict_one_locked()
         expires_at = time.time() + TTL_SECONDS
         token = _new_token(expires_at)
-        _store[token] = (payload, expires_at, size, _hash_secret(revoke_token))
+        _store[token] = (payload, expires_at, size, _hash_secret(revoke_token), quota_key)
         _total_bytes += size
     return token, expires_at, revoke_token
 
@@ -172,7 +222,7 @@ def get_share(token: str):
         entry = _store.get(token)
         if entry is None:
             return None
-        payload, expires_at, size, _revoke_hash = entry
+        payload, expires_at, size, _revoke_hash, _quota_key = entry
         if expires_at < time.time():
             _total_bytes -= size
             del _store[token]
@@ -193,7 +243,7 @@ def revoke_share(token: str, revoke_token: str) -> str:
         entry = _store.get(token)
         if entry is None:
             return "not_found"
-        _payload, expires_at, size, revoke_hash = entry
+        _payload, expires_at, size, revoke_hash, _quota_key = entry
         if expires_at < time.time():
             _total_bytes -= size
             del _store[token]

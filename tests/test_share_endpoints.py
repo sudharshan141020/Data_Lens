@@ -5,6 +5,7 @@ matters as much as the payload itself: a response that a browser or proxy may
 store outlives the link, and a refusal lists column names that describe the
 caller's data.
 """
+from app import body_limit
 from app import main as main_module
 from app import share_cache
 
@@ -67,6 +68,15 @@ def test_a_share_of_nothing_is_refused_like_the_exports_are(client):
     assert "No analysis data" in refused.json()["detail"]
 
 
+def test_a_json_body_over_the_limit_is_refused_before_the_endpoint_parses_it(client, monkeypatch):
+    """The payload cap below only ran after the whole request had been decoded, so it
+    bounded what was kept, not what was received (app/body_limit.py)."""
+    monkeypatch.setattr(body_limit, "MAX_JSON_BYTES", 2_000)
+    refused = _share(client, v2={"data": "x" * 5_000})
+    assert refused.status_code == 413
+    assert "limit for JSON bodies" in refused.json()["detail"]
+
+
 def test_a_link_can_be_revoked_with_the_secret_returned_at_creation(client):
     created = _share(client)
     assert created.status_code == 200
@@ -117,7 +127,7 @@ def test_a_link_lost_from_the_cache_is_not_reported_as_expired(client):
     """A restart, an eviction or a revoke all leave an unexpired token with no
     entry; the message must not claim the link aged out."""
     token = _share(client).json()["token"]
-    _payload, _expires_at, size, _revoke = share_cache._store.pop(token)   # as a restart would
+    _payload, _expires_at, size, _revoke, _quota = share_cache._store.pop(token)   # as a restart would
     share_cache._total_bytes -= size
 
     lost = client.get(f"/api/share/{token}")
