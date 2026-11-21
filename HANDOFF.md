@@ -283,6 +283,12 @@ pin, combine), `AnalysisChartV2` (renders all 7 chart types).
   changes). Keep testing thoroughly before declaring something done.
 - Changes are additive when possible — old working pipelines aren't torn
   out until a replacement is proven solid.
+- **Commit messages name the problem being solved, not just the change.** The
+  subject says what was wrong (or what was possible that shouldn't have been),
+  and the body says why this change closes it — "Cap every non-upload body ..."
+  rather than "Update body_limit.py". Someone reading the GitHub history should
+  be able to tell which problem a commit solved, and what would have happened
+  without it, without opening the diff.
 - This sandbox's filesystem does NOT persist between conversation
   sessions — if starting a new chat, you'll need to **re-upload your
   current project zip** (exclude `venv/` and `frontend/node_modules/`,
