@@ -10,6 +10,7 @@ analysis in for the pandas work and requires a second request to be served while
 it is still running.
 """
 import asyncio
+import threading
 import time
 
 import pytest
@@ -63,3 +64,28 @@ def test_health_is_served_while_an_analysis_is_running(monkeypatch):
             await analysis
 
     asyncio.run(scenario())
+
+
+def test_four_uploads_run_four_analyses_at_once(monkeypatch):
+    """There is no concurrency gate anywhere in front of the CPU-bound work: no
+    semaphore, queue or worker count, and the threadpool is anyio's default 40.
+    N simultaneous uploads therefore hold N dataframes in memory at once. The
+    barrier only releases if all four are inside the analysis together."""
+    barrier = threading.Barrier(4, timeout=10)
+
+    def gated_analysis(df, column_overrides=None):
+        barrier.wait()             # BrokenBarrierError if a gate holds any of them back
+        return _minimal_result()
+
+    monkeypatch.setattr(app_main, "_full_analyze_from_df", gated_analysis)
+
+    async def scenario():
+        transport = ASGITransport(app=app_main.app)
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            responses = await asyncio.gather(*[
+                client.post("/api/analyze", files={"file": (f"{i}.csv", _csv(), "text/csv")})
+                for i in range(4)
+            ])
+            return [r.status_code for r in responses]
+
+    assert asyncio.run(scenario()) == [200, 200, 200, 200]

@@ -172,3 +172,18 @@ def test_without_a_quota_key_the_global_caps_still_apply(monkeypatch):
     tokens = [share_cache.create_share(_payload(10))[0] for _ in range(3)]
     assert share_cache.get_share(tokens[0]) is None
     assert share_cache.get_share(tokens[-1]) is not None
+
+
+def test_a_per_client_eviction_gives_its_bytes_back(monkeypatch):
+    """A client's own eviction deletes entries directly (not through the global
+    evictor), so it has to decrement the shared byte counter itself -- otherwise
+    the budget shrinks on every link a busy caller replaces."""
+    monkeypatch.setattr(share_cache, "MAX_ENTRIES_PER_CLIENT", 1)
+    monkeypatch.setattr(share_cache, "MAX_BYTES_PER_CLIENT", 10_000_000)
+
+    first, _e1, _r1 = share_cache.create_share(_payload(1_000), quota_key="1.2.3.4")
+    second, _e2, _r2 = share_cache.create_share(_payload(2_000), quota_key="1.2.3.4")
+
+    assert share_cache.get_share(first) is None
+    assert share_cache.get_share(second) is not None
+    assert share_cache._total_bytes == share_cache._store[second][2]
