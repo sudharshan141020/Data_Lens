@@ -1744,4 +1744,15 @@ exists to prevent: the cheapest way to keep a worker busy was to send bodies tha
 - Malformed and oversized posts are charged to the budget like any other, and only `POST /api/share` is affected.
 - Tests: malformed, oversized, never-reads-the-body, unrelated-endpoint and 12-way concurrent cases.
 
-**Files:** `app/rate_limit.py`, `app/main.py`, `tests/test_rate_limit.py`, `CHANGELOG.md`.
+**Verified against a real server, not just in-process ASGI.** uvicorn 0.54.0 on 127.0.0.1, budget 3 per 5 s, 1 MB
+body cap, driven over TCP by httpx2, `curl` and a raw socket. Under budget: 200 for a normal post, 413 for an
+oversized one. Over budget: an ordinary, a malformed, an oversized, a 6 MB `Content-Length` and a 6 MB chunked post
+all answered 429 with `{"detail": "Too many requests. Try again in 5 seconds."}` and `retry-after: 5`. The refused
+6 MB upload was answered after ~64 KB had been written and the client then wrote the whole remaining body with no
+reset, EPIPE or hang; the server log had no traceback or broken pipe. After the window rolled over the same client
+was served again (200), the read endpoint was unaffected, and 10 simultaneous posts produced exactly 3 × 200 and
+7 × 429. The worry that refusing an uploading body would surface as a connection reset did not reproduce — uvicorn
+drains the rest of the body instead — so no code changed for it.
+
+**Files:** `app/rate_limit.py`, `app/main.py`, `tests/test_rate_limit.py`, `HANDOFF.md`, `PROJECT_STATUS.md`,
+`CHANGELOG.md`.

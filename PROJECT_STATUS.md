@@ -1,6 +1,6 @@
 # DataLens — Project Status
 
-Last reviewed: 2026-11-25
+Last reviewed: 2026-11-27
 
 ## 1. Project overview
 
@@ -155,3 +155,41 @@ validated through repeatable load, memory and correctness tests.
 - Record architecture decisions in DECISIONS.md.
 - Record confirmed unresolved issues in KNOWN_ISSUES.md.
 - Never claim tests or benchmarks passed without running them.
+
+## 10. Phase work — 2026-11-27
+
+### Completed: Phase 1 test cleanup (merged)
+
+`develop` is at `575ec68a`, the merge commit for PR #1 from `freebuff/phase1`. Phase 1 removed two obsolete
+tests (the "four uploads run four analyses at once" concurrency test and the "body is parsed and validated
+before the budget is spent" test), kept the rest of the rate-limit suite, added a share-cache regression
+test, and ignored the test runner's `.logs/` directory. No application code changed.
+
+### In review: Phase 2 share-create rate limiting
+
+Branch `phase/2-rate-limit`, based on `develop`'s `575ec68a`. Implementation commit `67c87ed`
+("Spend the share-create budget before FastAPI reads the body"), plus a documentation commit.
+
+- New `ShareCreateRateLimitMiddleware` (`app/rate_limit.py`), pure ASGI and registered after
+  `BodySizeLimitMiddleware`, so it is the outermost of the two: an over-budget `POST /api/share` is answered
+  429 without its body being read — not by the router, not by the size cap.
+- Expected order of refusals: 429 (budget) before 422 (validation) and before 413 (size cap).
+- `create_share_link` no longer calls the limiter; `GET /api/share/{token}` keeps its handler-level limiter.
+- The 429 body, `Retry-After` and the client key are unchanged.
+
+**Verification (2026-11-27).** Focused rate-limit, body-limit and share-cache tests: 46 passed. Full backend
+suite: 489 passed, 11 pre-existing pandas/`dateutil` warnings, no failures. Real uvicorn 0.54.0 over TCP
+(httpx2, `curl`, raw socket; budget 3 per 5 s, 1 MB body cap) returned 200 and 413 under budget and
+`429` with `retry-after: 5` over budget for normal, malformed, oversized, 6 MB `Content-Length` and 6 MB
+chunked posts. No connection reset, EPIPE or hang, including a client that kept uploading 8 MB after the
+429; the window refilled to 200, the read endpoint stayed unaffected, and 10 simultaneous posts gave
+exactly 3 × 200 and 7 × 429.
+
+**Status:** pull request into `develop` from `phase/2-rate-limit`; not merged, nothing deployed.
+
+### Remaining tasks
+
+- Review and merge (or return) the Phase 2 pull request.
+- Decide whether the budget should be shared across workers; it is currently per process, in memory.
+- Keep the create-side budget and the read-side limiter in step if either limit is tuned.
+- Add a CORS or auth middleware only with the knowledge that it would sit outside the limiter.

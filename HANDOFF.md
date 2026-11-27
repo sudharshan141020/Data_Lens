@@ -47,6 +47,55 @@ foreach ($f in $files) { [void][System.IO.Compression.ZipFileExtensions]::Create
 $zip.Dispose(); "{0} files -> {1}" -f $files.Count, $out
 ```
 
+## Phase work as of 2026-11-27 (read this before the 2026-11-06 status above)
+
+The 2026-11-06 status block above is kept as history. Two phases have been worked since; `CHANGELOG.md` remains the
+authoritative history of both.
+
+**Phase 1 — test cleanup (merged).** `develop` is at `575ec68a`, the merge commit for PR #1 from `freebuff/phase1`.
+It removed two tests that pinned behaviour the project has moved away from — the "four uploads run four analyses at
+once" concurrency test and the "body is parsed and validated before the budget is spent" test — left the rest of the
+rate-limit suite intact, added a share-cache regression test (a per-client eviction has to give its bytes back), and
+ignored the test runner's `.logs/` directory. No application code changed.
+
+**Phase 2 — share-create rate limiting (this branch, not merged).** Branch `phase/2-rate-limit`, based on `develop`'s
+`575ec68a`: implementation commit `67c87ed` ("Spend the share-create budget before FastAPI reads the body"), with a
+documentation commit on top.
+
+- **What the code does.** `app/rate_limit.py` gains `ShareCreateRateLimitMiddleware`, a pure-ASGI middleware that
+  answers an over-budget `POST /api/share` itself, so nothing downstream — not the router and not the body-size cap —
+  is called and the request body is never read, decoded or validated. `create_share_link` no longer calls the limiter;
+  `GET /api/share/{token}` keeps its own limiter in the handler, because a lookup has no body to protect. The 429 body,
+  `Retry-After` and the client key are unchanged: `rejection_detail` and `client_key_from_scope` are now shared by the
+  handler and the middleware so they cannot drift apart.
+- **Why the limiter runs before body parsing.** FastAPI reads, decodes and validates a model endpoint's body inside the
+  route handler, after every middleware has run. With the limiter in the endpoint, a caller whose budget was long gone
+  still got 422 for a malformed body and 413 for an oversized one — and both paid for the parse the limit exists to
+  prevent, so the cheapest way to occupy a worker was to send bodies that never reached the limiter.
+- **Middleware order.** In `app/main.py`, `BodySizeLimitMiddleware` is added first and
+  `ShareCreateRateLimitMiddleware` second; Starlette builds the stack from the last-added inwards, so the limiter is
+  the outermost of the two. Expected refusals therefore come out as 429 (budget) before 422 (validation) and before
+  413 (size cap), and an oversized post is charged to the budget like any other.
+- **Tests.** Focused (`tests/test_rate_limit.py`, `tests/test_body_limit.py`, `tests/test_share_cache.py`): 46 passed.
+  Full backend suite: 489 passed, 11 warnings — the pre-existing pandas/`dateutil` `UserWarning`s from
+  `column_detector.py` and `semantic_roles.py` — and no failures.
+- **Real-server verification (uvicorn 0.54.0, not just in-process ASGI).** The app was served with
+  `python -m uvicorn app.main:app --host 127.0.0.1 --port 8099` and
+  `DATALENS_SHARE_CREATE_LIMIT=3 DATALENS_RATE_WINDOW_SECONDS=5 DATALENS_MAX_BODY_MB=1`, and driven over TCP by
+  httpx2 2.16.2, `curl`, and a raw socket. Under budget, a normal post answered 200 and an oversized one 413. Over
+  budget, a normal, a malformed, an oversized, a 6 MB `Content-Length` and a 6 MB chunked post all answered
+  `429` with `{"detail": "Too many requests. Try again in 5 seconds."}` and `retry-after: 5`. The refused 6 MB upload
+  was answered after ~64 KB had been written, and the client then wrote the whole remaining body with no reset, no
+  EPIPE and no hang (raw socket: 255 further 32 KB chunks after the reply); `curl` uploaded nothing and printed a
+  clean 429; the server log showed no traceback, reset or broken pipe. After the window rolled over the same client
+  was served again (200), the read endpoint stayed unaffected (200), and 10 simultaneous posts produced exactly
+  3 × 200 and 7 × 429. **The earlier worry that refusing an uploading body would surface as a connection reset did not
+  reproduce** — uvicorn drains the rest of the body instead of resetting — so no code was changed for it.
+- **Status.** `phase/2-rate-limit` is the pull-request branch for `develop`; **not merged**, nothing deployed. The known limits
+  are unchanged: the budget is per client key (see `DATALENS_TRUSTED_PROXIES`), in memory per process, so per worker;
+  `POST /api/share/` with a trailing slash gets its 307 before the limit; and a CORS or auth middleware added *later*
+  in `app/main.py` would sit outside the limiter and would not decorate its 429s.
+
 ## What it is
 A universal, rule-based data analytics platform (originally "Sales Insights
 Ledger," renamed to **DataLens**). Upload any CSV/Excel file → it detects
