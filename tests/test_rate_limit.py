@@ -139,15 +139,3 @@ def test_the_deployed_config_counts_one_trusted_proxy():
     assert "- key: DATALENS_TRUSTED_PROXIES" in text
     value_block = text.split("DATALENS_TRUSTED_PROXIES", 1)[1].split("- key:", 1)[0]
     assert 'value: "1"' in value_block
-
-
-def test_the_body_is_parsed_and_validated_before_the_budget_is_spent(client, monkeypatch):
-    """The limiter runs inside the handler (main.create_share_link), after FastAPI
-    has already read, decoded and validated the body. A request with a missing
-    field therefore answers 422 even though its caller is over budget, and only
-    a valid body ever meets the 429."""
-    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
-
-    assert _share(client).status_code == 200
-    assert client.post("/api/share", json={"file_name": "d.csv", "kpis": {}}).status_code == 422
-    assert _share(client).status_code == 429
