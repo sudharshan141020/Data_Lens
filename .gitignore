@@ -9,3 +9,4 @@ frontend/dist/
 frontend/playwright-report/
 frontend/test-results/
 frontend/coverage/
+.logs/
