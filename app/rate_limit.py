@@ -23,9 +23,15 @@ Which address the budget belongs to is a security decision, not a detail:
 controls appends to it, because the left-most value is whatever the caller
 typed, and honouring that would let one client mint a fresh budget per request
 just by changing the header.
+
+The create endpoint is limited by ShareCreateRateLimitMiddleware, not inside the
+handler: FastAPI reads, decodes and validates a model endpoint's body inside the
+route handler, after every middleware has run, so a limiter called from the
+handler is paid for with the parse it is supposed to prevent.
 """
 from __future__ import annotations
 
+import json
 import math
 import os
 import threading
@@ -116,15 +122,117 @@ def client_key(request) -> str:
     obvious choice) would hand the caller the key: it is simply the text they
     sent, so changing it every request would give them an unlimited budget.
     """
+    return client_key_from_scope(request.scope)
+
+
+def client_key_from_scope(scope) -> str:
+    """`client_key` for a bare ASGI scope.
+
+    The middleware has to answer this before a Request object exists, and the
+    two must not drift apart: this is the only implementation, and
+    `client_key` is a thin wrapper over it.
+    """
     if TRUSTED_PROXIES > 0:
-        forwarded = request.headers.get("x-forwarded-for", "") or ""
+        forwarded = ""
+        for name, value in scope.get("headers") or []:
+            if name.lower() == b"x-forwarded-for":
+                forwarded = value.decode("latin-1")
+                break
         parts = [p.strip() for p in forwarded.split(",") if p.strip()]
         if len(parts) >= TRUSTED_PROXIES:
             return parts[-TRUSTED_PROXIES]
-    client = getattr(request, "client", None)
-    return getattr(client, "host", None) or "unknown"
+    client = scope.get("client")
+    return (client[0] if client else None) or "unknown"
 
 
 def retry_after_header(seconds: float) -> int:
     """Retry-After is in whole seconds, and 0 would invite an immediate retry."""
     return max(1, int(math.ceil(seconds)))
+
+
+def rejection_detail(seconds: int) -> str:
+    """The 429 message. Built here so the handler and the middleware cannot
+    answer the same refusal with two different sentences."""
+    return f"Too many requests. Try again in {seconds} second{'s' if seconds != 1 else ''}."
+
+
+# The one route whose body is expensive enough to limit before it is read.
+SHARE_CREATE_PATH = "/api/share"
+
+
+def _route_path(scope) -> str:
+    """The path as the router sees it, i.e. with any mount prefix removed.
+    Starlette's router strips `root_path` the same way; matching on the raw
+    `path` would silently stop limiting anything under a mount."""
+    path = scope.get("path") or ""
+    root = scope.get("root_path") or ""
+    if root and path.startswith(root):
+        return path[len(root):] or "/"
+    return path
+
+
+class ShareCreateRateLimitMiddleware:
+    """Spend POST /api/share's budget before FastAPI reads the request body.
+
+    The limiter used to be called from the endpoint, which runs after FastAPI has
+    already read, decoded and validated the body (fastapi/routing.py reads it in
+    `get_request_handler`). So a malformed body answered 422 and an oversized one
+    413 even for a caller whose budget was long gone -- and both paid the parse
+    this limit exists to avoid.
+
+    Pure ASGI rather than BaseHTTPMiddleware, because the point is what does NOT
+    happen: on refusal the wrapped app is never called, so nothing downstream --
+    not the router, not the body-size middleware inside this one -- can touch
+    `receive`. A middleware that only inspects the scope could not answer without
+    calling the app; this one writes the 429 itself.
+
+    It is registered after BodySizeLimitMiddleware, which makes it the outermost
+    of the two (Starlette builds the stack from the last-added inwards), so an
+    over-budget caller is refused before the body's declared length is even
+    looked at. Being outside the size cap means oversized posts are charged to
+    the budget as well, which is intended: otherwise a caller could send
+    bodies that are refused only by the size cap and never spend anything.
+
+    Only this route and method are affected; every other request passes through
+    untouched, and the read endpoint keeps its own limiter in the handler.
+    """
+
+    def __init__(self, app, limiter_provider, path: str = SHARE_CREATE_PATH):
+        self.app = app
+        # A callable, not the limiter itself: the app is installed at import time
+        # and its middleware stack is built once, so reading main's module
+        # attribute per request keeps the limiter replaceable (tests do this).
+        self._limiter_provider = limiter_provider
+        self._path = path
+
+    def _applies(self, scope) -> bool:
+        return (
+            scope.get("type") == "http"
+            and (scope.get("method") or "").upper() == "POST"
+            and _route_path(scope) == self._path
+        )
+
+    async def __call__(self, scope, receive, send):
+        if not self._applies(scope):
+            await self.app(scope, receive, send)
+            return
+
+        wait = self._limiter_provider().check(client_key_from_scope(scope))
+        if wait:
+            seconds = retry_after_header(wait)
+            body = json.dumps({"detail": rejection_detail(seconds)}).encode("utf-8")
+            # Deliberately no receive(): the body is not read, not drained and
+            # not validated for a request that is already refused.
+            await send({
+                "type": "http.response.start",
+                "status": 429,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode()),
+                    (b"retry-after", str(seconds).encode()),
+                ],
+            })
+            await send({"type": "http.response.body", "body": body})
+            return
+
+        await self.app(scope, receive, send)

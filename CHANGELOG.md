@@ -1725,3 +1725,23 @@ now has light and dark themes with colour tokens. A new chat that trusted it cou
 the changelog where they disagree).
 
 **Files:** `HANDOFF.md`, `CHANGELOG.md`.
+
+## 2026-11-27 — The share-create limit is spent before the body is read
+
+**Why.** `POST /api/share` called its limiter from the endpoint, and FastAPI reads, decodes and validates a
+model endpoint's body inside the route handler — after every middleware. So a caller whose budget was long
+gone still got 422 for a malformed body or 413 for an oversized one, and both paid for the parse the limit
+exists to prevent: the cheapest way to keep a worker busy was to send bodies that never reached the limiter.
+
+**What changed.**
+- New `ShareCreateRateLimitMiddleware` (`app/rate_limit.py`), pure ASGI and registered after
+  `BodySizeLimitMiddleware` so it is the outermost of the two: a refused `POST /api/share` is answered 429
+  without calling anything downstream, so the body is never read — not by the router, not by the size cap.
+- `create_share_link` no longer calls the limiter; `GET /api/share/{token}` keeps its own limiter in the
+  handler, because a lookup has no body to protect.
+- The 429 body, `Retry-After`, and the client key are unchanged; `rejection_detail` and `client_key_from_scope`
+  give the handler and the middleware one implementation of each.
+- Malformed and oversized posts are charged to the budget like any other, and only `POST /api/share` is affected.
+- Tests: malformed, oversized, never-reads-the-body, unrelated-endpoint and 12-way concurrent cases.
+
+**Files:** `app/rate_limit.py`, `app/main.py`, `tests/test_rate_limit.py`, `CHANGELOG.md`.

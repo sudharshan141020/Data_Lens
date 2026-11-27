@@ -113,6 +113,14 @@ app = FastAPI(title="DataLens", default_response_class=SafeJSONResponse)
 # is received -- app/body_limit.py explains the cap and why it has to be here.
 app.add_middleware(BodySizeLimitMiddleware)
 
+# The share-create budget is spent out here, on purpose. Starlette makes the most
+# recently added middleware the outermost, and FastAPI parses a model endpoint's
+# body only after every middleware has run -- so this sits outside both the size
+# cap above and the router that reads the body, and a refused POST /api/share is
+# answered without its body being read at all. app/rate_limit.py has the detail.
+app.add_middleware(rate_limit.ShareCreateRateLimitMiddleware,
+                   limiter_provider=lambda: _SHARE_CREATE_LIMITER)
+
 # Where the built frontend is served from. Defaults to app/static (what the
 # deploy steps copy frontend/dist into). DATALENS_STATIC_DIR lets the end-to-end
 # tests serve a fresh frontend/dist directly, without overwriting app/static.
@@ -1222,7 +1230,7 @@ def _enforce_rate_limit(limiter, request: Request) -> None:
         seconds = rate_limit.retry_after_header(wait)
         raise HTTPException(
             status_code=429,
-            detail=f"Too many requests. Try again in {seconds} second{'s' if seconds != 1 else ''}.",
+            detail=rate_limit.rejection_detail(seconds),
             headers={"Retry-After": str(seconds)},
         )
 
@@ -1238,8 +1246,11 @@ def create_share_link(payload: ShareRequest, request: Request):
     A share link is the one place this app makes data public, so it is also
     where personal data is refused unless the caller says otherwise
     (share_guard.py explains what is checked and what is deliberately not
-    trusted). The refusal lists column names and kinds, never values."""
-    _enforce_rate_limit(_SHARE_CREATE_LIMITER, request)
+    trusted). The refusal lists column names and kinds, never values.
+
+    No rate-limit call here: ShareCreateRateLimitMiddleware has already spent this
+    caller's budget before the body above was read, which is the only point at
+    which it can be charged without paying for the parse."""
     # The exports refuse an empty v2; a share link to nothing is the same mistake, and
     # it would sit in the cache for 24 hours looking like a working link.
     if not payload.v2:

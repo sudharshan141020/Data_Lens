@@ -6,9 +6,18 @@ client could keep a worker busy re-serialising 15MB results, and probing expired
 tokens was free. These tests pin the budget and the 429, and -- just as important --
 that the budget belongs to an address the caller cannot simply choose.
 """
+import asyncio
+
 import pytest
 from starlette.requests import Request
 
+try:
+    from httpx import ASGITransport, AsyncClient
+except ModuleNotFoundError:                      # this repo's dev requirements install httpx2
+    pytest.importorskip("httpx2")
+    from httpx2 import ASGITransport, AsyncClient
+
+from app import body_limit
 from app import main as main_module
 from app import rate_limit
 from app.rate_limit import SlidingWindowLimiter
@@ -139,3 +148,103 @@ def test_the_deployed_config_counts_one_trusted_proxy():
     assert "- key: DATALENS_TRUSTED_PROXIES" in text
     value_block = text.split("DATALENS_TRUSTED_PROXIES", 1)[1].split("- key:", 1)[0]
     assert 'value: "1"' in value_block
+
+
+# ---------------------------------------------------------------------------
+# the budget is spent before the body is read
+# ---------------------------------------------------------------------------
+# The limiter used to run inside create_share_link, after FastAPI had already
+# read, decoded and validated the body: a malformed request therefore answered
+# 422 and an oversized one 413 even for a caller whose budget was gone, and both
+# paid the parse the limit exists to prevent. It now runs in middleware, outside
+# the body-size cap and outside the router. These pin that ordering.
+def test_a_malformed_body_is_refused_by_the_budget_not_by_validation(client, monkeypatch):
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(2, 60))
+
+    malformed = {"file_name": "d.csv"}                  # `v2` is required, so this is a 422
+    assert client.post("/api/share", json=malformed).status_code == 422
+    assert _share(client).status_code == 200             # budget spent: two posts, limit two
+
+    refused = client.post("/api/share", json=malformed)
+    assert refused.status_code == 429                    # the budget answers, not validation
+    assert int(refused.headers["retry-after"]) >= 1
+    assert refused.json()["detail"].startswith("Too many requests. Try again in ")
+
+
+def test_an_oversized_body_is_refused_by_the_budget_before_the_size_cap(client, monkeypatch):
+    """The limiter is registered after BodySizeLimitMiddleware, i.e. outside it,
+    so the size cap still works while a caller is under budget and stops
+    answering at all once the budget is gone."""
+    monkeypatch.setattr(body_limit, "MAX_BODY_BYTES", 1024)
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(2, 60))
+
+    oversized = {"file_name": "d.csv", "kpis": {}, "v2": {"pad": "x" * 4096}}
+
+    assert client.post("/api/share", json=oversized).status_code == 413     # cap, body unparsed
+    assert _share(client).status_code == 200                              # budget now spent
+    assert client.post("/api/share", json=oversized).status_code == 429     # budget, not cap
+
+
+def test_a_refused_request_is_answered_without_reading_its_body(monkeypatch):
+    """Drives the real app with a `receive` that fails the test if it is ever
+    called: on refusal nothing below the limiter runs, so the body is not read.
+    The Content-Length is far above the size cap, so a 429 here also shows the
+    limiter runs outside that guard."""
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
+    main_module._SHARE_CREATE_LIMITER.check("9.9.9.9")   # this caller is already over budget
+
+    sent = []
+
+    async def receive():
+        raise AssertionError("a refused request must not read its body")
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {
+        "type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1",
+        "method": "POST", "scheme": "http", "path": "/api/share",
+        "raw_path": b"/api/share", "root_path": "", "query_string": b"",
+        "headers": [(b"content-type", b"application/json"),
+                    (b"content-length", b"9000000")],
+        "client": ("9.9.9.9", 5000), "server": ("testserver", 80),
+    }
+    asyncio.run(main_module.app(scope, receive, send))
+
+    started = [m for m in sent if m["type"] == "http.response.start"]
+    assert [m["status"] for m in started] == [429]
+    assert dict(started[0]["headers"])[b"retry-after"] == b"60"
+    assert b"Too many requests" in sent[-1]["body"]
+
+
+def test_a_refused_method_or_path_is_left_to_the_app(client, monkeypatch):
+    """Only POST on the one route is limited: a GET, a DELETE and any other
+    endpoint keep their own behaviour even when the create budget is gone."""
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
+
+    token = _share(client).json()["token"]
+    assert _share(client).status_code == 429
+
+    assert client.get("/api/health").status_code == 200
+    # The read side has its own budget, untouched by the create limit.
+    assert client.get(f"/api/share/{token}").status_code == 200
+
+
+def test_concurrent_posts_share_one_budget_exactly(monkeypatch):
+    """The check runs in the middleware, on the event loop, before any of these
+    reaches the threadpool that runs the endpoint -- so simultaneous posts get
+    exactly the budget's worth of 200s instead of racing past it."""
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(3, 60))
+
+    async def scenario():
+        transport = ASGITransport(app=main_module.app)
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            responses = await asyncio.gather(*[
+                client.post("/api/share", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2})
+                for _ in range(12)
+            ])
+        return [r.status_code for r in responses]
+
+    statuses = asyncio.run(scenario())
+    assert statuses.count(200) == 3
+    assert statuses.count(429) == 9
