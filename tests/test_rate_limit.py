@@ -230,6 +230,129 @@ def test_a_refused_method_or_path_is_left_to_the_app(client, monkeypatch):
     assert client.get(f"/api/share/{token}").status_code == 200
 
 
+# ---------------------------------------------------------------------------
+# a trailing slash is the same create request
+# ---------------------------------------------------------------------------
+# Starlette does not redirect /api/share/ to /api/share: it answers 405. That
+# made the slashed spelling a free way to reach the create route, so the limit
+# only ever applied to a URL a caller could simply choose not to use. One
+# trailing slash is now folded into the create path; nothing else is.
+def test_a_trailing_slash_post_spends_the_create_budget(client, monkeypatch):
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(2, 60))
+
+    assert _share(client).status_code == 200                 # budget: 1 of 2
+    slashed = client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2})
+    assert slashed.status_code != 429                        # still under budget
+    assert _share(client).status_code == 429                 # so the slash spent the second
+
+
+def test_a_slashed_post_cannot_get_a_second_budget(client, monkeypatch):
+    """The whole point: alternating the spelling must not outlast the budget."""
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(2, 60))
+
+    assert client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2}).status_code != 429
+    assert client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2}).status_code != 429
+    assert client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2}).status_code == 429
+
+
+def test_an_over_budget_slashed_post_is_refused_with_retry_after(client, monkeypatch):
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
+
+    assert _share(client).status_code == 200
+
+    refused = client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2})
+    assert refused.status_code == 429
+    assert int(refused.headers["retry-after"]) >= 1
+    assert refused.json()["detail"].startswith("Too many requests. Try again in ")
+
+
+def test_the_two_spellings_share_one_budget_per_client(client, monkeypatch):
+    """Same client, mixed spellings, one counter. A second client is unaffected,
+    so the fold is not collapsing clients into each other."""
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(3, 60))
+
+    assert _share(client).status_code == 200
+    assert client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2}).status_code != 429
+    assert _share(client).status_code == 200
+
+    assert _share(client).status_code == 429
+    assert client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2}).status_code == 429
+
+    limiter = main_module._SHARE_CREATE_LIMITER
+    assert limiter.check("10.0.0.1") == 0.0                  # untouched by the other client
+
+
+def test_a_trailing_slash_still_answers_as_it_did_under_budget(client, monkeypatch):
+    """Charging it must not turn the slashed URL into the endpoint: under budget
+    the request reaches the app and gets the response it always got."""
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(5, 60))
+
+    assert _share(client).status_code == 200
+    assert client.post("/api/share/", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2}).status_code == 405
+
+
+def test_only_one_trailing_slash_is_folded(client, monkeypatch):
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
+
+    assert client.post("/api/share//", json={"file_name": "d.csv", "kpis": {}, "v2": CLEAN_V2}).status_code != 429
+    assert _share(client).status_code == 200                 # the double slash spent nothing
+    assert _share(client).status_code == 429
+
+
+def test_other_methods_and_paths_are_not_charged_by_the_fold(client, monkeypatch):
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
+
+    assert client.get("/api/health/").status_code in (200, 404, 405)   # not charged, whatever it answers
+    assert client.delete("/api/share/").status_code != 429
+    assert client.post("/api/health", json={}).status_code != 429
+    assert client.post("/api/share/extra", json={}).status_code != 429
+    assert _share(client).status_code == 200
+    assert _share(client).status_code == 429
+
+
+def test_the_budget_still_answers_before_the_body_for_a_slashed_post(client, monkeypatch):
+    """429 before 422 before 413 has to survive the fold: an over-budget slashed
+    post is refused by the budget, not by routing, validation or the size cap."""
+    monkeypatch.setattr(body_limit, "MAX_BODY_BYTES", 1024)
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
+
+    assert _share(client).status_code == 200
+
+    oversized = {"file_name": "d.csv", "kpis": {}, "v2": {"pad": "x" * 4096}}
+    assert client.post("/api/share/", json=oversized).status_code == 429
+    assert client.post("/api/share/", json={"file_name": "d.csv"}).status_code == 429
+
+
+def test_the_refusal_happens_before_the_slashed_body_is_read(monkeypatch):
+    """Same guarantee as for the canonical path: a refused request is answered
+    without a single receive()."""
+    monkeypatch.setattr(main_module, "_SHARE_CREATE_LIMITER", SlidingWindowLimiter(1, 60))
+    main_module._SHARE_CREATE_LIMITER.check("9.9.9.9")
+
+    sent = []
+
+    async def receive():
+        raise AssertionError("a refused request must not read its body")
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {
+        "type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1",
+        "method": "POST", "scheme": "http", "path": "/api/share/",
+        "raw_path": b"/api/share/", "root_path": "", "query_string": b"",
+        "headers": [(b"content-type", b"application/json"),
+                    (b"content-length", b"9000000")],
+        "client": ("9.9.9.9", 5000), "server": ("testserver", 80),
+    }
+    asyncio.run(main_module.app(scope, receive, send))
+
+    started = [m for m in sent if m["type"] == "http.response.start"]
+    assert [m["status"] for m in started] == [429]
+    assert dict(started[0]["headers"])[b"retry-after"] == b"60"
+    assert b"Too many requests" in sent[-1]["body"]
+
+
 def test_concurrent_posts_share_one_budget_exactly(monkeypatch):
     """The check runs in the middleware, on the event loop, before any of these
     reaches the threadpool that runs the endpoint -- so simultaneous posts get

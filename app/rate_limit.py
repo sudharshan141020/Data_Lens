@@ -193,6 +193,12 @@ class ShareCreateRateLimitMiddleware:
     the budget as well, which is intended: otherwise a caller could send
     bodies that are refused only by the size cap and never spend anything.
 
+    A single trailing slash is folded into the create path: POST /api/share/
+    is the same request to a caller, and charging it separately would leave the
+    budget reachable-but-free through the slashed URL. Exactly one slash is
+    folded -- /api/share// is a different path -- and no other path is
+    rewritten.
+
     Only this route and method are affected; every other request passes through
     untouched, and the read endpoint keeps its own limiter in the handler.
     """
@@ -206,11 +212,18 @@ class ShareCreateRateLimitMiddleware:
         self._path = path
 
     def _applies(self, scope) -> bool:
-        return (
-            scope.get("type") == "http"
-            and (scope.get("method") or "").upper() == "POST"
-            and _route_path(scope) == self._path
-        )
+        if scope.get("type") != "http" or (scope.get("method") or "").upper() != "POST":
+            return False
+        path = _route_path(scope)
+        # One trailing slash is the same create request: Starlette answers
+        # /api/share/ with a 405 rather than redirecting to the canonical URL, so
+        # without this the slashed form is a free way to reach this route -- the
+        # budget would only apply to the spelling a caller may simply not use.
+        # Exactly one: /api/share// is not this route, and stays uncharged. The
+        # comparison is against this one path, so nothing else is normalised.
+        if path == self._path + "/":
+            path = self._path
+        return path == self._path
 
     async def __call__(self, scope, receive, send):
         if not self._applies(scope):
