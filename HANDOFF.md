@@ -1,6 +1,6 @@
 # DataLens — Project Handoff Summary
 
-## Status as of 2026-11-06 (READ THIS FIRST)
+## Status as of 2026-11-06
 
 **`CHANGELOG.md` is the authoritative history** (newest entry at the bottom, each with what, why and the bugs
 found). The long "Recently added" section further down predates it; where they disagree, trust the changelog.
@@ -29,7 +29,7 @@ then commit `app/static`. `render.yaml` sets the free plan, Python 3.12.7, a hea
 - Confirm Render redeployed from the latest push and run `npm run test:live` against it.
 - README "Live demo" line is still a placeholder: put the Render address in.
 - GitHub About box: description and topics (suggested text is in the 2026-11-02 changelog entry).
-- Free plan: share links live in server memory, so a spin-down or redeploy ends them; no login or rate limiting.
+- Free plan: share links live in server memory, so a spin-down or redeploy ends them; at that date there was no login or rate limiting.
 - Not recomputed under filters (still full data): segments, anomalies, cohorts, correlations, the changepoint marker.
 
 **Starting a new chat.** The sandbox does not persist between chats. Upload the current project zip first (command below),
@@ -47,20 +47,22 @@ foreach ($f in $files) { [void][System.IO.Compression.ZipFileExtensions]::Create
 $zip.Dispose(); "{0} files -> {1}" -f $files.Count, $out
 ```
 
-## Phase work as of 2026-11-27 (read this before the 2026-11-06 status above)
+## Phase work as of 2026-11-28 (read this before the 2026-11-06 status above)
 
-The 2026-11-06 status block above is kept as history. Two phases have been worked since; `CHANGELOG.md` remains the
-authoritative history of both.
+The 2026-11-06 status block above is kept as history. Three phases have been worked since; `CHANGELOG.md` records the
+product changes, while this section records the phase work, including the trailing-slash fix, which has no changelog
+entry.
 
-**Phase 1 — test cleanup (merged).** `develop` is at `575ec68a`, the merge commit for PR #1 from `freebuff/phase1`.
+**Phase 1 — test cleanup (merged).** `575ec68a` is the merge commit for PR #1 from `freebuff/phase1` and was
+`develop`'s head at that point, not the current `develop` HEAD.
 It removed two tests that pinned behaviour the project has moved away from — the "four uploads run four analyses at
 once" concurrency test and the "body is parsed and validated before the budget is spent" test — left the rest of the
 rate-limit suite intact, added a share-cache regression test (a per-client eviction has to give its bytes back), and
 ignored the test runner's `.logs/` directory. No application code changed.
 
-**Phase 2 — share-create rate limiting (this branch, not merged).** Branch `phase/2-rate-limit`, based on `develop`'s
-`575ec68a`: implementation commit `67c87ed` ("Spend the share-create budget before FastAPI reads the body"), with a
-documentation commit on top.
+**Phase 2 — share-create rate limiting (merged as PR #2).** Merge commit `651a0630` on `develop`, from branch
+`phase/2-rate-limit` (based on `575ec68a`): implementation commit `67c87ed` ("Spend the share-create budget before
+FastAPI reads the body"), with a documentation commit on top.
 
 - **What the code does.** `app/rate_limit.py` gains `ShareCreateRateLimitMiddleware`, a pure-ASGI middleware that
   answers an over-budget `POST /api/share` itself, so nothing downstream — not the router and not the body-size cap —
@@ -77,8 +79,9 @@ documentation commit on top.
   the outermost of the two. Expected refusals therefore come out as 429 (budget) before 422 (validation) and before
   413 (size cap), and an oversized post is charged to the budget like any other.
 - **Tests.** Focused (`tests/test_rate_limit.py`, `tests/test_body_limit.py`, `tests/test_share_cache.py`): 46 passed.
-  Full backend suite: 489 passed, 11 warnings — the pre-existing pandas/`dateutil` `UserWarning`s from
-  `column_detector.py` and `semantic_roles.py` — and no failures.
+  Full backend suite at the time: 489 passed, 11 warnings — the pre-existing pandas/`dateutil` `UserWarning`s from
+  `column_detector.py` and `semantic_roles.py` — and no failures, before PR #3's nine trailing-slash tests (see
+  Current state).
 - **Real-server verification (uvicorn 0.54.0, not just in-process ASGI).** The app was served with
   `python -m uvicorn app.main:app --host 127.0.0.1 --port 8099` and
   `DATALENS_SHARE_CREATE_LIMIT=3 DATALENS_RATE_WINDOW_SECONDS=5 DATALENS_MAX_BODY_MB=1`, and driven over TCP by
@@ -91,10 +94,30 @@ documentation commit on top.
   was served again (200), the read endpoint stayed unaffected (200), and 10 simultaneous posts produced exactly
   3 × 200 and 7 × 429. **The earlier worry that refusing an uploading body would surface as a connection reset did not
   reproduce** — uvicorn drains the rest of the body instead of resetting — so no code was changed for it.
-- **Status.** `phase/2-rate-limit` is the pull-request branch for `develop`; **not merged**, nothing deployed. The known limits
-  are unchanged: the budget is per client key (see `DATALENS_TRUSTED_PROXIES`), in memory per process, so per worker;
-  `POST /api/share/` with a trailing slash gets its 307 before the limit; and a CORS or auth middleware added *later*
-  in `app/main.py` would sit outside the limiter and would not decorate its 429s.
+- **Status (historical).** Merged as PR #2, merge commit `651a0630`; nothing was deployed as part of the merge. The known
+  limits are unchanged: the budget is per client key (see `DATALENS_TRUSTED_PROXIES`), in memory per process, so per
+  worker; and a CORS or auth middleware added *later* in `app/main.py` would sit outside the limiter and would not
+  decorate its 429s. The trailing-slash note that used to be in this bullet was wrong and is superseded by Phase 2B
+  below: Starlette does not redirect `POST /api/share/` with a 307 — it answers 405 — and the slashed spelling now
+  spends the same budget.
+
+**Phase 2B — trailing-slash charging (merged as PR #3).** Merge commit `171c4986` on `develop`, from branch
+`phase/2b-trailing-slash`, commit `5927d08` ("Charge trailing-slash share requests to the create budget").
+
+- **What the code does.** `ShareCreateRateLimitMiddleware._applies` folds exactly one trailing slash into
+  `SHARE_CREATE_PATH`, so `POST /api/share/` is charged to the same per-client window as `POST /api/share`.
+  `/api/share//` is not normalised and is not charged, and no other path or method is rewritten.
+- **What a slashed request still is.** Under budget it is passed through to the application and answers 405, exactly
+  as before: the middleware does not redirect it and does not create a share link. Over budget, either spelling gets
+  429 with the existing `Retry-After` and `{"detail": "Too many requests. Try again in ..."}` body.
+- **Unchanged.** Ordering (429 before 422 and 413, body never read), the separate `GET /api/share/{token}` read
+  limiter, and the process-local counter are as described under Phase 2.
+
+**Current state (2026-11-28).** `develop` is at `171c4986` (PR #3 merge), `main` at `6b0ec830`. PR #2 and PR #3 are both
+merged. The backend suite on `develop` `171c4986` passes 498 tests, 11 pre-existing pandas/`dateutil` warnings — the 489
+recorded in the Phase 2 note is the count before PR #3's nine trailing-slash tests. The frontend suite passes 449 tests
+(Vitest, 29 files). Both were run locally. The Playwright smoke test passed in CI for PR #3's head `5927d08`; it was not
+run in the local Linux sandbox (missing browser system libraries), so that result is CI, not local.
 
 ## What it is
 A universal, rule-based data analytics platform (originally "Sales Insights

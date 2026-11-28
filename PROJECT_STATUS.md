@@ -1,6 +1,6 @@
 # DataLens — Project Status
 
-Last reviewed: 2026-11-27
+Last reviewed: 2026-11-28
 
 ## 1. Project overview
 
@@ -79,10 +79,10 @@ The existing handoff documents the following capabilities:
 - Request-body limits and upload protections.
 - Global dashboard search and export features.
 
-These are documented existing capabilities. Their complete current
-test status has not yet been revalidated in this audit.
+These are documented existing capabilities. Their verified test
+counts are recorded in section 10.
 
-## 6. Historical test baseline — requires revalidation
+## 6. Historical test baseline
 
 HANDOFF.md records the following results as of 2026-11-06:
 
@@ -91,8 +91,8 @@ HANDOFF.md records the following results as of 2026-11-06:
 - End-to-end: 13 Playwright tests.
 - Additional opt-in tests.
 
-Do not treat these as current test counts until the suites are run
-again on the current main branch.
+Do not treat these as current test counts; the counts verified on
+`develop` on 2026-11-28 are in section 10.
 
 ## 7. Scalability direction
 
@@ -156,19 +156,20 @@ validated through repeatable load, memory and correctness tests.
 - Record confirmed unresolved issues in KNOWN_ISSUES.md.
 - Never claim tests or benchmarks passed without running them.
 
-## 10. Phase work — 2026-11-27
+## 10. Phase work — 2026-11-28
 
-### Completed: Phase 1 test cleanup (merged)
+### Completed: Phase 1 test cleanup (merged as PR #1)
 
-`develop` is at `575ec68a`, the merge commit for PR #1 from `freebuff/phase1`. Phase 1 removed two obsolete
+`develop` reached `575ec68a` with the merge commit for PR #1 from `freebuff/phase1`. Phase 1 removed two obsolete
 tests (the "four uploads run four analyses at once" concurrency test and the "body is parsed and validated
 before the budget is spent" test), kept the rest of the rate-limit suite, added a share-cache regression
 test, and ignored the test runner's `.logs/` directory. No application code changed.
 
-### In review: Phase 2 share-create rate limiting
+### Merged: Phase 2 share-create rate limiting (PR #2)
 
-Branch `phase/2-rate-limit`, based on `develop`'s `575ec68a`. Implementation commit `67c87ed`
-("Spend the share-create budget before FastAPI reads the body"), plus a documentation commit.
+Merge commit `651a0630` on `develop`, from branch `phase/2-rate-limit` (based on `575ec68a`).
+Implementation commit `67c87ed` ("Spend the share-create budget before FastAPI reads the body"),
+plus a documentation commit.
 
 - New `ShareCreateRateLimitMiddleware` (`app/rate_limit.py`), pure ASGI and registered after
   `BodySizeLimitMiddleware`, so it is the outermost of the two: an over-budget `POST /api/share` is answered
@@ -177,19 +178,55 @@ Branch `phase/2-rate-limit`, based on `develop`'s `575ec68a`. Implementation com
 - `create_share_link` no longer calls the limiter; `GET /api/share/{token}` keeps its handler-level limiter.
 - The 429 body, `Retry-After` and the client key are unchanged.
 
-**Verification (2026-11-27).** Focused rate-limit, body-limit and share-cache tests: 46 passed. Full backend
-suite: 489 passed, 11 pre-existing pandas/`dateutil` warnings, no failures. Real uvicorn 0.54.0 over TCP
+**Verification at the time (2026-11-27).** Focused rate-limit, body-limit and share-cache tests: 46 passed. Full
+backend suite: 489 passed, 11 pre-existing pandas/`dateutil` warnings, no failures. That 489 is a historical count:
+PR #3 later added nine trailing-slash tests, so the current count is higher (see "Latest verified tests" below).
+Real uvicorn 0.54.0 over TCP
 (httpx2, `curl`, raw socket; budget 3 per 5 s, 1 MB body cap) returned 200 and 413 under budget and
 `429` with `retry-after: 5` over budget for normal, malformed, oversized, 6 MB `Content-Length` and 6 MB
 chunked posts. No connection reset, EPIPE or hang, including a client that kept uploading 8 MB after the
 429; the window refilled to 200, the read endpoint stayed unaffected, and 10 simultaneous posts gave
 exactly 3 × 200 and 7 × 429.
 
-**Status:** pull request into `develop` from `phase/2-rate-limit`; not merged, nothing deployed.
+**Status:** merged as PR #2; nothing was deployed as part of the merge.
+
+### Merged: Phase 2B.1 trailing-slash charging (PR #3)
+
+Merge commit `171c4986` on `develop`, from branch `phase/2b-trailing-slash`; implementation commit
+`5927d08` ("Charge trailing-slash share requests to the create budget"). Starlette answers
+`POST /api/share/` with 405 rather than redirecting to the canonical URL, so the slashed spelling was
+refused without spending the create budget. The middleware now folds exactly one trailing slash, and
+nothing else, into the create path, so both spellings are charged to the same budget; the slashed
+request still answers 405.
+
+### Current share-create rate-limit behavior
+
+Checked against `develop` at `171c4986` (`app/rate_limit.py`, `app/main.py`, `tests/test_rate_limit.py`).
+
+- `POST /api/share` and `POST /api/share/` are charged to the same per-client create budget.
+- Exactly one trailing slash is folded into the create path. `/api/share//` is not normalized and is not
+  charged, and no other path or method is rewritten.
+- Under budget, the trailing-slash request is still passed to the application and returns HTTP 405. The
+  middleware neither redirects it nor turns it into a successful share creation.
+- Once the shared budget is exhausted, either spelling receives HTTP 429 with the existing `Retry-After`
+  header and `{"detail": "Too many requests. Try again in ..."}` body.
+- The limiter is in memory, per process. It is **not** distributed: with multiple workers each worker
+  would keep its own counter, so the effective budget would be multiplied by the worker count. Sharing
+  the budget across instances would need a shared store such as Redis.
+
+Middleware ordering (429 before 422 and 413, body unread) and the separate
+`GET /api/share/{token}` read limiter are unchanged from Phase 2 above.
+
+### Latest verified tests (2026-11-28, `develop` `171c4986`)
+
+- Backend: 498 passed, 11 pre-existing pandas/`dateutil` warnings; run locally on this commit. (489 was
+  the count before PR #3's nine trailing-slash tests.)
+- Frontend: 449 passed (Vitest, 29 files); run locally on this commit.
+- End-to-end: the Playwright job passed in CI for PR #3's head `5927d08`. It was not run in the local
+  Linux sandbox, which lacks the browser system libraries, so its pass is a CI result, not a local one.
 
 ### Remaining tasks
 
-- Review and merge (or return) the Phase 2 pull request.
-- Decide whether the budget should be shared across workers; it is currently per process, in memory.
+- Decide whether the create budget should be shared across workers.
 - Keep the create-side budget and the read-side limiter in step if either limit is tuned.
 - Add a CORS or auth middleware only with the knowledge that it would sit outside the limiter.
